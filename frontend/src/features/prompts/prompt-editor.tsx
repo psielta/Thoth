@@ -4,7 +4,7 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { useCallback, useEffect, useMemo } from 'react'
 import { searchFiles } from '@/api/files'
-import type { FileMention } from '@/api/schemas'
+import type { FileMention, FileSearchResult } from '@/api/schemas'
 import { createFileMentionSuggestion, FileMention as FileMentionExtension } from './file-mention'
 
 type PromptEditorProps = {
@@ -13,9 +13,30 @@ type PromptEditorProps = {
   onChange: (value: string, mentions: FileMention[]) => void
 }
 
+const fileSearchCache = new Map<string, Promise<FileSearchResult[]>>()
+
 export function PromptEditor({ workingDirectoryId, value, onChange }: PromptEditorProps) {
   const searchMentions = useCallback(
-    async (query: string) => searchFiles(workingDirectoryId, query, 20),
+    (query: string) => {
+      const normalizedQuery = query.trim().replace(/^@+/, '')
+      const cacheKey = `${workingDirectoryId}:${normalizedQuery}`
+      const cached = fileSearchCache.get(cacheKey)
+      if (cached) {
+        return cached
+      }
+
+      const request = searchFiles(workingDirectoryId, normalizedQuery, 20).catch((error: unknown) => {
+        fileSearchCache.delete(cacheKey)
+        throw error
+      })
+
+      if (fileSearchCache.size > 200) {
+        fileSearchCache.clear()
+      }
+
+      fileSearchCache.set(cacheKey, request)
+      return request
+    },
     [workingDirectoryId],
   )
 

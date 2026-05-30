@@ -32,6 +32,14 @@ public sealed class WorkspaceFileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Search_accepts_leading_mention_marker()
+    {
+        var result = await _service.SearchAsync(Guid.NewGuid(), _root, "@main.go", 50, false, CancellationToken.None);
+
+        result.Should().ContainSingle(item => item.RelativePath == "src/main.go");
+    }
+
+    [Fact]
     public async Task ResolveRelativePath_rejects_parent_traversal()
     {
         var act = () => _service.ResolveRelativePathAsync(_root, "../outside.txt", CancellationToken.None);

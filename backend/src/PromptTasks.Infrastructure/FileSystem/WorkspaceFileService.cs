@@ -8,6 +8,8 @@ namespace PromptTasks.Infrastructure.FileSystem;
 
 public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider dateTimeProvider) : IWorkspaceFileService
 {
+    private sealed record FileIndexEntry(string RelativePath, string FileName, bool IsDirectory);
+
     private static readonly HashSet<string> IgnoredDirectoryNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "node_modules",
@@ -24,7 +26,16 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
         ".venv",
         "__pycache__",
         "target",
-        ".gradle"
+        ".gradle",
+        "artifacts",
+        "packages",
+        "coverage",
+        "TestResults",
+        "log",
+        "logs",
+        ".cache",
+        "tmp",
+        "temp"
     };
 
     public Task<ValidatedPathResult> ValidatePathAsync(string absolutePath, CancellationToken cancellationToken)
@@ -74,14 +85,17 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
 
         var rootCanonical = CanonicalizeExistingPath(rootAbsolutePath);
         var boundedLimit = Math.Clamp(limit, 1, 200);
-        var normalizedQuery = query.Trim();
-        var cacheKey = $"file-search:{workingDirectoryId}:{rootCanonical}:{respectGitignore}:{boundedLimit}:{normalizedQuery}";
+        var normalizedQuery = NormalizeSearchQuery(query);
+        var cacheKey = $"file-index:{workingDirectoryId}:{rootCanonical}:{respectGitignore}";
 
-        return await cache.GetOrCreateAsync(cacheKey, entry =>
+        var index = await cache.GetOrCreateAsync(cacheKey, entry =>
         {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(8);
-            return Task.FromResult(SearchCore(rootCanonical, normalizedQuery, boundedLimit, respectGitignore, cancellationToken));
-        }) ?? Array.Empty<FileSearchResultDto>();
+            entry.SlidingExpiration = TimeSpan.FromMinutes(2);
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            return Task.FromResult(BuildIndex(rootCanonical, respectGitignore, cancellationToken));
+        }) ?? Array.Empty<FileIndexEntry>();
+
+        return SearchIndex(index, normalizedQuery, boundedLimit);
     }
 
     public Task<FileReferenceResolution> ResolveRelativePathAsync(
@@ -106,15 +120,13 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
         return Task.FromResult(new FileReferenceResolution(normalized, exists, dateTimeProvider.UtcNow));
     }
 
-    private static IReadOnlyList<FileSearchResultDto> SearchCore(
+    private static IReadOnlyList<FileIndexEntry> BuildIndex(
         string rootCanonical,
-        string query,
-        int limit,
         bool respectGitignore,
         CancellationToken cancellationToken)
     {
         var matcher = respectGitignore ? BuildGitignoreMatcher(rootCanonical) : null;
-        var results = new List<FileSearchResultDto>();
+        var indexEntries = new List<FileIndexEntry>();
         var directories = new Queue<string>();
         directories.Enqueue(rootCanonical);
 
@@ -123,17 +135,17 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
             cancellationToken.ThrowIfCancellationRequested();
             var currentDirectory = directories.Dequeue();
 
-            IEnumerable<string> entries;
+            IEnumerable<string> fileSystemEntries;
             try
             {
-                entries = Directory.EnumerateFileSystemEntries(currentDirectory);
+                fileSystemEntries = Directory.EnumerateFileSystemEntries(currentDirectory);
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
                 continue;
             }
 
-            foreach (var entry in entries)
+            foreach (var entry in fileSystemEntries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -159,7 +171,7 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
                     continue;
                 }
 
-                var candidateCanonical = CanonicalizeExistingPath(entry);
+                var candidateCanonical = TrimEndingDirectorySeparator(Path.GetFullPath(entry));
                 EnsureContained(rootCanonical, candidateCanonical);
                 var relativePath = NormalizeRelativePath(Path.GetRelativePath(rootCanonical, entry));
 
@@ -168,11 +180,7 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
                     continue;
                 }
 
-                var score = CalculateScore(relativePath, name, query);
-                if (score >= 0)
-                {
-                    results.Add(new FileSearchResultDto(relativePath, name, isDirectory, score));
-                }
+                indexEntries.Add(new FileIndexEntry(relativePath, name, isDirectory));
 
                 if (isDirectory)
                 {
@@ -181,7 +189,26 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
             }
         }
 
-        return results
+        return indexEntries;
+    }
+
+    private static IReadOnlyList<FileSearchResultDto> SearchIndex(
+        IReadOnlyList<FileIndexEntry> index,
+        string query,
+        int limit)
+    {
+        return index
+            .Select(entry => new
+            {
+                Entry = entry,
+                Score = CalculateScore(entry.RelativePath, entry.FileName, query)
+            })
+            .Where(result => result.Score >= 0)
+            .Select(result => new FileSearchResultDto(
+                result.Entry.RelativePath,
+                result.Entry.FileName,
+                result.Entry.IsDirectory,
+                result.Score))
             .OrderByDescending(result => result.Score)
             .ThenBy(result => result.RelativePath.Count(character => character == '/'))
             .ThenBy(result => result.RelativePath.Length)
@@ -195,6 +222,31 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
         if (query.Length == 0)
         {
             return 1_000 - relativePath.Count(character => character == '/');
+        }
+
+        var normalizedFileName = fileName.ToUpperInvariant();
+        var normalizedRelativePath = relativePath.ToUpperInvariant();
+        var normalizedQuery = query.ToUpperInvariant();
+        if (normalizedFileName == normalizedQuery)
+        {
+            return 10_000;
+        }
+
+        if (normalizedRelativePath == normalizedQuery)
+        {
+            return 9_500;
+        }
+
+        var exactFileNameIndex = normalizedFileName.IndexOf(normalizedQuery, StringComparison.Ordinal);
+        if (exactFileNameIndex >= 0)
+        {
+            return 8_000 - exactFileNameIndex;
+        }
+
+        var exactPathIndex = normalizedRelativePath.IndexOf(normalizedQuery, StringComparison.Ordinal);
+        if (exactPathIndex >= 0)
+        {
+            return 7_000 - exactPathIndex;
         }
 
         var pathScore = FuzzyScore(relativePath, query);
@@ -324,11 +376,15 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
 
     private static void RejectSuspiciousClientQuery(string query)
     {
-        if (Path.IsPathRooted(query) || HasParentTraversal(query))
+        var normalizedQuery = NormalizeSearchQuery(query);
+        if (Path.IsPathRooted(normalizedQuery) || HasParentTraversal(normalizedQuery))
         {
             throw new PathTraversalException("Search query cannot be an absolute or parent-relative path.");
         }
     }
+
+    private static string NormalizeSearchQuery(string query) =>
+        query.Trim().TrimStart('@');
 
     private static bool HasParentTraversal(string path) =>
         path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)

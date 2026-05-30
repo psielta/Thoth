@@ -14,6 +14,11 @@ public interface IWorkspaceFileService
         bool respectGitignore,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<FileReferenceValidationDto>> ValidateRelativePathsAsync(
+        string rootAbsolutePath,
+        IReadOnlyList<string> relativePaths,
+        CancellationToken cancellationToken);
+
     Task<FileReferenceResolution> ResolveRelativePathAsync(
         string rootAbsolutePath,
         string relativePath,

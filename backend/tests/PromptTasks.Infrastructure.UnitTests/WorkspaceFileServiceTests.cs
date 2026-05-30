@@ -48,6 +48,36 @@ public sealed class WorkspaceFileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateRelativePaths_marks_existing_and_missing_paths()
+    {
+        var result = await _service.ValidateRelativePathsAsync(
+            _root,
+            new[] { "@src/main.go", "src/missing.go" },
+            CancellationToken.None);
+
+        result.Should().ContainSingle(item =>
+            item.RawPath == "@src/main.go" &&
+            item.RelativePath == "src/main.go" &&
+            item.Exists &&
+            !item.IsDirectory);
+        result.Should().ContainSingle(item =>
+            item.RelativePath == "src/missing.go" &&
+            !item.Exists &&
+            item.Error == "File or directory was not found.");
+    }
+
+    [Fact]
+    public async Task ValidateRelativePaths_reports_parent_traversal_without_throwing()
+    {
+        var result = await _service.ValidateRelativePathsAsync(_root, new[] { "../outside.txt" }, CancellationToken.None);
+
+        result.Should().ContainSingle(item =>
+            item.RawPath == "../outside.txt" &&
+            !item.Exists &&
+            item.Error == "Only relative paths inside the working directory are allowed.");
+    }
+
+    [Fact]
     public async Task ValidatePath_rejects_files()
     {
         var filePath = Path.Combine(_root, "src", "main.go");

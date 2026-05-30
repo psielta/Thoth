@@ -98,6 +98,21 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
         return SearchIndex(index, normalizedQuery, boundedLimit);
     }
 
+    public Task<IReadOnlyList<FileReferenceValidationDto>> ValidateRelativePathsAsync(
+        string rootAbsolutePath,
+        IReadOnlyList<string> relativePaths,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var rootCanonical = CanonicalizeExistingPath(rootAbsolutePath);
+        var results = relativePaths
+            .Select(path => ValidateRelativePath(rootCanonical, path, cancellationToken))
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<FileReferenceValidationDto>>(results);
+    }
+
     public Task<FileReferenceResolution> ResolveRelativePathAsync(
         string rootAbsolutePath,
         string relativePath,
@@ -118,6 +133,67 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
 
         var normalized = NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateLogical));
         return Task.FromResult(new FileReferenceResolution(normalized, exists, dateTimeProvider.UtcNow));
+    }
+
+    private static FileReferenceValidationDto ValidateRelativePath(
+        string rootCanonical,
+        string rawPath,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var relativePath = rawPath.Trim().TrimStart('@');
+        if (relativePath.Length == 0)
+        {
+            return new FileReferenceValidationDto(rawPath, string.Empty, false, false, "Path is required.");
+        }
+
+        try
+        {
+            if (Path.IsPathRooted(relativePath) || HasParentTraversal(relativePath))
+            {
+                return new FileReferenceValidationDto(
+                    rawPath,
+                    relativePath,
+                    false,
+                    false,
+                    "Only relative paths inside the working directory are allowed.");
+            }
+
+            var candidateLogical = Path.GetFullPath(Path.Combine(rootCanonical, NormalizeInputRelativePath(relativePath)));
+            var exists = File.Exists(candidateLogical) || Directory.Exists(candidateLogical);
+            var candidateCanonical = exists
+                ? CanonicalizeExistingPath(candidateLogical)
+                : TrimEndingDirectorySeparator(candidateLogical);
+
+            EnsureContained(rootCanonical, candidateCanonical);
+
+            if (!exists)
+            {
+                return new FileReferenceValidationDto(
+                    rawPath,
+                    NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateLogical)),
+                    false,
+                    false,
+                    "File or directory was not found.");
+            }
+
+            var isDirectory = Directory.Exists(candidateCanonical);
+            return new FileReferenceValidationDto(
+                rawPath,
+                NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateCanonical)),
+                true,
+                isDirectory,
+                null);
+        }
+        catch (Exception exception) when (exception is IOException
+                                            or UnauthorizedAccessException
+                                            or ArgumentException
+                                            or NotSupportedException
+                                            or PathTraversalException)
+        {
+            return new FileReferenceValidationDto(rawPath, relativePath, false, false, exception.Message);
+        }
     }
 
     private static IReadOnlyList<FileIndexEntry> BuildIndex(

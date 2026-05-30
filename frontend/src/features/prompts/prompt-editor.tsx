@@ -1,9 +1,13 @@
 import { Markdown } from '@tiptap/markdown'
+import type { EditorView } from '@tiptap/pm/view'
 import type { JSONContent } from '@tiptap/react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { useCallback, useEffect, useMemo } from 'react'
-import { searchFiles } from '@/api/files'
+import { Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { getErrorMessage } from '@/api/client'
+import { searchFiles, validateFileReferences } from '@/api/files'
 import type { FileMention, FileSearchResult } from '@/api/schemas'
 import { createFileMentionSuggestion, FileMention as FileMentionExtension } from './file-mention'
 
@@ -14,8 +18,24 @@ type PromptEditorProps = {
 }
 
 const fileSearchCache = new Map<string, Promise<FileSearchResult[]>>()
+const plainFileMentionPattern = /(^|[\s([{"'])@([^\s@]+(?:[\\/][^\s@]+)+)/g
+const trailingPathPunctuationPattern = /[)"',.;:!?]+$/
+const maxPastedMentionValidationCount = 100
+
+type PlainFileMentionReplacement = {
+  from: number
+  path: string
+  to: number
+}
+
+type NormalizePlainMentionOptions = {
+  alertInvalid?: boolean
+  showLoading?: boolean
+}
 
 export function PromptEditor({ workingDirectoryId, value, onChange }: PromptEditorProps) {
+  const [isValidatingMentions, setIsValidatingMentions] = useState(false)
+
   const searchMentions = useCallback(
     (query: string) => {
       const normalizedQuery = query.trim().replace(/^@+/, '')
@@ -36,6 +56,66 @@ export function PromptEditor({ workingDirectoryId, value, onChange }: PromptEdit
 
       fileSearchCache.set(cacheKey, request)
       return request
+    },
+    [workingDirectoryId],
+  )
+
+  const validateAndNormalizePlainMentions = useCallback(
+    async (view: EditorView, options: NormalizePlainMentionOptions = {}) => {
+      const paths = collectPlainFileMentionPaths(view)
+      if (!paths.length) {
+        return
+      }
+
+      const pathsToValidate = paths.slice(0, maxPastedMentionValidationCount)
+      if (options.showLoading) {
+        setIsValidatingMentions(true)
+      }
+
+      try {
+        const validations = await validateFileReferences(workingDirectoryId, pathsToValidate)
+        const validPathsByKey = new Map<string, string>()
+        const invalidPaths: string[] = []
+
+        validations.forEach((validation) => {
+          const key = normalizePathKey(validation.rawPath || validation.relativePath)
+          if (validation.exists) {
+            validPathsByKey.set(key, validation.relativePath)
+            return
+          }
+
+          invalidPaths.push(validation.rawPath || validation.relativePath)
+        })
+
+        replacePlainFileMentions(view, validPathsByKey)
+
+        if (options.alertInvalid) {
+          if (paths.length > maxPastedMentionValidationCount) {
+            toast.warning(`Foram validadas apenas as primeiras ${maxPastedMentionValidationCount} mencoes coladas.`)
+          }
+
+          if (invalidPaths.length) {
+            const preview = invalidPaths
+              .slice(0, 4)
+              .map((path) => `@${path}`)
+              .join('\n')
+            const suffix = invalidPaths.length > 4 ? `\n... e mais ${invalidPaths.length - 4}` : ''
+            toast.warning('Algumas mencoes nao existem no diretorio de trabalho.', {
+              description: `${preview}${suffix}`,
+            })
+          }
+        }
+      } catch (error) {
+        if (options.alertInvalid) {
+          toast.error('Nao foi possivel validar as mencoes coladas.', {
+            description: getErrorMessage(error),
+          })
+        }
+      } finally {
+        if (options.showLoading) {
+          setIsValidatingMentions(false)
+        }
+      }
     },
     [workingDirectoryId],
   )
@@ -64,6 +144,17 @@ export function PromptEditor({ workingDirectoryId, value, onChange }: PromptEdit
       attributes: {
         class: 'tiptap px-4 py-3 text-left text-sm leading-6 text-[#172126]',
       },
+      handlePaste: (view) => {
+        window.setTimeout(() => {
+          void validateAndNormalizePlainMentions(view, { alertInvalid: true, showLoading: true })
+        }, 0)
+        return false
+      },
+    },
+    onCreate: ({ editor: currentEditor }) => {
+      queueMicrotask(() => {
+        void validateAndNormalizePlainMentions(currentEditor.view)
+      })
     },
     onUpdate: ({ editor: currentEditor }) => {
       onChange(currentEditor.getMarkdown(), collectMentions(currentEditor.getJSON()))
@@ -76,16 +167,118 @@ export function PromptEditor({ workingDirectoryId, value, onChange }: PromptEdit
     }
 
     editor.commands.setContent(value || '', { contentType: 'markdown' })
-  }, [editor, value])
+    queueMicrotask(() => {
+      void validateAndNormalizePlainMentions(editor.view)
+    })
+  }, [editor, validateAndNormalizePlainMentions, value])
 
   return (
     <div className="overflow-hidden rounded-lg border border-[#cbd5c8] bg-white">
-      <div className="border-b border-[#d9dfd5] bg-[#f7f8f6] px-4 py-2 text-xs font-medium uppercase tracking-normal text-[#66746b]">
-        Markdown com mencoes de arquivo
+      <div className="flex items-center justify-between gap-3 border-b border-[#d9dfd5] bg-[#f7f8f6] px-4 py-2 text-xs font-medium uppercase tracking-normal text-[#66746b]">
+        <span>Markdown com mencoes de arquivo</span>
+        {isValidatingMentions ? (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[0.68rem] text-[#42664d]">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Validando mencoes
+          </span>
+        ) : null}
       </div>
       <EditorContent editor={editor} />
     </div>
   )
+}
+
+function collectPlainFileMentionPaths(view: EditorView) {
+  const paths = new Map<string, string>()
+
+  getPlainFileMentionReplacements(view).forEach((replacement) => {
+    paths.set(normalizePathKey(replacement.path), replacement.path.replace(/\\/g, '/'))
+  })
+
+  return Array.from(paths.values())
+}
+
+function replacePlainFileMentions(view: EditorView, validPathsByKey: Map<string, string>) {
+  const mentionType = view.state.schema.nodes.mention
+  if (!mentionType) {
+    return false
+  }
+
+  const replacements = getPlainFileMentionReplacements(view)
+    .map((replacement) => ({
+      ...replacement,
+      path: validPathsByKey.get(normalizePathKey(replacement.path)) ?? '',
+    }))
+    .filter((replacement) => replacement.path.length > 0)
+
+  if (!replacements.length) {
+    return false
+  }
+
+  let transaction = view.state.tr
+  replacements
+    .sort((left, right) => right.from - left.from)
+    .forEach((replacement) => {
+      transaction = transaction.replaceWith(
+        replacement.from,
+        replacement.to,
+        mentionType.create({
+          id: replacement.path,
+          label: replacement.path,
+          mentionSuggestionChar: '@',
+        }),
+      )
+    })
+
+  if (!transaction.docChanged) {
+    return false
+  }
+
+  view.dispatch(transaction)
+  return true
+}
+
+function getPlainFileMentionReplacements(view: EditorView) {
+  const replacements: PlainFileMentionReplacement[] = []
+
+  view.state.doc.descendants((node, position) => {
+    if (node.type.name === 'codeBlock') {
+      return false
+    }
+
+    if (!node.isText || !node.text || node.marks.some((mark) => mark.type.name === 'code')) {
+      return true
+    }
+
+    plainFileMentionPattern.lastIndex = 0
+
+    let match: RegExpExecArray | null
+    while ((match = plainFileMentionPattern.exec(node.text)) !== null) {
+      const prefix = match[1] ?? ''
+      const rawPath = match[2] ?? ''
+      const pathWithoutTrailingPunctuation = rawPath.replace(trailingPathPunctuationPattern, '')
+
+      if (!pathWithoutTrailingPunctuation || !/[\\/]/.test(pathWithoutTrailingPunctuation)) {
+        continue
+      }
+
+      const from = position + match.index + prefix.length
+      const to = from + 1 + pathWithoutTrailingPunctuation.length
+      replacements.push({
+        from,
+        to,
+        path: pathWithoutTrailingPunctuation,
+      })
+    }
+
+    return true
+  })
+
+  return replacements
+}
+
+function normalizePathKey(path: string) {
+  return path.trim().replace(/\\/g, '/').toLocaleLowerCase()
 }
 
 function collectMentions(document: JSONContent): FileMention[] {

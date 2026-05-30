@@ -36,6 +36,14 @@ export const fileSearchResultSchema = z.object({
   score: z.number(),
 })
 
+export const fileReferenceValidationSchema = z.object({
+  rawPath: z.string(),
+  relativePath: z.string(),
+  exists: z.boolean(),
+  isDirectory: z.boolean(),
+  error: z.string().nullable(),
+})
+
 export const promptSchema = z.object({
   id: z.string().uuid(),
   workingDirectoryId: z.string().uuid(),
@@ -68,10 +76,12 @@ export type FileMention = z.infer<typeof fileMentionSchema>
 export type WorkingDirectory = z.infer<typeof workingDirectorySchema>
 export type ValidatePathResponse = z.infer<typeof validatePathResponseSchema>
 export type FileSearchResult = z.infer<typeof fileSearchResultSchema>
+export type FileReferenceValidation = z.infer<typeof fileReferenceValidationSchema>
 export type Prompt = z.infer<typeof promptSchema>
 export type PromptVersion = z.infer<typeof promptVersionSchema>
 
 export const workingDirectoryListSchema = z.array(workingDirectorySchema)
 export const fileSearchResultListSchema = z.array(fileSearchResultSchema)
+export const fileReferenceValidationListSchema = z.array(fileReferenceValidationSchema)
 export const promptListSchema = z.array(promptSchema)
 export const promptVersionListSchema = z.array(promptVersionSchema)

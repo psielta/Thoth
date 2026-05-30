@@ -168,6 +168,15 @@ public sealed class CreatePromptHandlerTests
             CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<FileSearchResultDto>>(Array.Empty<FileSearchResultDto>());
 
+        public Task<IReadOnlyList<FileReferenceValidationDto>> ValidateRelativePathsAsync(
+            string rootAbsolutePath,
+            IReadOnlyList<string> relativePaths,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<FileReferenceValidationDto>>(
+                relativePaths
+                    .Select(path => new FileReferenceValidationDto(path, path, true, false, null))
+                    .ToList());
+
         public Task<FileReferenceResolution> ResolveRelativePathAsync(
             string rootAbsolutePath,
             string relativePath,

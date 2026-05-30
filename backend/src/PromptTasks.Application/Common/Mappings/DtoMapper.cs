@@ -46,4 +46,40 @@ public static class DtoMapper
             version.Status,
             version.ChangeNote,
             version.CreatedAtUtc);
+
+    public static LinkedDocumentDto ToDto(this LinkedDocument document) =>
+        new(
+            document.Id,
+            document.PromptId,
+            document.WorkingDirectoryId,
+            document.AbsolutePath,
+            document.DisplayName ?? Path.GetFileName(document.AbsolutePath),
+            document.DocumentType,
+            document.Status,
+            document.CurrentVersion,
+            document.LastContentHash,
+            document.SizeBytes,
+            document.LastError,
+            document.LastSyncedAtUtc,
+            document.CreatedAtUtc,
+            document.UpdatedAtUtc);
+
+    public static LinkedDocumentVersionDto ToDto(this LinkedDocumentVersion version) =>
+        new(
+            version.Id,
+            version.LinkedDocumentId,
+            version.VersionNumber,
+            version.ContentHash,
+            version.SizeBytes,
+            version.Source,
+            version.CreatedAtUtc);
+
+    public static LinkedDocumentContentDto ToContentDto(this LinkedDocumentVersion version) =>
+        new(
+            version.LinkedDocumentId,
+            version.VersionNumber,
+            version.Content,
+            version.ContentHash,
+            version.SizeBytes,
+            version.CreatedAtUtc);
 }

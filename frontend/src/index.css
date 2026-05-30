@@ -194,3 +194,108 @@ select {
   color: #66746b;
   font-size: 0.8rem;
 }
+
+.linked-markdown {
+  min-width: 0;
+  color: #172126;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.linked-markdown > * + * {
+  margin-top: 0.85rem;
+}
+
+.linked-markdown h1 {
+  font-size: 1.55rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.linked-markdown h2 {
+  border-bottom: 1px solid #d9dfd5;
+  font-size: 1.2rem;
+  font-weight: 720;
+  line-height: 1.25;
+  padding-bottom: 0.35rem;
+}
+
+.linked-markdown h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.linked-markdown ul,
+.linked-markdown ol {
+  padding-left: 1.4rem;
+}
+
+.linked-markdown ul {
+  list-style: disc;
+}
+
+.linked-markdown ol {
+  list-style: decimal;
+}
+
+.linked-markdown li + li {
+  margin-top: 0.3rem;
+}
+
+.linked-markdown a {
+  color: #245f8f;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+}
+
+.linked-markdown blockquote {
+  border-left: 3px solid #5e7461;
+  color: #425048;
+  padding-left: 0.85rem;
+}
+
+.linked-markdown code {
+  border-radius: 0.25rem;
+  background: #e7ece6;
+  color: #253035;
+  font-size: 0.88em;
+  padding: 0.1rem 0.3rem;
+}
+
+.linked-markdown pre {
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  background: #152024;
+  color: #f6f8f5;
+  padding: 0.85rem 1rem;
+}
+
+.linked-markdown pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.linked-markdown table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.linked-markdown th,
+.linked-markdown td {
+  border: 1px solid #d9dfd5;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+}
+
+.linked-markdown th {
+  background: #eef2eb;
+  font-weight: 700;
+}

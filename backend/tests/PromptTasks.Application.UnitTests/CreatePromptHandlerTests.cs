@@ -85,6 +85,7 @@ public sealed class CreatePromptHandlerTests
         public List<PromptVersion> PromptVersionItems { get; } = new();
         public List<PromptFileReference> PromptFileReferenceItems { get; } = new();
         public List<LinkedDocument> LinkedDocumentItems { get; } = new();
+        public List<LinkedDocumentVersion> LinkedDocumentVersionItems { get; } = new();
         public int SaveChangesCount { get; private set; }
 
         public IQueryable<User> Users => UserItems.AsQueryable();
@@ -93,6 +94,7 @@ public sealed class CreatePromptHandlerTests
         public IQueryable<PromptVersion> PromptVersions => PromptVersionItems.AsQueryable();
         public IQueryable<PromptFileReference> PromptFileReferences => PromptFileReferenceItems.AsQueryable();
         public IQueryable<LinkedDocument> LinkedDocuments => LinkedDocumentItems.AsQueryable();
+        public IQueryable<LinkedDocumentVersion> LinkedDocumentVersions => LinkedDocumentVersionItems.AsQueryable();
 
         public void Add<TEntity>(TEntity entity) where TEntity : class
         {
@@ -143,6 +145,9 @@ public sealed class CreatePromptHandlerTests
                     break;
                 case PromptVersion version:
                     PromptVersionItems.Add(version);
+                    break;
+                case LinkedDocumentVersion version:
+                    LinkedDocumentVersionItems.Add(version);
                     break;
                 case PromptFileReference reference:
                     PromptFileReferenceItems.Add(reference);

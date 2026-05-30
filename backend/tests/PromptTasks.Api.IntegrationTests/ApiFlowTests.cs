@@ -83,9 +83,11 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.Prompts.Should().ContainSingle();
-            db.PromptVersions.Should().ContainSingle(version => version.VersionNumber == 1);
-            db.PromptFileReferences.Should().ContainSingle(reference => reference.RelativePath == "src/main.go");
+            db.Prompts.Should().ContainSingle(prompt => prompt.Id == created.Id);
+            db.PromptVersions.Should().ContainSingle(version =>
+                version.PromptId == created.Id && version.VersionNumber == 1);
+            db.PromptFileReferences.Should().ContainSingle(reference =>
+                reference.PromptId == created.Id && reference.RelativePath == "src/main.go");
         }
 
         var current = await client.GetFromJsonAsync<PromptDto>($"/api/prompts/{created.Id}", JsonOptions);
@@ -119,6 +121,87 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
         (await deletedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10))).Should().Be(created.Id);
     }
 
+    [Fact]
+    public async Task Linked_document_flow_versions_markdown_and_updates_over_signalr()
+    {
+        Directory.CreateDirectory(Path.Combine(_tempRoot, "repo"));
+        var planDirectory = Path.Combine(_tempRoot, "plans");
+        Directory.CreateDirectory(planDirectory);
+        var planPath = Path.Combine(planDirectory, "claude-plan.md");
+        await File.WriteAllTextAsync(planPath, "# Initial plan");
+
+        var client = factory.CreateClient();
+        var wdResponse = await client.PostAsJsonAsync(
+            "/api/working-directories",
+            new { name = "repo", absolutePath = Path.Combine(_tempRoot, "repo"), respectGitignore = true },
+            JsonOptions);
+        wdResponse.EnsureSuccessStatusCode();
+        var wd = await wdResponse.Content.ReadFromJsonAsync<WorkingDirectoryDto>(JsonOptions);
+
+        await using var hub = CreateHubConnection();
+        var linkedTcs = new TaskCompletionSource<LinkedDocumentDto>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var updatedTcs = new TaskCompletionSource<LinkedDocumentDto>(TaskCreationOptions.RunContinuationsAsynchronously);
+        hub.On<LinkedDocumentDto>("LinkedDocumentLinked", document => linkedTcs.TrySetResult(document));
+        hub.On<LinkedDocumentDto>("LinkedDocumentUpdated", document =>
+        {
+            if (document.CurrentVersion >= 2)
+            {
+                updatedTcs.TrySetResult(document);
+            }
+        });
+
+        await hub.StartAsync();
+        await hub.InvokeAsync("JoinWorkingDirectory", wd!.Id);
+
+        var createResponse = await client.PostAsJsonAsync(
+            "/api/prompts",
+            new
+            {
+                workingDirectoryId = wd.Id,
+                title = "Plan prompt",
+                content = "Create a plan",
+                targetAgent = TargetAgent.ClaudeCode,
+                kind = PromptKind.Planning,
+                status = PromptStatus.Draft,
+                mentions = Array.Empty<object>()
+            },
+            JsonOptions);
+        createResponse.EnsureSuccessStatusCode();
+        var prompt = await createResponse.Content.ReadFromJsonAsync<PromptDto>(JsonOptions);
+
+        var linkResponse = await client.PostAsJsonAsync(
+            $"/api/prompts/{prompt!.Id}/linked-documents",
+            new { absolutePath = planPath, documentType = LinkedDocumentType.ClaudeCodePlan },
+            JsonOptions);
+        linkResponse.EnsureSuccessStatusCode();
+        var linked = await linkResponse.Content.ReadFromJsonAsync<LinkedDocumentDto>(JsonOptions);
+        linked!.CurrentVersion.Should().Be(1);
+        (await linkedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10))).Id.Should().Be(linked.Id);
+
+        var content = await client.GetFromJsonAsync<LinkedDocumentContentDto>(
+            $"/api/linked-documents/{linked.Id}/content",
+            JsonOptions);
+        content!.Content.Should().Be("# Initial plan");
+
+        await File.WriteAllTextAsync(planPath, "# Updated plan");
+        var updated = await updatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        updated.Id.Should().Be(linked.Id);
+        updated.CurrentVersion.Should().Be(2);
+
+        var versions = await client.GetFromJsonAsync<LinkedDocumentVersionDto[]>(
+            $"/api/linked-documents/{linked.Id}/versions",
+            JsonOptions);
+        versions.Should().HaveCount(2);
+
+        var updatedContent = await client.GetFromJsonAsync<LinkedDocumentContentDto>(
+            $"/api/linked-documents/{linked.Id}/content",
+            JsonOptions);
+        updatedContent!.Content.Should().Be("# Updated plan");
+
+        var deleteResponse = await client.DeleteAsync($"/api/linked-documents/{linked.Id}");
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempRoot))
@@ -136,6 +219,10 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
             {
                 options.Transports = HttpTransportType.LongPolling;
                 options.HttpMessageHandlerFactory = _ => factory.Server.CreateHandler();
+            })
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             })
             .WithAutomaticReconnect()
             .Build();

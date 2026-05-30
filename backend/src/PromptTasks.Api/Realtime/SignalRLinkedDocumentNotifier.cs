@@ -1,0 +1,30 @@
+using Microsoft.AspNetCore.SignalR;
+using PromptTasks.Api.Hubs;
+using PromptTasks.Application.Common.Interfaces;
+using PromptTasks.Application.Common.Models;
+using PromptTasks.Application.Common.Realtime;
+
+namespace PromptTasks.Api.Realtime;
+
+public sealed class SignalRLinkedDocumentNotifier(IHubContext<PromptHub, IPromptClient> hubContext) : ILinkedDocumentNotifier
+{
+    public Task LinkedDocumentLinkedAsync(
+        LinkedDocumentDto document,
+        Guid workingDirectoryId,
+        CancellationToken cancellationToken) =>
+        hubContext.Clients.Group(PromptHub.GroupName(workingDirectoryId)).LinkedDocumentLinked(document);
+
+    public Task LinkedDocumentUpdatedAsync(
+        LinkedDocumentDto document,
+        Guid workingDirectoryId,
+        CancellationToken cancellationToken) =>
+        hubContext.Clients.Group(PromptHub.GroupName(workingDirectoryId)).LinkedDocumentUpdated(document);
+
+    public Task LinkedDocumentRemovedAsync(
+        Guid linkedDocumentId,
+        Guid promptId,
+        Guid workingDirectoryId,
+        CancellationToken cancellationToken) =>
+        hubContext.Clients.Group(PromptHub.GroupName(workingDirectoryId))
+            .LinkedDocumentRemoved(linkedDocumentId, promptId, workingDirectoryId);
+}

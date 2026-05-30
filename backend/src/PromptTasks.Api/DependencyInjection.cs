@@ -4,6 +4,7 @@ using Newtonsoft.Json.Serialization;
 using PromptTasks.Api.ExceptionHandling;
 using PromptTasks.Api.Realtime;
 using PromptTasks.Application.Common.Interfaces;
+using System.Text.Json.Serialization;
 
 namespace PromptTasks.Api;
 
@@ -19,8 +20,13 @@ public static class DependencyInjection
             });
 
         services.AddOpenApi();
-        services.AddSignalR();
+        services.AddSignalR()
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
         services.AddScoped<IPromptNotifier, SignalRPromptNotifier>();
+        services.AddScoped<ILinkedDocumentNotifier, SignalRLinkedDocumentNotifier>();
 
         services.AddProblemDetails(options =>
         {

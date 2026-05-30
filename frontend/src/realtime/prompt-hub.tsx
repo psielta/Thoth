@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { hubUrl } from '@/env'
 import { queryKeys } from '@/api/query-keys'
-import { promptSchema } from '@/api/schemas'
+import { linkedDocumentSchema, promptSchema } from '@/api/schemas'
 
 type PromptHubContextValue = {
   connected: boolean
@@ -65,6 +65,27 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       queryClient.invalidateQueries({ queryKey: queryKeys.prompts.all })
     })
 
+    connection.on('LinkedDocumentLinked', (payload: unknown) => {
+      const document = linkedDocumentSchema.parse(payload)
+      queryClient.setQueryData(queryKeys.linkedDocuments.detail(document.id), document)
+      queryClient.invalidateQueries({ queryKey: queryKeys.linkedDocuments.forPrompt(document.promptId) })
+    })
+
+    connection.on('LinkedDocumentUpdated', (payload: unknown) => {
+      const document = linkedDocumentSchema.parse(payload)
+      queryClient.setQueryData(queryKeys.linkedDocuments.detail(document.id), document)
+      queryClient.invalidateQueries({ queryKey: queryKeys.linkedDocuments.forPrompt(document.promptId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.linkedDocuments.contentRoot(document.id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.linkedDocuments.versions(document.id) })
+    })
+
+    connection.on('LinkedDocumentRemoved', (linkedDocumentId: string, promptId: string) => {
+      queryClient.removeQueries({ queryKey: queryKeys.linkedDocuments.detail(linkedDocumentId) })
+      queryClient.removeQueries({ queryKey: queryKeys.linkedDocuments.contentRoot(linkedDocumentId) })
+      queryClient.removeQueries({ queryKey: queryKeys.linkedDocuments.versions(linkedDocumentId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.linkedDocuments.forPrompt(promptId) })
+    })
+
     connection.onreconnecting(() => setConnected(false))
     connection.onreconnected(() => {
       setConnected(true)
@@ -85,6 +106,14 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       void connection.stop()
     }
   }, [invokeJoin, queryClient])
+
+  useEffect(() => {
+    if (!connected) {
+      return
+    }
+
+    joinedWorkingDirectoriesRef.current.forEach(invokeJoin)
+  }, [connected, invokeJoin])
 
   const joinWorkingDirectory = useCallback(
     (id: string) => {

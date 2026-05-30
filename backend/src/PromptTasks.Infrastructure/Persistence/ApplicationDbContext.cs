@@ -19,6 +19,7 @@ public sealed class ApplicationDbContext(
     public DbSet<PromptVersion> PromptVersions => Set<PromptVersion>();
     public DbSet<PromptFileReference> PromptFileReferences => Set<PromptFileReference>();
     public DbSet<LinkedDocument> LinkedDocuments => Set<LinkedDocument>();
+    public DbSet<LinkedDocumentVersion> LinkedDocumentVersions => Set<LinkedDocumentVersion>();
 
     IQueryable<User> IApplicationDbContext.Users => Users;
     IQueryable<WorkingDirectory> IApplicationDbContext.WorkingDirectories => WorkingDirectories;
@@ -26,6 +27,7 @@ public sealed class ApplicationDbContext(
     IQueryable<PromptVersion> IApplicationDbContext.PromptVersions => PromptVersions;
     IQueryable<PromptFileReference> IApplicationDbContext.PromptFileReferences => PromptFileReferences;
     IQueryable<LinkedDocument> IApplicationDbContext.LinkedDocuments => LinkedDocuments;
+    IQueryable<LinkedDocumentVersion> IApplicationDbContext.LinkedDocumentVersions => LinkedDocumentVersions;
 
     void IApplicationDbContext.Add<TEntity>(TEntity entity) => Set<TEntity>().Add(entity);
     void IApplicationDbContext.AddRange<TEntity>(IEnumerable<TEntity> entities) => Set<TEntity>().AddRange(entities);

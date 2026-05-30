@@ -27,20 +27,45 @@ namespace PromptTasks.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AbsolutePath")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("AbsolutePathKey")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CurrentVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("integer");
 
                     b.Property<string>("LastContentHash")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<DateTimeOffset?>("LastSyncedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("PromptId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("RelativePath")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
+                    b.Property<long?>("SizeBytes")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -48,16 +73,58 @@ namespace PromptTasks.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("WorkingDirectoryId")
+                    b.Property<Guid?>("WorkingDirectoryId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PromptId");
+                    b.HasIndex("Status");
 
                     b.HasIndex("WorkingDirectoryId");
 
+                    b.HasIndex("PromptId", "AbsolutePathKey")
+                        .IsUnique();
+
                     b.ToTable("linked_documents", (string)null);
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Prompts.LinkedDocumentVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LinkedDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LinkedDocumentId", "CreatedAtUtc");
+
+                    b.HasIndex("LinkedDocumentId", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("linked_document_versions", (string)null);
                 });
 
             modelBuilder.Entity("PromptTasks.Domain.Prompts.Prompt", b =>
@@ -258,12 +325,22 @@ namespace PromptTasks.Infrastructure.Persistence.Migrations
                     b.HasOne("PromptTasks.Domain.WorkingDirectories.WorkingDirectory", "WorkingDirectory")
                         .WithMany()
                         .HasForeignKey("WorkingDirectoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Prompt");
 
                     b.Navigation("WorkingDirectory");
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Prompts.LinkedDocumentVersion", b =>
+                {
+                    b.HasOne("PromptTasks.Domain.Prompts.LinkedDocument", "LinkedDocument")
+                        .WithMany("Versions")
+                        .HasForeignKey("LinkedDocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LinkedDocument");
                 });
 
             modelBuilder.Entity("PromptTasks.Domain.Prompts.Prompt", b =>
@@ -316,6 +393,11 @@ namespace PromptTasks.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Prompts.LinkedDocument", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("PromptTasks.Domain.Prompts.Prompt", b =>

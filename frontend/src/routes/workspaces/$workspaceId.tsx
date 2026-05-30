@@ -14,15 +14,16 @@ export const Route = createFileRoute('/workspaces/$workspaceId')({
 function WorkspaceLayout() {
   const { workspaceId } = Route.useParams()
   const hub = usePromptHub()
+  const { joinWorkingDirectory, leaveWorkingDirectory } = hub
   const workspaceQuery = useQuery({
     queryKey: queryKeys.workingDirectories.detail(workspaceId),
     queryFn: () => getWorkingDirectory(workspaceId),
   })
 
   useEffect(() => {
-    hub.joinWorkingDirectory(workspaceId)
-    return () => hub.leaveWorkingDirectory(workspaceId)
-  }, [hub, workspaceId])
+    joinWorkingDirectory(workspaceId)
+    return () => leaveWorkingDirectory(workspaceId)
+  }, [joinWorkingDirectory, leaveWorkingDirectory, workspaceId])
 
   return (
     <div className="grid gap-5">

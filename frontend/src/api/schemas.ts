@@ -3,10 +3,16 @@ import { z } from 'zod'
 export const targetAgentSchema = z.enum(['ClaudeCode', 'Codex'])
 export const promptKindSchema = z.enum(['General', 'Planning'])
 export const promptStatusSchema = z.enum(['Draft', 'Ready', 'Archived'])
+export const linkedDocumentStatusSchema = z.enum(['Draft', 'Tracking', 'Paused', 'Error', 'Missing'])
+export const linkedDocumentTypeSchema = z.enum(['ClaudeCodePlan'])
+export const linkedDocumentVersionSourceSchema = z.enum(['Initial', 'FileChanged', 'ManualRefresh', 'Resumed'])
 
 export type TargetAgent = z.infer<typeof targetAgentSchema>
 export type PromptKind = z.infer<typeof promptKindSchema>
 export type PromptStatus = z.infer<typeof promptStatusSchema>
+export type LinkedDocumentStatus = z.infer<typeof linkedDocumentStatusSchema>
+export type LinkedDocumentType = z.infer<typeof linkedDocumentTypeSchema>
+export type LinkedDocumentVersionSource = z.infer<typeof linkedDocumentVersionSourceSchema>
 
 export const fileMentionSchema = z.object({
   id: z.string().min(1),
@@ -72,6 +78,42 @@ export const promptVersionSchema = z.object({
   createdAtUtc: z.string(),
 })
 
+export const linkedDocumentSchema = z.object({
+  id: z.string().uuid(),
+  promptId: z.string().uuid(),
+  workingDirectoryId: z.string().uuid().nullable(),
+  absolutePath: z.string(),
+  displayName: z.string(),
+  documentType: linkedDocumentTypeSchema,
+  status: linkedDocumentStatusSchema,
+  currentVersion: z.number(),
+  lastContentHash: z.string().nullable(),
+  sizeBytes: z.number().nullable(),
+  lastError: z.string().nullable(),
+  lastSyncedAtUtc: z.string().nullable(),
+  createdAtUtc: z.string(),
+  updatedAtUtc: z.string(),
+})
+
+export const linkedDocumentContentSchema = z.object({
+  linkedDocumentId: z.string().uuid(),
+  versionNumber: z.number(),
+  content: z.string(),
+  contentHash: z.string(),
+  sizeBytes: z.number(),
+  createdAtUtc: z.string(),
+})
+
+export const linkedDocumentVersionSchema = z.object({
+  id: z.string().uuid(),
+  linkedDocumentId: z.string().uuid(),
+  versionNumber: z.number(),
+  contentHash: z.string(),
+  sizeBytes: z.number(),
+  source: linkedDocumentVersionSourceSchema,
+  createdAtUtc: z.string(),
+})
+
 export type FileMention = z.infer<typeof fileMentionSchema>
 export type WorkingDirectory = z.infer<typeof workingDirectorySchema>
 export type ValidatePathResponse = z.infer<typeof validatePathResponseSchema>
@@ -79,9 +121,14 @@ export type FileSearchResult = z.infer<typeof fileSearchResultSchema>
 export type FileReferenceValidation = z.infer<typeof fileReferenceValidationSchema>
 export type Prompt = z.infer<typeof promptSchema>
 export type PromptVersion = z.infer<typeof promptVersionSchema>
+export type LinkedDocument = z.infer<typeof linkedDocumentSchema>
+export type LinkedDocumentContent = z.infer<typeof linkedDocumentContentSchema>
+export type LinkedDocumentVersion = z.infer<typeof linkedDocumentVersionSchema>
 
 export const workingDirectoryListSchema = z.array(workingDirectorySchema)
 export const fileSearchResultListSchema = z.array(fileSearchResultSchema)
 export const fileReferenceValidationListSchema = z.array(fileReferenceValidationSchema)
 export const promptListSchema = z.array(promptSchema)
 export const promptVersionListSchema = z.array(promptVersionSchema)
+export const linkedDocumentListSchema = z.array(linkedDocumentSchema)
+export const linkedDocumentVersionListSchema = z.array(linkedDocumentVersionSchema)

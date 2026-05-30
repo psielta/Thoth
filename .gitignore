@@ -1,0 +1,21 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+TestResults/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Local env
+.env
+.env.*
+!.env.example
+
+# IDE
+.vs/
+.idea/
+.vscode/

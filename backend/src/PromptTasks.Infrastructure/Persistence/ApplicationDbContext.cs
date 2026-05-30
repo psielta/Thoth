@@ -1,0 +1,73 @@
+using Microsoft.EntityFrameworkCore;
+using PromptTasks.Application.Common.Interfaces;
+using PromptTasks.Domain.Common;
+using PromptTasks.Domain.Prompts;
+using PromptTasks.Domain.Users;
+using PromptTasks.Domain.WorkingDirectories;
+
+namespace PromptTasks.Infrastructure.Persistence;
+
+public sealed class ApplicationDbContext(
+    DbContextOptions<ApplicationDbContext> options,
+    ICurrentUser currentUser,
+    IDateTimeProvider dateTimeProvider)
+    : DbContext(options), IApplicationDbContext
+{
+    public DbSet<User> Users => Set<User>();
+    public DbSet<WorkingDirectory> WorkingDirectories => Set<WorkingDirectory>();
+    public DbSet<Prompt> Prompts => Set<Prompt>();
+    public DbSet<PromptVersion> PromptVersions => Set<PromptVersion>();
+    public DbSet<PromptFileReference> PromptFileReferences => Set<PromptFileReference>();
+    public DbSet<LinkedDocument> LinkedDocuments => Set<LinkedDocument>();
+
+    IQueryable<User> IApplicationDbContext.Users => Users;
+    IQueryable<WorkingDirectory> IApplicationDbContext.WorkingDirectories => WorkingDirectories;
+    IQueryable<Prompt> IApplicationDbContext.Prompts => Prompts;
+    IQueryable<PromptVersion> IApplicationDbContext.PromptVersions => PromptVersions;
+    IQueryable<PromptFileReference> IApplicationDbContext.PromptFileReferences => PromptFileReferences;
+    IQueryable<LinkedDocument> IApplicationDbContext.LinkedDocuments => LinkedDocuments;
+
+    void IApplicationDbContext.Add<TEntity>(TEntity entity) => Set<TEntity>().Add(entity);
+    void IApplicationDbContext.AddRange<TEntity>(IEnumerable<TEntity> entities) => Set<TEntity>().AddRange(entities);
+    void IApplicationDbContext.Remove<TEntity>(TEntity entity) => Set<TEntity>().Remove(entity);
+    void IApplicationDbContext.RemoveRange<TEntity>(IEnumerable<TEntity> entities) => Set<TEntity>().RemoveRange(entities);
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        base.OnModelCreating(modelBuilder);
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyAuditing();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void ApplyAuditing()
+    {
+        var now = dateTimeProvider.UtcNow;
+
+        foreach (var entry in ChangeTracker.Entries<AuditableEntity>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.CreatedAtUtc = now;
+                entry.Entity.OwnerId = entry.Entity.OwnerId == Guid.Empty ? currentUser.UserId : entry.Entity.OwnerId;
+            }
+
+            if (entry.State is EntityState.Added or EntityState.Modified)
+            {
+                entry.Entity.UpdatedAtUtc = now;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<User>())
+        {
+            if (entry.State == EntityState.Added && entry.Entity.CreatedAtUtc == default)
+            {
+                entry.Entity.CreatedAtUtc = now;
+            }
+        }
+    }
+}

@@ -1,0 +1,28 @@
+import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
+import { Code2, FolderKanban } from 'lucide-react'
+
+export const Route = createRootRoute({
+  component: RootLayout,
+})
+
+function RootLayout() {
+  return (
+    <div className="min-h-svh bg-[#f7f8f6] text-[#172126]">
+      <header className="border-b border-[#d9dfd5] bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
+          <Link to="/" className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#172126]">
+            <FolderKanban className="h-5 w-5 shrink-0 text-[#254632]" />
+            <span className="truncate">Prompt Tasks</span>
+          </Link>
+          <div className="flex items-center gap-2 rounded-md border border-[#d9dfd5] px-2.5 py-1.5 text-xs text-[#66746b]">
+            <Code2 className="h-3.5 w-3.5" />
+            Codex e Claude Code
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6">
+        <Outlet />
+      </main>
+    </div>
+  )
+}

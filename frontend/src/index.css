@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+:root {
+  font-family:
+    Inter, ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  color: #172126;
+  background: #f7f8f6;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100svh;
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+.tiptap {
+  min-height: 27rem;
+  outline: none;
+}
+
+.tiptap > * + * {
+  margin-top: 0.75rem;
+}
+
+.tiptap h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.tiptap h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.tiptap ul,
+.tiptap ol {
+  padding-left: 1.5rem;
+}
+
+.tiptap ul {
+  list-style: disc;
+}
+
+.tiptap ol {
+  list-style: decimal;
+}
+
+.tiptap pre {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  background: #152024;
+  color: #f6f8f5;
+  padding: 0.85rem 1rem;
+}
+
+.tiptap code {
+  border-radius: 0.25rem;
+  background: #e7ece6;
+  color: #253035;
+  padding: 0.1rem 0.3rem;
+}
+
+.tiptap pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.tiptap blockquote {
+  border-left: 3px solid #5e7461;
+  color: #425048;
+  padding-left: 0.85rem;
+}
+
+.file-mention {
+  border-radius: 0.375rem;
+  background: #e6f0e5;
+  color: #21482e;
+  font-weight: 600;
+  padding: 0.1rem 0.32rem;
+}
+
+.mention-suggestion {
+  position: fixed;
+  z-index: 50;
+  width: min(27rem, calc(100vw - 2rem));
+  max-height: 18rem;
+  overflow: auto;
+  border: 1px solid #cbd5c8;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  box-shadow:
+    0 16px 40px rgba(19, 26, 23, 0.16),
+    0 4px 14px rgba(19, 26, 23, 0.08);
+  padding: 0.35rem;
+}
+
+.mention-suggestion button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+  gap: 0.75rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: #172126;
+  cursor: pointer;
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+}
+
+.mention-suggestion button[data-selected="true"],
+.mention-suggestion button:hover {
+  background: #eef2eb;
+}
+
+.mention-suggestion small {
+  min-width: 0;
+  overflow: hidden;
+  color: #66746b;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

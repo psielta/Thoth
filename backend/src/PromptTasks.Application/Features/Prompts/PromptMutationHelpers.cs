@@ -51,6 +51,33 @@ internal static class PromptMutationHelpers
             CreatedAtUtc = dateTimeProvider.UtcNow
         };
 
+    public static IReadOnlyList<LinkedDocument> PauseLinkedDocumentsIfPromptIsArchived(
+        IApplicationDbContext context,
+        Prompt prompt,
+        IDateTimeProvider dateTimeProvider)
+    {
+        if (prompt.Status != PromptStatus.Archived)
+        {
+            return Array.Empty<LinkedDocument>();
+        }
+
+        var documents = context.LinkedDocuments
+            .Where(document => document.PromptId == prompt.Id &&
+                               (document.Status == LinkedDocumentStatus.Tracking ||
+                                document.Status == LinkedDocumentStatus.Error ||
+                                document.Status == LinkedDocumentStatus.Missing))
+            .ToList();
+        var now = dateTimeProvider.UtcNow;
+
+        foreach (var document in documents)
+        {
+            document.Status = LinkedDocumentStatus.Paused;
+            document.UpdatedAtUtc = now;
+        }
+
+        return documents;
+    }
+
     public static async Task<IReadOnlyList<PromptFileReference>> BuildReferencesAsync(
         IWorkspaceFileService workspaceFileService,
         string rootAbsolutePath,

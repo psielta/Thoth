@@ -10,6 +10,8 @@ public sealed class UpdatePromptHandler(
     IApplicationDbContext context,
     IWorkspaceFileService workspaceFileService,
     IPromptNotifier promptNotifier,
+    ILinkedDocumentWatchCoordinator watchCoordinator,
+    ILinkedDocumentNotifier linkedDocumentNotifier,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider)
     : IRequestHandler<UpdatePromptCommand, PromptDto>
@@ -26,6 +28,10 @@ public sealed class UpdatePromptHandler(
         prompt.Kind = request.Kind;
         prompt.Status = request.Status;
         prompt.CurrentVersion++;
+        var pausedLinkedDocuments = PromptMutationHelpers.PauseLinkedDocumentsIfPromptIsArchived(
+            context,
+            prompt,
+            dateTimeProvider);
 
         var existingReferences = context.PromptFileReferences
             .Where(reference => reference.PromptId == prompt.Id)
@@ -50,6 +56,13 @@ public sealed class UpdatePromptHandler(
 
         var dto = prompt.ToDto(references);
         await promptNotifier.PromptUpdatedAsync(dto, cancellationToken);
+
+        foreach (var document in pausedLinkedDocuments)
+        {
+            watchCoordinator.StopTracking(document.Id);
+            await linkedDocumentNotifier.LinkedDocumentUpdatedAsync(document.ToDto(), prompt.WorkingDirectoryId, cancellationToken);
+        }
+
         return dto;
     }
 }

@@ -9,6 +9,8 @@ namespace PromptTasks.Application.Features.Prompts.Commands.UpdatePromptStatus;
 public sealed class UpdatePromptStatusHandler(
     IApplicationDbContext context,
     IPromptNotifier promptNotifier,
+    ILinkedDocumentWatchCoordinator watchCoordinator,
+    ILinkedDocumentNotifier linkedDocumentNotifier,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider)
     : IRequestHandler<UpdatePromptStatusCommand, PromptDto>
@@ -20,6 +22,10 @@ public sealed class UpdatePromptStatusHandler(
 
         prompt.Status = request.Status;
         prompt.CurrentVersion++;
+        var pausedLinkedDocuments = PromptMutationHelpers.PauseLinkedDocumentsIfPromptIsArchived(
+            context,
+            prompt,
+            dateTimeProvider);
 
         context.Add(PromptMutationHelpers.CreateVersion(prompt, dateTimeProvider, "Status changed"));
         await context.SaveChangesAsync(cancellationToken);
@@ -29,6 +35,13 @@ public sealed class UpdatePromptStatusHandler(
             .ToList();
         var dto = prompt.ToDto(references);
         await promptNotifier.PromptUpdatedAsync(dto, cancellationToken);
+
+        foreach (var document in pausedLinkedDocuments)
+        {
+            watchCoordinator.StopTracking(document.Id);
+            await linkedDocumentNotifier.LinkedDocumentUpdatedAsync(document.ToDto(), prompt.WorkingDirectoryId, cancellationToken);
+        }
+
         return dto;
     }
 }

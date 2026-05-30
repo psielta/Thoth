@@ -3,6 +3,7 @@ using PromptTasks.Application.Common.Exceptions;
 using PromptTasks.Application.Common.Interfaces;
 using PromptTasks.Application.Common.Models;
 using PromptTasks.Application.Features.LinkedDocuments.Commands.LinkDocument;
+using PromptTasks.Application.Features.LinkedDocuments.Commands.ResumeLinkedDocument;
 using PromptTasks.Domain.Prompts;
 using PromptTasks.Domain.Users;
 using PromptTasks.Domain.WorkingDirectories;
@@ -68,7 +69,59 @@ public sealed class LinkedDocumentHandlerTests
         await act.Should().ThrowAsync<ConflictException>();
     }
 
-    private static Prompt SeedPrompt(FakeApplicationDbContext context)
+    [Fact]
+    public async Task LinkDocument_rejects_archived_prompt()
+    {
+        var context = new FakeApplicationDbContext();
+        var prompt = SeedPrompt(context, PromptStatus.Archived);
+        var watcher = new FakeWatchCoordinator();
+        var handler = new LinkDocumentHandler(
+            context,
+            new FakeLinkedDocumentFileService(),
+            watcher,
+            new FakeLinkedDocumentNotifier(),
+            new FakeCurrentUser(),
+            new FakeDateTimeProvider());
+
+        var act = () => handler.Handle(new LinkDocumentCommand(prompt.Id, "C:/plans/plan.md"), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>();
+        context.LinkedDocumentItems.Should().BeEmpty();
+        watcher.Started.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ResumeDocument_rejects_archived_prompt()
+    {
+        var context = new FakeApplicationDbContext();
+        var prompt = SeedPrompt(context, PromptStatus.Archived);
+        var document = new LinkedDocument
+        {
+            Id = Guid.CreateVersion7(),
+            PromptId = prompt.Id,
+            WorkingDirectoryId = prompt.WorkingDirectoryId,
+            AbsolutePath = "C:/plans/plan.md",
+            AbsolutePathKey = "c:/plans/plan.md",
+            Status = LinkedDocumentStatus.Paused
+        };
+        context.LinkedDocumentItems.Add(document);
+        var watcher = new FakeWatchCoordinator();
+        var handler = new ResumeLinkedDocumentHandler(
+            context,
+            new FakeLinkedDocumentSyncService(),
+            watcher,
+            new FakeLinkedDocumentNotifier(),
+            new FakeCurrentUser(),
+            new FakeDateTimeProvider());
+
+        var act = () => handler.Handle(new ResumeLinkedDocumentCommand(document.Id), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>();
+        document.Status.Should().Be(LinkedDocumentStatus.Paused);
+        watcher.Started.Should().BeEmpty();
+    }
+
+    private static Prompt SeedPrompt(FakeApplicationDbContext context, PromptStatus status = PromptStatus.Draft)
     {
         var directory = new WorkingDirectory
         {
@@ -83,6 +136,7 @@ public sealed class LinkedDocumentHandlerTests
             WorkingDirectoryId = directory.Id,
             Title = "Prompt",
             Content = "Content",
+            Status = status,
             OwnerId = User.SystemUserId
         };
 
@@ -156,6 +210,15 @@ public sealed class LinkedDocumentHandlerTests
 
         public Task<MarkdownFileReadResult> ReadAsync(string absolutePath, CancellationToken cancellationToken) =>
             Task.FromResult(MarkdownFileReadResult.Valid("# Plan", "hash", 6));
+    }
+
+    private sealed class FakeLinkedDocumentSyncService : ILinkedDocumentSyncService
+    {
+        public Task<LinkedDocumentSyncOutcome> SyncAsync(
+            Guid linkedDocumentId,
+            LinkedDocumentVersionSource source,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(new LinkedDocumentSyncOutcome(null, null, false, false));
     }
 
     private sealed class FakeWatchCoordinator : ILinkedDocumentWatchCoordinator

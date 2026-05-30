@@ -35,6 +35,14 @@ internal static class LinkedDocumentHelpers
         return (document, prompt);
     }
 
+    public static void EnsurePromptAllowsTracking(Prompt prompt)
+    {
+        if (prompt.Status == PromptStatus.Archived)
+        {
+            throw new ConflictException("Archived prompts cannot monitor linked markdown documents. Restore the prompt before linking or resuming a plan.");
+        }
+    }
+
     public static LinkedDocumentVersion CreateVersion(
         LinkedDocument document,
         MarkdownFileReadResult readResult,

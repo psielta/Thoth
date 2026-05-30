@@ -38,6 +38,16 @@ public sealed class LinkedDocumentWatcherService(
             return;
         }
 
+        if (prompt.Status == PromptStatus.Archived)
+        {
+            var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
+            document.Status = LinkedDocumentStatus.Paused;
+            document.UpdatedAtUtc = dateTimeProvider.UtcNow;
+            await context.SaveChangesAsync(cancellationToken);
+            StopTracking(linkedDocumentId);
+            return;
+        }
+
         var directory = Path.GetDirectoryName(document.AbsolutePath);
         var fileName = Path.GetFileName(document.AbsolutePath);
         if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName) || !Directory.Exists(directory))

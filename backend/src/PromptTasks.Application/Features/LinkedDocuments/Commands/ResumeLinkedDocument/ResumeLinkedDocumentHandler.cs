@@ -18,6 +18,8 @@ public sealed class ResumeLinkedDocumentHandler(
     public async Task<LinkedDocumentDto> Handle(ResumeLinkedDocumentCommand request, CancellationToken cancellationToken)
     {
         var (document, prompt) = LinkedDocumentHelpers.GetDocument(context, request.Id, currentUser.UserId);
+        LinkedDocumentHelpers.EnsurePromptAllowsTracking(prompt);
+
         document.Status = LinkedDocumentStatus.Tracking;
         document.UpdatedAtUtc = dateTimeProvider.UtcNow;
         await context.SaveChangesAsync(cancellationToken);

@@ -19,6 +19,8 @@ public sealed class LinkDocumentHandler(
     public async Task<LinkedDocumentDto> Handle(LinkDocumentCommand request, CancellationToken cancellationToken)
     {
         var prompt = LinkedDocumentHelpers.GetPrompt(context, request.PromptId, currentUser.UserId);
+        LinkedDocumentHelpers.EnsurePromptAllowsTracking(prompt);
+
         var validation = await fileService.ValidateAsync(request.AbsolutePath, cancellationToken);
         if (!validation.IsValid)
         {

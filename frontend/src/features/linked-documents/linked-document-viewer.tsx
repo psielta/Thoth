@@ -128,14 +128,16 @@ export function LinkedDocumentViewer({ documentId, initialDocument, onRemoved }:
 
   return (
     <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]">
-      <div className="grid min-w-0 gap-4 rounded-lg border border-[#d9dfd5] bg-white">
-        <div className="grid min-w-0 gap-3 border-b border-[#d9dfd5] p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="grid min-w-0 content-start gap-4 rounded-lg border border-[#d9dfd5] bg-white">
+        <div className="grid min-w-0 content-start gap-3 border-b border-[#d9dfd5] p-4">
+          <div className="grid min-w-0 content-start gap-3 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-start">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-2">
                 <FileText className="h-4 w-4 shrink-0 text-[#5e7461]" />
                 <h2 className="truncate text-base font-semibold text-[#172126]">{document.displayName}</h2>
-                <Badge variant={statusVariants[document.status]}>{statusLabels[document.status]}</Badge>
+                <Badge className="shrink-0" variant={statusVariants[document.status]}>
+                  {statusLabels[document.status]}
+                </Badge>
               </div>
               <p className="mt-1 truncate text-xs text-[#66746b]" title={document.absolutePath}>
                 {document.absolutePath}
@@ -148,11 +150,12 @@ export function LinkedDocumentViewer({ documentId, initialDocument, onRemoved }:
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex min-w-0 flex-wrap items-start gap-2 2xl:justify-end">
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
+                className="min-w-[6.25rem]"
                 onClick={() => refreshMutation.mutate()}
                 disabled={isBusy}
                 title="Atualizar agora"
@@ -170,6 +173,7 @@ export function LinkedDocumentViewer({ documentId, initialDocument, onRemoved }:
                   type="button"
                   variant="secondary"
                   size="sm"
+                  className="min-w-[6.25rem]"
                   onClick={() => pauseMutation.mutate()}
                   disabled={isBusy}
                 >
@@ -181,6 +185,7 @@ export function LinkedDocumentViewer({ documentId, initialDocument, onRemoved }:
                   type="button"
                   variant="secondary"
                   size="sm"
+                  className="min-w-[6.25rem]"
                   onClick={() => resumeMutation.mutate()}
                   disabled={isBusy}
                 >
@@ -193,6 +198,7 @@ export function LinkedDocumentViewer({ documentId, initialDocument, onRemoved }:
                 type="button"
                 variant="destructive"
                 size="sm"
+                className="min-w-[6.25rem]"
                 onClick={() => {
                   if (window.confirm('Remover este vinculo de markdown?')) {
                     removeMutation.mutate()

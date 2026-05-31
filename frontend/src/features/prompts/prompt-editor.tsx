@@ -4,7 +4,7 @@ import type { EditorView } from '@tiptap/pm/view'
 import type { JSONContent } from '@tiptap/react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { Loader2 } from 'lucide-react'
+import { Check, Copy, Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
@@ -211,16 +211,46 @@ export function PromptEditor({
     }
   }, [editable, editor, validateAndNormalizePlainMentions, value])
 
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(() => {
+    if (!editor) return
+    void navigator.clipboard.writeText(editor.getMarkdown()).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [editor])
+
   return (
     <div className={cn('overflow-hidden rounded-lg border border-[#cbd5c8] bg-white', className)}>
       <div className="flex items-center justify-between gap-3 border-b border-[#d9dfd5] bg-[#f7f8f6] px-4 py-2 text-xs font-medium uppercase tracking-normal text-[#66746b]">
         <span>Markdown com mencoes de arquivo</span>
-        {isValidatingMentions ? (
-          <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[0.68rem] text-[#42664d]">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Validando mencoes
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {isValidatingMentions ? (
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[0.68rem] text-[#42664d]">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Validando mencoes
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleCopy}
+            title="Copiar markdown"
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[0.68rem] transition-colors hover:bg-[#e8ede5] hover:text-[#172126]"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3 w-3 text-[#254632]" />
+                <span className="text-[#254632]">Copiado</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                Copiar
+              </>
+            )}
+          </button>
+        </div>
       </div>
       <EditorContent editor={editor} className={contentClassName} />
     </div>

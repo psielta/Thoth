@@ -222,6 +222,14 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
             template.Key == PromptTemplateKey.ImplementPlan &&
             template.DefaultTargetAgent == TargetAgent.Codex &&
             template.DefaultKind == PromptKind.General);
+        templates.Should().Contain(template =>
+            template.Key == PromptTemplateKey.ReviewPlanWithParentPrompt &&
+            template.DefaultTargetAgent == TargetAgent.Codex &&
+            template.DefaultKind == PromptKind.Planning);
+        templates.Should().Contain(template =>
+            template.Key == PromptTemplateKey.ReReviewPlan &&
+            template.DefaultTargetAgent == TargetAgent.Codex &&
+            template.DefaultKind == PromptKind.Planning);
 
         var wdResponse = await client.PostAsJsonAsync(
             "/api/working-directories",

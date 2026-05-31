@@ -23,9 +23,15 @@ public sealed class PromptTemplateHandlerTests
         var templates = catalog.GetAll();
 
         templates.Select(template => template.Key).Should()
-            .Equal(PromptTemplateKey.ReviewPlan, PromptTemplateKey.ImplementPlan);
+            .Equal(
+                PromptTemplateKey.ReviewPlan,
+                PromptTemplateKey.ImplementPlan,
+                PromptTemplateKey.ReviewPlanWithParentPrompt,
+                PromptTemplateKey.ReReviewPlan);
         catalog.Get(PromptTemplateKey.ReviewPlan).Should().BeOfType<ReviewPlanTemplate>();
         catalog.Get(PromptTemplateKey.ImplementPlan).Should().BeOfType<ImplementPlanTemplate>();
+        catalog.Get(PromptTemplateKey.ReviewPlanWithParentPrompt).Should().BeOfType<ReviewPlanWithParentPromptTemplate>();
+        catalog.Get(PromptTemplateKey.ReReviewPlan).Should().BeOfType<ReReviewPlanTemplate>();
     }
 
     [Fact]
@@ -89,6 +95,56 @@ public sealed class PromptTemplateHandlerTests
     }
 
     [Fact]
+    public async Task GeneratePromptDraft_review_plan_with_parent_prompt_includes_original_prompt()
+    {
+        var context = new FakeApplicationDbContext();
+        var prompt = SeedPrompt(context, User.SystemUserId, "Faca um plano para @src/main.go");
+        var document = SeedLinkedDocument(context, prompt, "C:/plans/plan.md", "plan.md");
+        var handler = new GeneratePromptDraftHandler(context, CreateCatalog(), new FakeCurrentUser());
+
+        var result = await handler.Handle(
+            new GeneratePromptDraftCommand(document.Id, PromptTemplateKey.ReviewPlanWithParentPrompt),
+            CancellationToken.None);
+
+        result.TemplateKey.Should().Be(PromptTemplateKey.ReviewPlanWithParentPrompt);
+        result.Title.Should().Be("Revisar plano com prompt pai: plan.md");
+        result.Content.Should().Be(
+            """
+            Eu pedi para Claude fazer um plan-mode usando o prompt abaixo:
+
+            ```md
+            Faca um plano para @src/main.go
+            ```
+
+            Ele gerou o plano "C:/plans/plan.md".
+
+            Dado o plano "C:/plans/plan.md", valide o plano, aprove-o ou aponte melhorias.
+            """);
+        result.TargetAgent.Should().Be(TargetAgent.Codex);
+        result.Kind.Should().Be(PromptKind.Planning);
+    }
+
+    [Fact]
+    public async Task GeneratePromptDraft_re_review_plan_explains_it_is_a_second_validation()
+    {
+        var context = new FakeApplicationDbContext();
+        var prompt = SeedPrompt(context, User.SystemUserId);
+        var document = SeedLinkedDocument(context, prompt, "C:/plans/reviewed-plan.md", "reviewed-plan.md");
+        var handler = new GeneratePromptDraftHandler(context, CreateCatalog(), new FakeCurrentUser());
+
+        var result = await handler.Handle(
+            new GeneratePromptDraftCommand(document.Id, PromptTemplateKey.ReReviewPlan),
+            CancellationToken.None);
+
+        result.TemplateKey.Should().Be(PromptTemplateKey.ReReviewPlan);
+        result.Title.Should().Be("Re-review do plano: reviewed-plan.md");
+        result.Content.Should().Be(
+            "Eu passei os pontos anteriores para o Claude corrigir no plano \"C:/plans/reviewed-plan.md\". Valide novamente o plano atualizado, aprove-o se estiver correto ou aponte as melhorias que ainda faltam.");
+        result.TargetAgent.Should().Be(TargetAgent.Codex);
+        result.Kind.Should().Be(PromptKind.Planning);
+    }
+
+    [Fact]
     public async Task GeneratePromptDraft_rejects_document_from_another_owner()
     {
         var context = new FakeApplicationDbContext();
@@ -130,10 +186,15 @@ public sealed class PromptTemplateHandlerTests
         new(new IPromptTemplateDefinition[]
         {
             new ImplementPlanTemplate(),
-            new ReviewPlanTemplate()
+            new ReviewPlanTemplate(),
+            new ReviewPlanWithParentPromptTemplate(),
+            new ReReviewPlanTemplate()
         });
 
-    private static Prompt SeedPrompt(FakeApplicationDbContext context, Guid ownerId)
+    private static Prompt SeedPrompt(
+        FakeApplicationDbContext context,
+        Guid ownerId,
+        string content = "Content")
     {
         var directory = new WorkingDirectory
         {
@@ -147,7 +208,7 @@ public sealed class PromptTemplateHandlerTests
             Id = Guid.CreateVersion7(),
             WorkingDirectoryId = directory.Id,
             Title = "Prompt",
-            Content = "Content",
+            Content = content,
             OwnerId = ownerId
         };
 

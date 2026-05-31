@@ -22,6 +22,8 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddSingleton<IPromptTemplateDefinition, ReviewPlanTemplate>();
         services.AddSingleton<IPromptTemplateDefinition, ImplementPlanTemplate>();
+        services.AddSingleton<IPromptTemplateDefinition, ReviewPlanWithParentPromptTemplate>();
+        services.AddSingleton<IPromptTemplateDefinition, ReReviewPlanTemplate>();
         services.AddSingleton<IPromptTemplateCatalog, PromptTemplateCatalog>();
 
         return services;

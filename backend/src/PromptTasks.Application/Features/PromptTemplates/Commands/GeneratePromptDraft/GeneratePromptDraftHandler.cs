@@ -24,6 +24,7 @@ public sealed class GeneratePromptDraftHandler(
         var templateContext = new PromptTemplateContext(
             document.AbsolutePath,
             displayName,
+            prompt.Content,
             ct => LoadLatestPlanContentAsync(document.Id, ct));
         var rendered = await template.RenderAsync(templateContext, cancellationToken);
 

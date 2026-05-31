@@ -29,7 +29,7 @@ function WorkspaceLayout() {
     <div className="grid gap-5">
       <div className="flex flex-col gap-3 rounded-lg border border-[#d9dfd5] bg-white p-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <Link to="/">
+          <Link to="/workspaces">
             <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2">
               <ArrowLeft className="h-4 w-4" />
               Diretorios

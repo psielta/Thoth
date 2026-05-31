@@ -1,8 +1,8 @@
 # Prompt Tasks
 
-Prompt Tasks e uma aplicacao full-stack para organizar, versionar e acompanhar prompts em Markdown usados com agentes de desenvolvimento como Claude Code e Codex. O projeto foi construido como uma demonstracao de portfolio com foco em arquitetura limpa, experiencia de edicao produtiva, persistencia auditavel e atualizacoes em tempo real.
+Prompt Tasks e uma aplicacao full-stack para organizar, versionar e acompanhar prompts em Markdown usados com agentes de desenvolvimento como Claude Code e Codex. O projeto foi construido como uma demonstracao de portfolio com foco em arquitetura limpa, experiencia de edicao produtiva, persistencia auditavel, workflow operacional e atualizacoes em tempo real.
 
-O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, escreve prompts referenciando arquivos reais desse diretorio com `@arquivo`, vincula planos Markdown gerados por agentes externos e acompanha suas mudancas sem sair do navegador.
+O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, escreve prompts referenciando arquivos reais desse diretorio com `@arquivo`, vincula planos Markdown gerados por agentes externos, acompanha suas mudancas e gerencia a fase atual da tarefa sem sair do navegador.
 
 ## Principais Recursos
 
@@ -10,6 +10,10 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 - Editor de prompt em Markdown com busca de arquivos por `@`, mencoes estilizadas e validacao das referencias no backend.
 - Persistencia de prompts, versoes, status e referencias de arquivos no PostgreSQL.
 - Relacionamento entre prompts pai e prompts filhos, usado para gerar prompts auxiliares a partir de um plano vinculado.
+- Board global de tarefas, agrupado por fase, com filtros por diretorio, status do prompt e status do workflow.
+- Workflow manual por prompt raiz, com fases configuraveis, responsavel atual, avancar/voltar fase, trocar responsavel, concluir e reabrir.
+- Timeline append-only por prompt, registrando inicio do fluxo, mudancas de fase, troca de responsavel, notas, conclusao, reabertura e edicao de fases.
+- Selos de fase e responsavel nas listas de prompts do workspace.
 - Vinculo de arquivos Markdown externos, como planos gerados pelo Claude Code.
 - Monitoramento de alteracoes desses planos, versionamento automatico e atualizacao em tempo real via SignalR.
 - Pausa, retomada, atualizacao manual e remocao de planos vinculados.
@@ -84,6 +88,10 @@ O backend segue um fluxo orientado a casos de uso. Controllers chamam MediatR, h
 5. O sistema renderiza esse plano, monitora alteracoes, cria versoes e envia eventos em tempo real.
 6. A partir do plano vinculado, o usuario gera prompts filhos, como revisao do plano ou implementacao.
 7. Prompts filhos permanecem associados ao prompt pai e nao poluem a listagem principal do workspace.
+8. Cada prompt raiz representa uma tarefa no board global.
+9. Ao criar uma tarefa nao arquivada, o workflow inicia automaticamente em `Planejamento` com responsavel `ClaudeCode`.
+10. Na aba `Timeline`, o usuario acompanha o historico, adiciona notas, muda fase/responsavel, conclui ou reabre o fluxo.
+11. O template de fases pode ser editado em `Configuracoes`; tarefas existentes mantem um snapshot proprio das fases.
 
 ## Como Executar
 
@@ -168,7 +176,6 @@ npm audit --audit-level=moderate
 
 ## Tarefas Futuras
 
-- Implementar uma timeline operacional para cada prompt, permitindo acompanhar o estado atual da tarefa associada, eventos relevantes, mudancas de status e historico de execucao do fluxo.
 - Evoluir o header da aplicacao para exibir informacoes dos agentes Claude e Codex, com destaque para disponibilidade, contexto operacional e limites de uso atuais.
 - Adicionar visualizacao de diferencas entre versoes de prompts e entre versoes de planos Markdown vinculados, permitindo revisar exatamente o que mudou no prompt ou o que o Claude alterou no plano.
 - Permitir salvar uma copia do Markdown de um plano vinculado em um diretorio definido pelo usuario, preservando historico local fora do arquivo monitorado original.
@@ -179,6 +186,9 @@ npm audit --audit-level=moderate
 - A listagem principal do workspace mostra apenas prompts pai.
 - Prompts gerados a partir de planos vinculados sao prompts filhos.
 - Clicar em um prompt filho abre um drawer dentro da rota do prompt pai; nao redireciona para a tela de edicao do filho.
+- Cada prompt pai e tratado como uma tarefa; prompts filhos sao artefatos auxiliares e nao entram no board como tarefas independentes.
+- O workflow e manual: avancar fase, voltar fase, trocar responsavel, adicionar nota, concluir e reabrir dependem de acao explicita do usuario.
+- Concluir o workflow nao arquiva o prompt; `Prompt.Status` e `PromptWorkflow.Status` sao estados separados.
 - Arquivos mencionados em prompts precisam existir dentro do diretorio de trabalho.
 - Planos vinculados podem ser monitorados em background, pausados e retomados.
 - Ao arquivar um prompt, os planos vinculados devem parar de ser monitorados.

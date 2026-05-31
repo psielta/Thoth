@@ -4,7 +4,9 @@ using PromptTasks.Application.Common.Interfaces;
 using PromptTasks.Application.Common.Mappings;
 using PromptTasks.Application.Common.Models;
 using PromptTasks.Application.Features.Prompts;
+using PromptTasks.Application.Features.Workflow;
 using PromptTasks.Domain.Prompts;
+using PromptTasks.Domain.Workflows;
 
 namespace PromptTasks.Application.Features.Prompts.Commands.CreatePrompt;
 
@@ -12,6 +14,7 @@ public sealed class CreatePromptHandler(
     IApplicationDbContext context,
     IWorkspaceFileService workspaceFileService,
     IPromptNotifier promptNotifier,
+    IWorkflowNotifier workflowNotifier,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider)
     : IRequestHandler<CreatePromptCommand, PromptDto>
@@ -55,10 +58,72 @@ public sealed class CreatePromptHandler(
         context.Add(PromptMutationHelpers.CreateVersion(prompt, dateTimeProvider, "Created"));
         context.AddRange(references);
 
+        // Root prompts are tasks: start their workflow atomically so a task always has a timeline.
+        var workflow = TryStartWorkflow(prompt);
+
         await context.SaveChangesAsync(cancellationToken);
 
         var dto = prompt.ToDto(references);
         await promptNotifier.PromptCreatedAsync(dto, cancellationToken);
+        if (workflow is not null)
+        {
+            await workflowNotifier.TaskWorkflowChangedAsync(
+                TaskSummaryFactory.Build(context, prompt, workflow),
+                cancellationToken);
+        }
+
         return dto;
+    }
+
+    private PromptWorkflow? TryStartWorkflow(Prompt prompt)
+    {
+        if (prompt.ParentPromptId is not null || prompt.Status == PromptStatus.Archived)
+        {
+            return null;
+        }
+
+        var (_, templatePhases, _) = WorkflowTemplateHelpers.ResolveOrCreate(context, currentUser.UserId);
+        if (templatePhases.Count == 0)
+        {
+            return null;
+        }
+
+        var now = dateTimeProvider.UtcNow;
+        var workflow = new PromptWorkflow
+        {
+            PromptId = prompt.Id,
+            Status = PromptWorkflowStatus.Active,
+            StartedAtUtc = now,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
+        };
+
+        var orderIndex = 0;
+        var snapshot = new List<PromptWorkflowPhase>();
+        foreach (var templatePhase in templatePhases.OrderBy(phase => phase.OrderIndex))
+        {
+            snapshot.Add(new PromptWorkflowPhase
+            {
+                PromptWorkflowId = workflow.Id,
+                Name = templatePhase.Name,
+                DefaultActor = templatePhase.DefaultActor,
+                OrderIndex = orderIndex++,
+                Color = templatePhase.Color
+            });
+        }
+
+        var initialPhase = snapshot[0];
+        WorkflowMutationHelpers.EnterPhase(workflow, initialPhase, initialPhase.DefaultActor, now);
+
+        context.Add(workflow);
+        foreach (var phase in snapshot)
+        {
+            context.Add(phase);
+        }
+
+        WorkflowMutationHelpers.AppendEvent(
+            context, workflow, WorkflowEventType.WorkflowStarted, initialPhase, initialPhase.DefaultActor, null, now);
+
+        return workflow;
     }
 }

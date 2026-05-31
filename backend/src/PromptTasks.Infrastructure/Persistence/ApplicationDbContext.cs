@@ -4,6 +4,7 @@ using PromptTasks.Domain.Common;
 using PromptTasks.Domain.Prompts;
 using PromptTasks.Domain.Users;
 using PromptTasks.Domain.WorkingDirectories;
+using PromptTasks.Domain.Workflows;
 
 namespace PromptTasks.Infrastructure.Persistence;
 
@@ -20,6 +21,11 @@ public sealed class ApplicationDbContext(
     public DbSet<PromptFileReference> PromptFileReferences => Set<PromptFileReference>();
     public DbSet<LinkedDocument> LinkedDocuments => Set<LinkedDocument>();
     public DbSet<LinkedDocumentVersion> LinkedDocumentVersions => Set<LinkedDocumentVersion>();
+    public DbSet<WorkflowTemplate> WorkflowTemplates => Set<WorkflowTemplate>();
+    public DbSet<WorkflowTemplatePhase> WorkflowTemplatePhases => Set<WorkflowTemplatePhase>();
+    public DbSet<PromptWorkflow> PromptWorkflows => Set<PromptWorkflow>();
+    public DbSet<PromptWorkflowPhase> PromptWorkflowPhases => Set<PromptWorkflowPhase>();
+    public DbSet<PromptWorkflowEvent> PromptWorkflowEvents => Set<PromptWorkflowEvent>();
 
     IQueryable<User> IApplicationDbContext.Users => Users;
     IQueryable<WorkingDirectory> IApplicationDbContext.WorkingDirectories => WorkingDirectories;
@@ -28,6 +34,11 @@ public sealed class ApplicationDbContext(
     IQueryable<PromptFileReference> IApplicationDbContext.PromptFileReferences => PromptFileReferences;
     IQueryable<LinkedDocument> IApplicationDbContext.LinkedDocuments => LinkedDocuments;
     IQueryable<LinkedDocumentVersion> IApplicationDbContext.LinkedDocumentVersions => LinkedDocumentVersions;
+    IQueryable<WorkflowTemplate> IApplicationDbContext.WorkflowTemplates => WorkflowTemplates;
+    IQueryable<WorkflowTemplatePhase> IApplicationDbContext.WorkflowTemplatePhases => WorkflowTemplatePhases;
+    IQueryable<PromptWorkflow> IApplicationDbContext.PromptWorkflows => PromptWorkflows;
+    IQueryable<PromptWorkflowPhase> IApplicationDbContext.PromptWorkflowPhases => PromptWorkflowPhases;
+    IQueryable<PromptWorkflowEvent> IApplicationDbContext.PromptWorkflowEvents => PromptWorkflowEvents;
 
     void IApplicationDbContext.Add<TEntity>(TEntity entity) => Set<TEntity>().Add(entity);
     void IApplicationDbContext.AddRange<TEntity>(IEnumerable<TEntity> entities) => Set<TEntity>().AddRange(entities);

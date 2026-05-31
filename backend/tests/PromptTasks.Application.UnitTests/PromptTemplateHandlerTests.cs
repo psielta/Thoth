@@ -257,6 +257,11 @@ public sealed class PromptTemplateHandlerTests
         public IQueryable<PromptFileReference> PromptFileReferences => PromptFileReferenceItems.AsQueryable();
         public IQueryable<LinkedDocument> LinkedDocuments => LinkedDocumentItems.AsQueryable();
         public IQueryable<LinkedDocumentVersion> LinkedDocumentVersions => LinkedDocumentVersionItems.AsQueryable();
+        public IQueryable<PromptTasks.Domain.Workflows.WorkflowTemplate> WorkflowTemplates => Enumerable.Empty<PromptTasks.Domain.Workflows.WorkflowTemplate>().AsQueryable();
+        public IQueryable<PromptTasks.Domain.Workflows.WorkflowTemplatePhase> WorkflowTemplatePhases => Enumerable.Empty<PromptTasks.Domain.Workflows.WorkflowTemplatePhase>().AsQueryable();
+        public IQueryable<PromptTasks.Domain.Workflows.PromptWorkflow> PromptWorkflows => Enumerable.Empty<PromptTasks.Domain.Workflows.PromptWorkflow>().AsQueryable();
+        public IQueryable<PromptTasks.Domain.Workflows.PromptWorkflowPhase> PromptWorkflowPhases => Enumerable.Empty<PromptTasks.Domain.Workflows.PromptWorkflowPhase>().AsQueryable();
+        public IQueryable<PromptTasks.Domain.Workflows.PromptWorkflowEvent> PromptWorkflowEvents => Enumerable.Empty<PromptTasks.Domain.Workflows.PromptWorkflowEvent>().AsQueryable();
 
         public void Add<TEntity>(TEntity entity) where TEntity : class
         {

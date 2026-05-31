@@ -1,0 +1,358 @@
+using FluentAssertions;
+using PromptTasks.Application.Common.Exceptions;
+using PromptTasks.Application.Common.Interfaces;
+using PromptTasks.Application.Common.Models;
+using PromptTasks.Application.Features.Workflow.Commands.AddWorkflowNote;
+using PromptTasks.Application.Features.Workflow.Commands.AdvancePhase;
+using PromptTasks.Application.Features.Workflow.Commands.ChangeActor;
+using PromptTasks.Application.Features.Workflow.Commands.CompleteWorkflow;
+using PromptTasks.Application.Features.Workflow.Commands.ReopenWorkflow;
+using PromptTasks.Application.Features.Workflow.Commands.SetPhase;
+using PromptTasks.Application.Features.Workflow.Commands.StartWorkflow;
+using PromptTasks.Application.Features.Workflow.Commands.UpdateTaskPhases;
+using PromptTasks.Domain.Prompts;
+using PromptTasks.Domain.Users;
+using PromptTasks.Domain.WorkingDirectories;
+using PromptTasks.Domain.Workflows;
+
+namespace PromptTasks.Application.UnitTests;
+
+public sealed class WorkflowHandlerTests
+{
+    [Fact]
+    public async Task StartWorkflow_copies_default_phases_and_records_started_event()
+    {
+        var fixture = new Fixture();
+
+        var workflow = await fixture.StartAsync();
+
+        workflow.Status.Should().Be(PromptWorkflowStatus.Active);
+        workflow.Phases.Should().HaveCount(WorkflowDefaults.Phases.Count);
+        workflow.CurrentPhaseName.Should().Be("Planejamento");
+        workflow.CurrentActor.Should().Be(WorkflowActor.ClaudeCode);
+        workflow.Events.Should().ContainSingle(@event => @event.Type == WorkflowEventType.WorkflowStarted);
+        fixture.Notifier.Changes.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task StartWorkflow_twice_conflicts()
+    {
+        var fixture = new Fixture();
+        await fixture.StartAsync();
+
+        var act = () => fixture.StartAsync();
+
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task AdvancePhase_moves_to_the_next_phase()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+
+        var advanced = await fixture.AdvanceAsync(started.RowVersion);
+
+        advanced.CurrentPhaseName.Should().Be("Revisão do plano");
+        advanced.CurrentActor.Should().Be(WorkflowActor.Codex);
+        advanced.Events.Last().Type.Should().Be(WorkflowEventType.PhaseChanged);
+    }
+
+    [Fact]
+    public async Task SetPhase_supports_the_review_fix_loop()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+        var atReview = await fixture.AdvanceAsync(started.RowVersion);
+        var atFix = await fixture.AdvanceAsync(atReview.RowVersion);
+        atFix.CurrentPhaseName.Should().Be("Correção do plano");
+
+        var reviewPhaseId = atFix.Phases.Single(phase => phase.Name == "Revisão do plano").Id;
+        var backToReview = await fixture.SetPhaseAsync(reviewPhaseId, atFix.RowVersion);
+
+        backToReview.CurrentPhaseName.Should().Be("Revisão do plano");
+        backToReview.Events.Count(@event => @event.Type == WorkflowEventType.PhaseChanged).Should().Be(3);
+    }
+
+    [Fact]
+    public async Task ChangeActor_updates_current_actor()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+
+        var changed = await fixture.ChangeActorAsync(WorkflowActor.Human, started.RowVersion);
+
+        changed.CurrentActor.Should().Be(WorkflowActor.Human);
+        changed.Events.Last().Type.Should().Be(WorkflowEventType.ActorChanged);
+    }
+
+    [Fact]
+    public async Task AddNote_is_allowed_even_after_completion_and_needs_no_row_version()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+        var completed = await fixture.CompleteAsync(started.RowVersion);
+
+        var withNote = await fixture.AddNoteAsync("Codex aprovou o plano");
+
+        withNote.Status.Should().Be(PromptWorkflowStatus.Done);
+        withNote.Events.Should().ContainSingle(@event => @event.Type == WorkflowEventType.Note && @event.Note == "Codex aprovou o plano");
+        completed.Status.Should().Be(PromptWorkflowStatus.Done);
+    }
+
+    [Fact]
+    public async Task Complete_then_reopen_returns_workflow_to_active()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+        var completed = await fixture.CompleteAsync(started.RowVersion);
+
+        var reopened = await fixture.ReopenAsync(completed.RowVersion);
+
+        reopened.Status.Should().Be(PromptWorkflowStatus.Active);
+        reopened.Events.Last().Type.Should().Be(WorkflowEventType.Reopened);
+    }
+
+    [Fact]
+    public async Task Complete_when_already_done_conflicts()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+        var completed = await fixture.CompleteAsync(started.RowVersion);
+
+        var act = () => fixture.CompleteAsync(completed.RowVersion);
+
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task Advance_with_stale_row_version_conflicts()
+    {
+        var fixture = new Fixture();
+        await fixture.StartAsync();
+
+        var act = () => fixture.AdvanceAsync("999");
+
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task UpdateTaskPhases_blocks_deleting_the_current_phase()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+        var remaining = started.Phases
+            .Where(phase => phase.Id != started.CurrentPhaseId)
+            .Select((phase, index) => new WorkflowPhaseInput(phase.Id, phase.Name, phase.DefaultActor, index, phase.Color))
+            .ToList();
+
+        var act = () => fixture.UpdatePhasesAsync(remaining, started.RowVersion);
+
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task UpdateTaskPhases_blocks_deleting_a_phase_that_has_history()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+        var atReview = await fixture.AdvanceAsync(started.RowVersion);
+
+        // Planning now has a WorkflowStarted event and is no longer current, but still cannot be deleted.
+        var planningId = atReview.Phases.Single(phase => phase.Name == "Planejamento").Id;
+        var remaining = atReview.Phases
+            .Where(phase => phase.Id != planningId)
+            .Select((phase, index) => new WorkflowPhaseInput(phase.Id, phase.Name, phase.DefaultActor, index, phase.Color))
+            .ToList();
+
+        var act = () => fixture.UpdatePhasesAsync(remaining, atReview.RowVersion);
+
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task UpdateTaskPhases_can_rename_and_append_a_phase()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+        var inputs = started.Phases
+            .Select(phase => new WorkflowPhaseInput(
+                phase.Id,
+                phase.Name == "Commit/Merge" ? "Merge final" : phase.Name,
+                phase.DefaultActor,
+                phase.OrderIndex,
+                phase.Color))
+            .Append(new WorkflowPhaseInput(null, "Deploy", WorkflowActor.Human, started.Phases.Count, "#15803d"))
+            .ToList();
+
+        var updated = await fixture.UpdatePhasesAsync(inputs, started.RowVersion);
+
+        updated.Phases.Should().HaveCount(WorkflowDefaults.Phases.Count + 1);
+        updated.Phases.Should().Contain(phase => phase.Name == "Merge final");
+        updated.Phases.Should().Contain(phase => phase.Name == "Deploy");
+    }
+
+    private sealed class Fixture
+    {
+        private readonly FakeWorkflowDbContext _context = new();
+        private readonly FakeClock _clock = new();
+        private readonly FakeCurrentUser _user = new();
+        public FakeWorkflowNotifier Notifier { get; } = new();
+        public Prompt Prompt { get; }
+
+        public Fixture()
+        {
+            var workingDirectoryId = Guid.CreateVersion7();
+            _context.WorkingDirectoryItems.Add(new WorkingDirectory
+            {
+                Id = workingDirectoryId,
+                Name = "repo",
+                AbsolutePath = "C:/repo",
+                OwnerId = User.SystemUserId
+            });
+            Prompt = new Prompt
+            {
+                Id = Guid.CreateVersion7(),
+                WorkingDirectoryId = workingDirectoryId,
+                Title = "Tarefa",
+                Content = "Conteúdo",
+                OwnerId = User.SystemUserId,
+                Status = PromptStatus.Draft
+            };
+            _context.PromptItems.Add(Prompt);
+        }
+
+        public Task<WorkflowDto> StartAsync() =>
+            new StartWorkflowHandler(_context, Notifier, _user, _clock)
+                .Handle(new StartWorkflowCommand(Prompt.Id, null), CancellationToken.None);
+
+        public Task<WorkflowDto> AdvanceAsync(string rowVersion) =>
+            new AdvancePhaseHandler(_context, Notifier, _user, _clock)
+                .Handle(new AdvancePhaseCommand(Prompt.Id, rowVersion, null), CancellationToken.None);
+
+        public Task<WorkflowDto> SetPhaseAsync(Guid phaseId, string rowVersion) =>
+            new SetPhaseHandler(_context, Notifier, _user, _clock)
+                .Handle(new SetPhaseCommand(Prompt.Id, phaseId, null, null, rowVersion), CancellationToken.None);
+
+        public Task<WorkflowDto> ChangeActorAsync(WorkflowActor actor, string rowVersion) =>
+            new ChangeActorHandler(_context, Notifier, _user, _clock)
+                .Handle(new ChangeActorCommand(Prompt.Id, actor, null, rowVersion), CancellationToken.None);
+
+        public Task<WorkflowDto> AddNoteAsync(string note) =>
+            new AddWorkflowNoteHandler(_context, Notifier, _user, _clock)
+                .Handle(new AddWorkflowNoteCommand(Prompt.Id, note), CancellationToken.None);
+
+        public Task<WorkflowDto> CompleteAsync(string rowVersion) =>
+            new CompleteWorkflowHandler(_context, Notifier, _user, _clock)
+                .Handle(new CompleteWorkflowCommand(Prompt.Id, null, rowVersion), CancellationToken.None);
+
+        public Task<WorkflowDto> ReopenAsync(string rowVersion) =>
+            new ReopenWorkflowHandler(_context, Notifier, _user, _clock)
+                .Handle(new ReopenWorkflowCommand(Prompt.Id, null, rowVersion), CancellationToken.None);
+
+        public Task<WorkflowDto> UpdatePhasesAsync(IReadOnlyList<WorkflowPhaseInput> phases, string rowVersion) =>
+            new UpdateTaskPhasesHandler(_context, Notifier, _user, _clock)
+                .Handle(new UpdateTaskPhasesCommand(Prompt.Id, phases, rowVersion), CancellationToken.None);
+    }
+
+    private sealed class FakeClock : IDateTimeProvider
+    {
+        private int _ticks;
+        public DateTimeOffset UtcNow => new DateTimeOffset(2026, 6, 1, 12, 0, 0, TimeSpan.Zero).AddSeconds(_ticks++);
+    }
+
+    private sealed class FakeCurrentUser : ICurrentUser
+    {
+        public Guid UserId => User.SystemUserId;
+    }
+
+    private sealed class FakeWorkflowNotifier : IWorkflowNotifier
+    {
+        public List<TaskSummaryDto> Changes { get; } = new();
+
+        public Task TaskWorkflowChangedAsync(TaskSummaryDto summary, CancellationToken cancellationToken)
+        {
+            Changes.Add(summary);
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeWorkflowDbContext : IApplicationDbContext
+    {
+        public List<User> UserItems { get; } = new();
+        public List<WorkingDirectory> WorkingDirectoryItems { get; } = new();
+        public List<Prompt> PromptItems { get; } = new();
+        public List<PromptVersion> PromptVersionItems { get; } = new();
+        public List<PromptFileReference> PromptFileReferenceItems { get; } = new();
+        public List<LinkedDocument> LinkedDocumentItems { get; } = new();
+        public List<LinkedDocumentVersion> LinkedDocumentVersionItems { get; } = new();
+        public List<WorkflowTemplate> WorkflowTemplateItems { get; } = new();
+        public List<WorkflowTemplatePhase> WorkflowTemplatePhaseItems { get; } = new();
+        public List<PromptWorkflow> PromptWorkflowItems { get; } = new();
+        public List<PromptWorkflowPhase> PromptWorkflowPhaseItems { get; } = new();
+        public List<PromptWorkflowEvent> PromptWorkflowEventItems { get; } = new();
+
+        public IQueryable<User> Users => UserItems.AsQueryable();
+        public IQueryable<WorkingDirectory> WorkingDirectories => WorkingDirectoryItems.AsQueryable();
+        public IQueryable<Prompt> Prompts => PromptItems.AsQueryable();
+        public IQueryable<PromptVersion> PromptVersions => PromptVersionItems.AsQueryable();
+        public IQueryable<PromptFileReference> PromptFileReferences => PromptFileReferenceItems.AsQueryable();
+        public IQueryable<LinkedDocument> LinkedDocuments => LinkedDocumentItems.AsQueryable();
+        public IQueryable<LinkedDocumentVersion> LinkedDocumentVersions => LinkedDocumentVersionItems.AsQueryable();
+        public IQueryable<WorkflowTemplate> WorkflowTemplates => WorkflowTemplateItems.AsQueryable();
+        public IQueryable<WorkflowTemplatePhase> WorkflowTemplatePhases => WorkflowTemplatePhaseItems.AsQueryable();
+        public IQueryable<PromptWorkflow> PromptWorkflows => PromptWorkflowItems.AsQueryable();
+        public IQueryable<PromptWorkflowPhase> PromptWorkflowPhases => PromptWorkflowPhaseItems.AsQueryable();
+        public IQueryable<PromptWorkflowEvent> PromptWorkflowEvents => PromptWorkflowEventItems.AsQueryable();
+
+        public void Add<TEntity>(TEntity entity) where TEntity : class => Route(entity, add: true);
+
+        public void AddRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class
+        {
+            foreach (var entity in entities)
+            {
+                Route(entity, add: true);
+            }
+        }
+
+        public void Remove<TEntity>(TEntity entity) where TEntity : class => Route(entity, add: false);
+
+        public void RemoveRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class
+        {
+            foreach (var entity in entities.ToList())
+            {
+                Route(entity, add: false);
+            }
+        }
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(1);
+
+        private void Route<TEntity>(TEntity entity, bool add) where TEntity : class
+        {
+            switch (entity)
+            {
+                case Prompt item: Apply(PromptItems, item, add); break;
+                case PromptVersion item: Apply(PromptVersionItems, item, add); break;
+                case PromptFileReference item: Apply(PromptFileReferenceItems, item, add); break;
+                case WorkingDirectory item: Apply(WorkingDirectoryItems, item, add); break;
+                case WorkflowTemplate item: Apply(WorkflowTemplateItems, item, add); break;
+                case WorkflowTemplatePhase item: Apply(WorkflowTemplatePhaseItems, item, add); break;
+                case PromptWorkflow item: Apply(PromptWorkflowItems, item, add); break;
+                case PromptWorkflowPhase item: Apply(PromptWorkflowPhaseItems, item, add); break;
+                case PromptWorkflowEvent item: Apply(PromptWorkflowEventItems, item, add); break;
+            }
+        }
+
+        private static void Apply<T>(List<T> list, T entity, bool add)
+        {
+            if (add)
+            {
+                list.Add(entity);
+            }
+            else
+            {
+                list.Remove(entity);
+            }
+        }
+    }
+}

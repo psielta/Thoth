@@ -157,3 +157,85 @@ export const promptVersionListSchema = z.array(promptVersionSchema)
 export const linkedDocumentListSchema = z.array(linkedDocumentSchema)
 export const linkedDocumentVersionListSchema = z.array(linkedDocumentVersionSchema)
 export const promptTemplateListSchema = z.array(promptTemplateSchema)
+
+export const workflowActorSchema = z.enum(['ClaudeCode', 'Codex', 'Human'])
+export const promptWorkflowStatusSchema = z.enum(['Active', 'Done'])
+export const workflowEventTypeSchema = z.enum([
+  'WorkflowStarted',
+  'PhaseChanged',
+  'ActorChanged',
+  'Note',
+  'Completed',
+  'Reopened',
+  'PhasesEdited',
+])
+
+export type WorkflowActor = z.infer<typeof workflowActorSchema>
+export type PromptWorkflowStatus = z.infer<typeof promptWorkflowStatusSchema>
+export type WorkflowEventType = z.infer<typeof workflowEventTypeSchema>
+
+export const workflowPhaseSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  defaultActor: workflowActorSchema,
+  orderIndex: z.number(),
+  color: z.string(),
+})
+
+export const workflowEventSchema = z.object({
+  id: z.string().uuid(),
+  type: workflowEventTypeSchema,
+  phaseId: z.string().uuid().nullable(),
+  phaseName: z.string().nullable(),
+  actor: workflowActorSchema.nullable(),
+  note: z.string().nullable(),
+  occurredAtUtc: z.string(),
+})
+
+export const workflowSchema = z.object({
+  id: z.string().uuid(),
+  promptId: z.string().uuid(),
+  status: promptWorkflowStatusSchema,
+  currentPhaseId: z.string().uuid().nullable(),
+  currentPhaseName: z.string().nullable(),
+  currentPhaseColor: z.string().nullable(),
+  currentActor: workflowActorSchema.nullable(),
+  startedAtUtc: z.string(),
+  enteredCurrentPhaseAtUtc: z.string().nullable(),
+  updatedAtUtc: z.string(),
+  rowVersion: z.string(),
+  phases: z.array(workflowPhaseSchema),
+  events: z.array(workflowEventSchema),
+})
+
+export const taskSummarySchema = z.object({
+  promptId: z.string().uuid(),
+  workingDirectoryId: z.string().uuid(),
+  workingDirectoryName: z.string(),
+  title: z.string(),
+  promptStatus: promptStatusSchema,
+  workflowStatus: promptWorkflowStatusSchema.nullable(),
+  currentPhaseId: z.string().uuid().nullable(),
+  currentPhaseName: z.string().nullable(),
+  currentPhaseColor: z.string().nullable(),
+  currentActor: workflowActorSchema.nullable(),
+  enteredCurrentPhaseAtUtc: z.string().nullable(),
+  updatedAtUtc: z.string(),
+  hasChildPrompts: z.boolean(),
+  hasLinkedPlan: z.boolean(),
+  rowVersion: z.string().nullable(),
+})
+
+export const workflowTemplateSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  phases: z.array(workflowPhaseSchema),
+})
+
+export type WorkflowPhase = z.infer<typeof workflowPhaseSchema>
+export type WorkflowEvent = z.infer<typeof workflowEventSchema>
+export type Workflow = z.infer<typeof workflowSchema>
+export type TaskSummary = z.infer<typeof taskSummarySchema>
+export type WorkflowTemplate = z.infer<typeof workflowTemplateSchema>
+
+export const taskSummaryListSchema = z.array(taskSummarySchema)

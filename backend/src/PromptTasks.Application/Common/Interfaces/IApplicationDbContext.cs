@@ -1,6 +1,7 @@
 using PromptTasks.Domain.Prompts;
 using PromptTasks.Domain.Users;
 using PromptTasks.Domain.WorkingDirectories;
+using PromptTasks.Domain.Workflows;
 
 namespace PromptTasks.Application.Common.Interfaces;
 
@@ -13,6 +14,11 @@ public interface IApplicationDbContext
     IQueryable<PromptFileReference> PromptFileReferences { get; }
     IQueryable<LinkedDocument> LinkedDocuments { get; }
     IQueryable<LinkedDocumentVersion> LinkedDocumentVersions { get; }
+    IQueryable<WorkflowTemplate> WorkflowTemplates { get; }
+    IQueryable<WorkflowTemplatePhase> WorkflowTemplatePhases { get; }
+    IQueryable<PromptWorkflow> PromptWorkflows { get; }
+    IQueryable<PromptWorkflowPhase> PromptWorkflowPhases { get; }
+    IQueryable<PromptWorkflowEvent> PromptWorkflowEvents { get; }
 
     void Add<TEntity>(TEntity entity) where TEntity : class;
     void AddRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class;

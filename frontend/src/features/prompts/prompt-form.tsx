@@ -107,6 +107,7 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
     mutationFn: () => deletePrompt(promptId ?? ''),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.prompts.all })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
       toast.success('Prompt removido.')
       await navigate({
         to: '/workspaces/$workspaceId',
@@ -120,6 +121,7 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
     queryClient.setQueryData(queryKeys.prompts.detail(prompt.id), prompt)
     await queryClient.invalidateQueries({ queryKey: queryKeys.prompts.all })
     await queryClient.invalidateQueries({ queryKey: queryKeys.prompts.versions(prompt.id) })
+    await queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
   }
 
   const onSubmit = form.handleSubmit((values) => {

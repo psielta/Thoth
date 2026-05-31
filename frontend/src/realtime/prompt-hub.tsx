@@ -8,12 +8,14 @@ import { useQueryClient } from '@tanstack/react-query'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { hubUrl } from '@/env'
 import { queryKeys } from '@/api/query-keys'
-import { linkedDocumentSchema, promptSchema } from '@/api/schemas'
+import { linkedDocumentSchema, promptSchema, taskSummarySchema } from '@/api/schemas'
 
 type PromptHubContextValue = {
   connected: boolean
   joinWorkingDirectory: (id: string) => void
   leaveWorkingDirectory: (id: string) => void
+  joinTasks: () => void
+  leaveTasks: () => void
 }
 
 const PromptHubContext = createContext<PromptHubContextValue | null>(null)
@@ -22,6 +24,7 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
   const connectionRef = useRef<HubConnection | null>(null)
   const joinedWorkingDirectoriesRef = useRef(new Set<string>())
+  const tasksJoinedRef = useRef(false)
   const [connected, setConnected] = useState(false)
 
   const invokeJoin = useCallback((id: string) => {
@@ -38,6 +41,20 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const invokeJoinTasks = useCallback(() => {
+    const connection = connectionRef.current
+    if (connection?.state === HubConnectionState.Connected) {
+      void connection.invoke('JoinTasks')
+    }
+  }, [])
+
+  const rejoinAll = useCallback(() => {
+    joinedWorkingDirectoriesRef.current.forEach(invokeJoin)
+    if (tasksJoinedRef.current) {
+      invokeJoinTasks()
+    }
+  }, [invokeJoin, invokeJoinTasks])
+
   useEffect(() => {
     const connection = new HubConnectionBuilder()
       .withUrl(hubUrl)
@@ -51,6 +68,7 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       const prompt = promptSchema.parse(payload)
       queryClient.setQueryData(queryKeys.prompts.detail(prompt.id), prompt)
       queryClient.invalidateQueries({ queryKey: queryKeys.prompts.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
     })
 
     connection.on('PromptUpdated', (payload: unknown) => {
@@ -58,17 +76,20 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       queryClient.setQueryData(queryKeys.prompts.detail(prompt.id), prompt)
       queryClient.invalidateQueries({ queryKey: queryKeys.prompts.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.prompts.versions(prompt.id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
     })
 
     connection.on('PromptDeleted', (promptId: string) => {
       queryClient.removeQueries({ queryKey: queryKeys.prompts.detail(promptId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.prompts.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
     })
 
     connection.on('LinkedDocumentLinked', (payload: unknown) => {
       const document = linkedDocumentSchema.parse(payload)
       queryClient.setQueryData(queryKeys.linkedDocuments.detail(document.id), document)
       queryClient.invalidateQueries({ queryKey: queryKeys.linkedDocuments.forPrompt(document.promptId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
     })
 
     connection.on('LinkedDocumentUpdated', (payload: unknown) => {
@@ -77,6 +98,7 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       queryClient.invalidateQueries({ queryKey: queryKeys.linkedDocuments.forPrompt(document.promptId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.linkedDocuments.contentRoot(document.id) })
       queryClient.invalidateQueries({ queryKey: queryKeys.linkedDocuments.versions(document.id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
     })
 
     connection.on('LinkedDocumentRemoved', (linkedDocumentId: string, promptId: string) => {
@@ -84,12 +106,20 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       queryClient.removeQueries({ queryKey: queryKeys.linkedDocuments.contentRoot(linkedDocumentId) })
       queryClient.removeQueries({ queryKey: queryKeys.linkedDocuments.versions(linkedDocumentId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.linkedDocuments.forPrompt(promptId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
+    })
+
+    connection.on('TaskWorkflowChanged', (payload: unknown) => {
+      const summary = taskSummarySchema.parse(payload)
+      queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workflow.detail(summary.promptId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.prompts.all })
     })
 
     connection.onreconnecting(() => setConnected(false))
     connection.onreconnected(() => {
       setConnected(true)
-      joinedWorkingDirectoriesRef.current.forEach(invokeJoin)
+      rejoinAll()
     })
     connection.onclose(() => setConnected(false))
 
@@ -97,7 +127,7 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       .start()
       .then(() => {
         setConnected(true)
-        joinedWorkingDirectoriesRef.current.forEach(invokeJoin)
+        rejoinAll()
       })
       .catch(() => setConnected(false))
 
@@ -105,15 +135,15 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       connectionRef.current = null
       void connection.stop()
     }
-  }, [invokeJoin, queryClient])
+  }, [queryClient, rejoinAll])
 
   useEffect(() => {
     if (!connected) {
       return
     }
 
-    joinedWorkingDirectoriesRef.current.forEach(invokeJoin)
-  }, [connected, invokeJoin])
+    rejoinAll()
+  }, [connected, rejoinAll])
 
   const joinWorkingDirectory = useCallback(
     (id: string) => {
@@ -131,13 +161,28 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
     [invokeLeave],
   )
 
+  const joinTasks = useCallback(() => {
+    tasksJoinedRef.current = true
+    invokeJoinTasks()
+  }, [invokeJoinTasks])
+
+  const leaveTasks = useCallback(() => {
+    tasksJoinedRef.current = false
+    const connection = connectionRef.current
+    if (connection?.state === HubConnectionState.Connected) {
+      void connection.invoke('LeaveTasks')
+    }
+  }, [])
+
   const value = useMemo(
     () => ({
       connected,
       joinWorkingDirectory,
       leaveWorkingDirectory,
+      joinTasks,
+      leaveTasks,
     }),
-    [connected, joinWorkingDirectory, leaveWorkingDirectory],
+    [connected, joinWorkingDirectory, leaveWorkingDirectory, joinTasks, leaveTasks],
   )
 
   return <PromptHubContext.Provider value={value}>{children}</PromptHubContext.Provider>

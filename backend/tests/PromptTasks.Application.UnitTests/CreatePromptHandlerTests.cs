@@ -8,6 +8,7 @@ using PromptTasks.Application.Features.Prompts.Commands.CreatePrompt;
 using PromptTasks.Domain.Prompts;
 using PromptTasks.Domain.Users;
 using PromptTasks.Domain.WorkingDirectories;
+using PromptTasks.Domain.Workflows;
 
 namespace PromptTasks.Application.UnitTests;
 
@@ -30,6 +31,7 @@ public sealed class CreatePromptHandlerTests
             context,
             new FakeWorkspaceFileService(),
             notifier,
+            new FakeWorkflowNotifier(),
             new FakeCurrentUser(),
             new FakeDateTimeProvider());
 
@@ -104,6 +106,7 @@ public sealed class CreatePromptHandlerTests
             context,
             new FakeWorkspaceFileService(),
             new FakePromptNotifier(),
+            new FakeWorkflowNotifier(),
             new FakeCurrentUser(),
             new FakeDateTimeProvider());
 
@@ -155,6 +158,7 @@ public sealed class CreatePromptHandlerTests
             context,
             new FakeWorkspaceFileService(),
             new FakePromptNotifier(),
+            new FakeWorkflowNotifier(),
             new FakeCurrentUser(),
             new FakeDateTimeProvider());
 
@@ -182,6 +186,11 @@ public sealed class CreatePromptHandlerTests
         public List<PromptFileReference> PromptFileReferenceItems { get; } = new();
         public List<LinkedDocument> LinkedDocumentItems { get; } = new();
         public List<LinkedDocumentVersion> LinkedDocumentVersionItems { get; } = new();
+        public List<WorkflowTemplate> WorkflowTemplateItems { get; } = new();
+        public List<WorkflowTemplatePhase> WorkflowTemplatePhaseItems { get; } = new();
+        public List<PromptWorkflow> PromptWorkflowItems { get; } = new();
+        public List<PromptWorkflowPhase> PromptWorkflowPhaseItems { get; } = new();
+        public List<PromptWorkflowEvent> PromptWorkflowEventItems { get; } = new();
         public int SaveChangesCount { get; private set; }
 
         public IQueryable<User> Users => UserItems.AsQueryable();
@@ -191,6 +200,11 @@ public sealed class CreatePromptHandlerTests
         public IQueryable<PromptFileReference> PromptFileReferences => PromptFileReferenceItems.AsQueryable();
         public IQueryable<LinkedDocument> LinkedDocuments => LinkedDocumentItems.AsQueryable();
         public IQueryable<LinkedDocumentVersion> LinkedDocumentVersions => LinkedDocumentVersionItems.AsQueryable();
+        public IQueryable<WorkflowTemplate> WorkflowTemplates => WorkflowTemplateItems.AsQueryable();
+        public IQueryable<WorkflowTemplatePhase> WorkflowTemplatePhases => WorkflowTemplatePhaseItems.AsQueryable();
+        public IQueryable<PromptWorkflow> PromptWorkflows => PromptWorkflowItems.AsQueryable();
+        public IQueryable<PromptWorkflowPhase> PromptWorkflowPhases => PromptWorkflowPhaseItems.AsQueryable();
+        public IQueryable<PromptWorkflowEvent> PromptWorkflowEvents => PromptWorkflowEventItems.AsQueryable();
 
         public void Add<TEntity>(TEntity entity) where TEntity : class
         {
@@ -245,6 +259,21 @@ public sealed class CreatePromptHandlerTests
                 case LinkedDocumentVersion version:
                     LinkedDocumentVersionItems.Add(version);
                     break;
+                case WorkflowTemplate template:
+                    WorkflowTemplateItems.Add(template);
+                    break;
+                case WorkflowTemplatePhase templatePhase:
+                    WorkflowTemplatePhaseItems.Add(templatePhase);
+                    break;
+                case PromptWorkflow workflow:
+                    PromptWorkflowItems.Add(workflow);
+                    break;
+                case PromptWorkflowPhase workflowPhase:
+                    PromptWorkflowPhaseItems.Add(workflowPhase);
+                    break;
+                case PromptWorkflowEvent workflowEvent:
+                    PromptWorkflowEventItems.Add(workflowEvent);
+                    break;
                 case PromptFileReference reference:
                     PromptFileReferenceItems.Add(reference);
                     break;
@@ -298,6 +327,12 @@ public sealed class CreatePromptHandlerTests
         public Task PromptUpdatedAsync(PromptDto prompt, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task PromptDeletedAsync(Guid promptId, Guid workingDirectoryId, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class FakeWorkflowNotifier : IWorkflowNotifier
+    {
+        public Task TaskWorkflowChangedAsync(TaskSummaryDto summary, CancellationToken cancellationToken) =>
             Task.CompletedTask;
     }
 

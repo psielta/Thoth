@@ -5,10 +5,12 @@ import { useMemo, useState } from 'react'
 import { listPrompts } from '@/api/prompts'
 import { queryKeys } from '@/api/query-keys'
 import type { PromptKind, PromptStatus, TargetAgent } from '@/api/schemas'
+import { getBoard } from '@/api/workflow'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { ActorBadge, PhaseBadge } from '@/features/workflow/badges'
 import {
   AGENT_LABELS,
   AGENT_OPTIONS,
@@ -40,11 +42,27 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
     }),
     [agent, kind, q, status, workingDirectoryId],
   )
+  const boardFilters = useMemo(
+    () => ({
+      workingDirectoryId,
+      q: q.trim() || undefined,
+      promptStatus: status || undefined,
+    }),
+    [q, status, workingDirectoryId],
+  )
 
   const promptsQuery = useQuery({
     queryKey: queryKeys.prompts.list(filters),
     queryFn: () => listPrompts(filters),
   })
+  const boardQuery = useQuery({
+    queryKey: queryKeys.workflow.board(boardFilters),
+    queryFn: () => getBoard(boardFilters),
+  })
+  const taskSummaryByPromptId = useMemo(
+    () => new Map((boardQuery.data ?? []).map((summary) => [summary.promptId, summary])),
+    [boardQuery.data],
+  )
 
   return (
     <section className="grid gap-4">
@@ -115,29 +133,44 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
       ) : null}
 
       <div className="grid gap-2">
-        {promptsQuery.data?.map((prompt) => (
-          <Link
-            key={prompt.id}
-            to="/workspaces/$workspaceId/prompts/$promptId"
-            params={{ workspaceId: workingDirectoryId, promptId: prompt.id }}
-            className="rounded-lg border border-[#d9dfd5] bg-white p-4 transition-colors hover:border-[#8aa083] hover:bg-[#fbfcfa]"
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[#172126]">
-                  <FileText className="h-4 w-4 shrink-0 text-[#5e7461]" />
-                  <span className="truncate">{prompt.title}</span>
+        {promptsQuery.data?.map((prompt) => {
+          const taskSummary = taskSummaryByPromptId.get(prompt.id)
+          return (
+            <Link
+              key={prompt.id}
+              to="/workspaces/$workspaceId/prompts/$promptId"
+              params={{ workspaceId: workingDirectoryId, promptId: prompt.id }}
+              className="rounded-lg border border-[#d9dfd5] bg-white p-4 transition-colors hover:border-[#8aa083] hover:bg-[#fbfcfa]"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[#172126]">
+                    <FileText className="h-4 w-4 shrink-0 text-[#5e7461]" />
+                    <span className="truncate">{prompt.title}</span>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-sm text-[#66746b]">{prompt.content}</p>
+                  {taskSummary ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                      {taskSummary.currentPhaseName ? (
+                        <PhaseBadge name={taskSummary.currentPhaseName} color={taskSummary.currentPhaseColor} />
+                      ) : (
+                        <span className="rounded-md bg-[#eef2eb] px-2 py-1 text-xs font-medium text-[#66746b]">
+                          Fluxo não iniciado
+                        </span>
+                      )}
+                      {taskSummary.currentActor ? <ActorBadge actor={taskSummary.currentActor} /> : null}
+                    </div>
+                  ) : null}
                 </div>
-                <p className="mt-1 line-clamp-2 text-sm text-[#66746b]">{prompt.content}</p>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <StatusBadge status={prompt.status} />
+                  <Badge variant="blue">{AGENT_LABELS[prompt.targetAgent]}</Badge>
+                  <Badge>{KIND_LABELS[prompt.kind]}</Badge>
+                </div>
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
-                <StatusBadge status={prompt.status} />
-                <Badge variant="blue">{AGENT_LABELS[prompt.targetAgent]}</Badge>
-                <Badge>{KIND_LABELS[prompt.kind]}</Badge>
-              </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          )
+        })}
       </div>
     </section>
   )

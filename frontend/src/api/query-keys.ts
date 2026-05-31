@@ -1,4 +1,4 @@
-import type { PromptKind, PromptStatus, TargetAgent } from './schemas'
+import type { PromptKind, PromptStatus, PromptWorkflowStatus, TargetAgent } from './schemas'
 
 export type PromptFilters = {
   workingDirectoryId?: string
@@ -7,6 +7,13 @@ export type PromptFilters = {
   status?: PromptStatus
   agent?: TargetAgent
   kind?: PromptKind
+  q?: string
+}
+
+export type WorkflowBoardFilters = {
+  workflowStatus?: PromptWorkflowStatus
+  promptStatus?: PromptStatus
+  workingDirectoryId?: string
   q?: string
 }
 
@@ -38,5 +45,11 @@ export const queryKeys = {
     content: (id: string, version?: number) =>
       ['linked-documents', id, 'content', version ?? 'latest'] as const,
     versions: (id: string) => ['linked-documents', id, 'versions'] as const,
+  },
+  workflow: {
+    all: ['workflow'] as const,
+    board: (filters: WorkflowBoardFilters) => ['workflow', 'board', filters] as const,
+    detail: (promptId: string) => ['workflow', 'detail', promptId] as const,
+    template: () => ['workflow', 'template'] as const,
   },
 }

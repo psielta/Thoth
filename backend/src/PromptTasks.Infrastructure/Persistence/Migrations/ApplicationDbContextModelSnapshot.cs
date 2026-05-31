@@ -284,6 +284,183 @@ namespace PromptTasks.Infrastructure.Persistence.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.PromptWorkflow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CurrentActor")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CurrentPhaseColor")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("CurrentPhaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CurrentPhaseName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset?>("EnteredCurrentPhaseAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PromptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<uint>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<DateTimeOffset>("StartedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PromptId")
+                        .IsUnique();
+
+                    b.ToTable("prompt_workflows", (string)null);
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.PromptWorkflowEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("Actor")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PhaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PhaseNameSnapshot")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid>("PromptWorkflowId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PromptWorkflowId", "OccurredAtUtc");
+
+                    b.ToTable("prompt_workflow_events", (string)null);
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.PromptWorkflowPhase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("DefaultActor")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("PromptWorkflowId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PromptWorkflowId", "OrderIndex");
+
+                    b.ToTable("prompt_workflow_phases", (string)null);
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.WorkflowTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId")
+                        .IsUnique();
+
+                    b.ToTable("workflow_templates", (string)null);
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.WorkflowTemplatePhase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("DefaultActor")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("WorkflowTemplateId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkflowTemplateId", "OrderIndex");
+
+                    b.ToTable("workflow_template_phases", (string)null);
+                });
+
             modelBuilder.Entity("PromptTasks.Domain.WorkingDirectories.WorkingDirectory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -396,6 +573,59 @@ namespace PromptTasks.Infrastructure.Persistence.Migrations
                     b.Navigation("Prompt");
                 });
 
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.PromptWorkflow", b =>
+                {
+                    b.HasOne("PromptTasks.Domain.Prompts.Prompt", "Prompt")
+                        .WithOne()
+                        .HasForeignKey("PromptTasks.Domain.Workflows.PromptWorkflow", "PromptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Prompt");
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.PromptWorkflowEvent", b =>
+                {
+                    b.HasOne("PromptTasks.Domain.Workflows.PromptWorkflow", "Workflow")
+                        .WithMany("Events")
+                        .HasForeignKey("PromptWorkflowId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workflow");
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.PromptWorkflowPhase", b =>
+                {
+                    b.HasOne("PromptTasks.Domain.Workflows.PromptWorkflow", "Workflow")
+                        .WithMany("Phases")
+                        .HasForeignKey("PromptWorkflowId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workflow");
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.WorkflowTemplate", b =>
+                {
+                    b.HasOne("PromptTasks.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.WorkflowTemplatePhase", b =>
+                {
+                    b.HasOne("PromptTasks.Domain.Workflows.WorkflowTemplate", "Template")
+                        .WithMany("Phases")
+                        .HasForeignKey("WorkflowTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Template");
+                });
+
             modelBuilder.Entity("PromptTasks.Domain.WorkingDirectories.WorkingDirectory", b =>
                 {
                     b.HasOne("PromptTasks.Domain.Users.User", "Owner")
@@ -421,6 +651,18 @@ namespace PromptTasks.Infrastructure.Persistence.Migrations
                     b.Navigation("LinkedDocuments");
 
                     b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.PromptWorkflow", b =>
+                {
+                    b.Navigation("Events");
+
+                    b.Navigation("Phases");
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Workflows.WorkflowTemplate", b =>
+                {
+                    b.Navigation("Phases");
                 });
 
             modelBuilder.Entity("PromptTasks.Domain.WorkingDirectories.WorkingDirectory", b =>

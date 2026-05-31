@@ -14,6 +14,21 @@ function RootLayout() {
             <FolderKanban className="h-5 w-5 shrink-0 text-[#254632]" />
             <span className="truncate">Prompt Tasks</span>
           </Link>
+          <nav className="flex items-center gap-1 text-sm">
+            <Link
+              to="/"
+              activeOptions={{ exact: true }}
+              className="rounded-md px-2.5 py-1.5 text-[#253035] transition-colors hover:bg-[#e7ece6] [&.active]:bg-[#e7ece6] [&.active]:font-semibold"
+            >
+              Quadro
+            </Link>
+            <Link
+              to="/workspaces"
+              className="rounded-md px-2.5 py-1.5 text-[#253035] transition-colors hover:bg-[#e7ece6] [&.active]:bg-[#e7ece6] [&.active]:font-semibold"
+            >
+              Diretórios
+            </Link>
+          </nav>
           <div className="flex items-center gap-2 rounded-md border border-[#d9dfd5] px-2.5 py-1.5 text-xs text-[#66746b]">
             <Code2 className="h-3.5 w-3.5" />
             Codex e Claude Code

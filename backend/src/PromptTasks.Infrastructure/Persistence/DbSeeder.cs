@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PromptTasks.Domain.Users;
+using PromptTasks.Domain.Workflows;
 
 namespace PromptTasks.Infrastructure.Persistence;
 
@@ -17,6 +18,12 @@ public static class DbSeeder
                 CreatedAtUtc = DateTimeOffset.UtcNow
             });
 
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
+        if (!await context.WorkflowTemplates.AnyAsync(template => template.OwnerId == User.SystemUserId, cancellationToken))
+        {
+            context.WorkflowTemplates.Add(WorkflowDefaults.BuildTemplate(User.SystemUserId));
             await context.SaveChangesAsync(cancellationToken);
         }
     }

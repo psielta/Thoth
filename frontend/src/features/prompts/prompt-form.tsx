@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Loader2, Save, Trash2 } from 'lucide-react'
+import { Bot, Loader2, Save, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -21,6 +21,8 @@ import {
   type PromptFormValues,
 } from './constants'
 import { PromptEditor } from './prompt-editor'
+import { RefineDialog } from './ai/refine-dialog'
+import { AiAssistantPanel } from './ai/ai-assistant-panel'
 
 type PromptFormProps = {
   workingDirectoryId: string
@@ -34,6 +36,8 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
     promptId?: string
     mentions: FileMention[]
   } | null>(null)
+  const [showRefineDialog, setShowRefineDialog] = useState(false)
+  const [showAiPanel, setShowAiPanel] = useState(false)
 
   const promptQuery = useQuery({
     queryKey: promptId ? queryKeys.prompts.detail(promptId) : ['prompts', 'new'],
@@ -161,6 +165,17 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
   }
 
   return (
+    <>
+    {showRefineDialog ? (
+      <RefineDialog
+        content={content}
+        onApply={(refined) => {
+          form.setValue('content', refined, { shouldDirty: true, shouldValidate: true })
+          setEditorMentions({ promptId, mentions: [] })
+        }}
+        onClose={() => setShowRefineDialog(false)}
+      />
+    ) : null}
     <form onSubmit={onSubmit} className="grid gap-5">
       <div className="grid gap-4 rounded-lg border border-[#d9dfd5] bg-white p-4">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem_10rem_10rem]">
@@ -217,6 +232,25 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
             {mentions.length ? `${mentions.length} arquivo(s) mencionado(s)` : 'Nenhum arquivo mencionado'}
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowRefineDialog(true)}
+              disabled={isBusy || !content.trim()}
+              title="Refinar prompt com Gemini"
+            >
+              <Sparkles className="h-4 w-4" />
+              Refinar
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowAiPanel((v) => !v)}
+              title="Assistente IA"
+            >
+              <Bot className="h-4 w-4" />
+              IA
+            </Button>
             {promptId ? (
               <Button
                 type="button"
@@ -235,6 +269,18 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
           </div>
         </div>
       </div>
+
+      {showAiPanel ? (
+        <div className="rounded-lg border border-[#d9dfd5] bg-white" style={{ height: '500px' }}>
+          <AiAssistantPanel
+            promptId={promptId}
+            workingDirectoryId={workingDirectoryId}
+            promptContent={content}
+            onClose={() => setShowAiPanel(false)}
+          />
+        </div>
+      ) : null}
     </form>
+    </>
   )
 }

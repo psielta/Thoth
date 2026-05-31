@@ -1,4 +1,5 @@
 using FluentAssertions;
+using MediatR;
 using PromptTasks.Application.Common.Interfaces;
 using PromptTasks.Application.Common.Models;
 using PromptTasks.Application.Features.Prompts.Commands.UpdatePrompt;
@@ -32,7 +33,8 @@ public sealed class UpdatePromptArchivalTests
             watcher,
             linkedDocumentNotifier,
             new FakeCurrentUser(),
-            clock);
+            clock,
+            new NoOpSender());
 
         var result = await handler.Handle(
             new UpdatePromptStatusCommand(prompt.Id, PromptStatus.Archived, "0"),
@@ -186,6 +188,9 @@ public sealed class UpdatePromptArchivalTests
         public IQueryable<PromptTasks.Domain.Workflows.PromptWorkflow> PromptWorkflows => Enumerable.Empty<PromptTasks.Domain.Workflows.PromptWorkflow>().AsQueryable();
         public IQueryable<PromptTasks.Domain.Workflows.PromptWorkflowPhase> PromptWorkflowPhases => Enumerable.Empty<PromptTasks.Domain.Workflows.PromptWorkflowPhase>().AsQueryable();
         public IQueryable<PromptTasks.Domain.Workflows.PromptWorkflowEvent> PromptWorkflowEvents => Enumerable.Empty<PromptTasks.Domain.Workflows.PromptWorkflowEvent>().AsQueryable();
+        public IQueryable<PromptTasks.Domain.Ai.AiChatSession> AiChatSessions => Enumerable.Empty<PromptTasks.Domain.Ai.AiChatSession>().AsQueryable();
+        public IQueryable<PromptTasks.Domain.Ai.AiChatMessage> AiChatMessages => Enumerable.Empty<PromptTasks.Domain.Ai.AiChatMessage>().AsQueryable();
+        public IQueryable<PromptTasks.Domain.Ai.AiUserSettings> AiUserSettings => Enumerable.Empty<PromptTasks.Domain.Ai.AiUserSettings>().AsQueryable();
 
         public void Add<TEntity>(TEntity entity) where TEntity : class
         {
@@ -334,5 +339,23 @@ public sealed class UpdatePromptArchivalTests
     private sealed class FakeDateTimeProvider : IDateTimeProvider
     {
         public DateTimeOffset UtcNow { get; } = new(2026, 5, 30, 12, 0, 0, TimeSpan.Zero);
+    }
+
+    private sealed class NoOpSender : ISender
+    {
+        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default) =>
+            Task.FromResult<TResponse>(default!);
+
+        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default) where TRequest : IRequest =>
+            Task.CompletedTask;
+
+        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) =>
+            AsyncEnumerable.Empty<TResponse>();
+
+        public Task<object?> Send(object request, CancellationToken cancellationToken = default) =>
+            Task.FromResult<object?>(null);
+
+        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) =>
+            AsyncEnumerable.Empty<object?>();
     }
 }

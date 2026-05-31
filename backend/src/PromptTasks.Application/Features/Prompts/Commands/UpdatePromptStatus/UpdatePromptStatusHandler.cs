@@ -2,7 +2,9 @@ using MediatR;
 using PromptTasks.Application.Common.Interfaces;
 using PromptTasks.Application.Common.Mappings;
 using PromptTasks.Application.Common.Models;
+using PromptTasks.Application.Features.Ai.Commands.ReleasePromptAiSessions;
 using PromptTasks.Application.Features.Prompts;
+using PromptTasks.Domain.Prompts;
 
 namespace PromptTasks.Application.Features.Prompts.Commands.UpdatePromptStatus;
 
@@ -12,7 +14,8 @@ public sealed class UpdatePromptStatusHandler(
     ILinkedDocumentWatchCoordinator watchCoordinator,
     ILinkedDocumentNotifier linkedDocumentNotifier,
     ICurrentUser currentUser,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ISender sender)
     : IRequestHandler<UpdatePromptStatusCommand, PromptDto>
 {
     public async Task<PromptDto> Handle(UpdatePromptStatusCommand request, CancellationToken cancellationToken)
@@ -29,6 +32,9 @@ public sealed class UpdatePromptStatusHandler(
 
         context.Add(PromptMutationHelpers.CreateVersion(prompt, dateTimeProvider, "Status changed"));
         await context.SaveChangesAsync(cancellationToken);
+
+        if (prompt.Status == PromptStatus.Archived)
+            await sender.Send(new ReleasePromptAiSessionsCommand(prompt.Id), cancellationToken);
 
         var references = context.PromptFileReferences
             .Where(reference => reference.PromptId == prompt.Id)

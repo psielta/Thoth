@@ -1,3 +1,4 @@
+using PromptTasks.Domain.Ai;
 using PromptTasks.Domain.Prompts;
 using PromptTasks.Domain.Users;
 using PromptTasks.Domain.WorkingDirectories;
@@ -19,6 +20,9 @@ public interface IApplicationDbContext
     IQueryable<PromptWorkflow> PromptWorkflows { get; }
     IQueryable<PromptWorkflowPhase> PromptWorkflowPhases { get; }
     IQueryable<PromptWorkflowEvent> PromptWorkflowEvents { get; }
+    IQueryable<AiChatSession> AiChatSessions { get; }
+    IQueryable<AiChatMessage> AiChatMessages { get; }
+    IQueryable<AiUserSettings> AiUserSettings { get; }
 
     void Add<TEntity>(TEntity entity) where TEntity : class;
     void AddRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class;

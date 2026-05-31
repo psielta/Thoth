@@ -285,3 +285,60 @@ export type TaskSummary = z.infer<typeof taskSummarySchema>
 export type WorkflowTemplate = z.infer<typeof workflowTemplateSchema>
 
 export const taskSummaryListSchema = z.array(taskSummarySchema)
+
+export const geminiModelSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  thinkingMode: z.enum(['budget', 'level', 'none']),
+  canDisableThinking: z.boolean(),
+  thinkingBudgetMin: z.number(),
+  thinkingBudgetMax: z.number(),
+  minCacheTokens: z.number(),
+})
+export const aiSettingsSchema = z.object({
+  model: z.string(),
+  temperature: z.number(),
+  thinkingEnabled: z.boolean(),
+  thinkingBudget: z.number().nullable(),
+  thinkingLevel: z.string().nullable(),
+})
+export const aiChatMessageSchema = z.object({
+  id: z.string().uuid(),
+  role: z.enum(['user', 'model']),
+  content: z.string(),
+  sequence: z.number(),
+  cachedTokens: z.number().nullable(),
+  createdAtUtc: z.string(),
+})
+export const aiChatSessionSchema = z.object({
+  id: z.string().uuid(),
+  workingDirectoryId: z.string().uuid().nullable(),
+  promptId: z.string().uuid().nullable(),
+  title: z.string(),
+  model: z.string(),
+  temperature: z.number(),
+  thinkingEnabled: z.boolean(),
+  thinkingBudget: z.number().nullable(),
+  thinkingLevel: z.string().nullable(),
+  createdAtUtc: z.string(),
+  messages: z.array(aiChatMessageSchema),
+})
+export const refinedPromptSchema = z.object({
+  content: z.string(),
+  promptTokens: z.number(),
+  candidateTokens: z.number(),
+})
+export const chatChunkSchema = z.object({
+  text: z.string(),
+  isThought: z.boolean(),
+  done: z.boolean(),
+  cachedTokens: z.number().nullable(),
+})
+export type GeminiModel = z.infer<typeof geminiModelSchema>
+export type AiSettings = z.infer<typeof aiSettingsSchema>
+export type AiChatMessage = z.infer<typeof aiChatMessageSchema>
+export type AiChatSession = z.infer<typeof aiChatSessionSchema>
+export type RefinedPrompt = z.infer<typeof refinedPromptSchema>
+export type ChatChunk = z.infer<typeof chatChunkSchema>
+export const geminiModelListSchema = z.array(geminiModelSchema)
+export const aiChatSessionListSchema = z.array(aiChatSessionSchema)

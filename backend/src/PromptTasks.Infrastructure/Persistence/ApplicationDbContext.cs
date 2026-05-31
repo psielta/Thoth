@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PromptTasks.Application.Common.Interfaces;
+using PromptTasks.Domain.Ai;
 using PromptTasks.Domain.Common;
 using PromptTasks.Domain.Prompts;
 using PromptTasks.Domain.Users;
@@ -26,6 +27,9 @@ public sealed class ApplicationDbContext(
     public DbSet<PromptWorkflow> PromptWorkflows => Set<PromptWorkflow>();
     public DbSet<PromptWorkflowPhase> PromptWorkflowPhases => Set<PromptWorkflowPhase>();
     public DbSet<PromptWorkflowEvent> PromptWorkflowEvents => Set<PromptWorkflowEvent>();
+    public DbSet<AiChatSession> AiChatSessions => Set<AiChatSession>();
+    public DbSet<AiChatMessage> AiChatMessages => Set<AiChatMessage>();
+    public DbSet<AiUserSettings> AiUserSettings => Set<AiUserSettings>();
 
     IQueryable<User> IApplicationDbContext.Users => Users;
     IQueryable<WorkingDirectory> IApplicationDbContext.WorkingDirectories => WorkingDirectories;
@@ -39,6 +43,9 @@ public sealed class ApplicationDbContext(
     IQueryable<PromptWorkflow> IApplicationDbContext.PromptWorkflows => PromptWorkflows;
     IQueryable<PromptWorkflowPhase> IApplicationDbContext.PromptWorkflowPhases => PromptWorkflowPhases;
     IQueryable<PromptWorkflowEvent> IApplicationDbContext.PromptWorkflowEvents => PromptWorkflowEvents;
+    IQueryable<AiChatSession> IApplicationDbContext.AiChatSessions => AiChatSessions;
+    IQueryable<AiChatMessage> IApplicationDbContext.AiChatMessages => AiChatMessages;
+    IQueryable<AiUserSettings> IApplicationDbContext.AiUserSettings => AiUserSettings;
 
     void IApplicationDbContext.Add<TEntity>(TEntity entity) => Set<TEntity>().Add(entity);
     void IApplicationDbContext.AddRange<TEntity>(IEnumerable<TEntity> entities) => Set<TEntity>().AddRange(entities);

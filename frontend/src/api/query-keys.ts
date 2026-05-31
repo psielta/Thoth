@@ -55,4 +55,10 @@ export const queryKeys = {
   agentUsage: {
     current: () => ['agent-usage', 'current'] as const,
   },
+  ai: {
+    models: () => ['ai', 'models'] as const,
+    settings: () => ['ai', 'settings'] as const,
+    session: (id: string) => ['ai', 'sessions', id] as const,
+    sessions: (promptId?: string) => ['ai', 'sessions', { promptId }] as const,
+  },
 }

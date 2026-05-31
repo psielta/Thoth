@@ -22,6 +22,147 @@ namespace PromptTasks.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("PromptTasks.Domain.Ai.AiChatMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("CachedTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CandidateTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("PromptTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId", "Sequence");
+
+                    b.ToTable("ai_chat_messages", (string)null);
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Ai.AiChatSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("CacheExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CachedThroughSequence")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GeminiCacheName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PromptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("Temperature")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("ThinkingBudget")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ThinkingEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ThinkingLevel")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(220)
+                        .HasColumnType("character varying(220)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WorkingDirectoryId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PromptId");
+
+                    b.HasIndex("OwnerId", "UpdatedAtUtc");
+
+                    b.ToTable("ai_chat_sessions", (string)null);
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Ai.AiUserSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("Temperature")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("ThinkingBudget")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ThinkingEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ThinkingLevel")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId")
+                        .IsUnique();
+
+                    b.ToTable("ai_user_settings", (string)null);
+                });
+
             modelBuilder.Entity("PromptTasks.Domain.Prompts.LinkedDocument", b =>
                 {
                     b.Property<Guid>("Id")
@@ -496,6 +637,17 @@ namespace PromptTasks.Infrastructure.Persistence.Migrations
                     b.ToTable("working_directories", (string)null);
                 });
 
+            modelBuilder.Entity("PromptTasks.Domain.Ai.AiChatMessage", b =>
+                {
+                    b.HasOne("PromptTasks.Domain.Ai.AiChatSession", "Session")
+                        .WithMany("Messages")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("PromptTasks.Domain.Prompts.LinkedDocument", b =>
                 {
                     b.HasOne("PromptTasks.Domain.Prompts.Prompt", "Prompt")
@@ -635,6 +787,11 @@ namespace PromptTasks.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("PromptTasks.Domain.Ai.AiChatSession", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("PromptTasks.Domain.Prompts.LinkedDocument", b =>

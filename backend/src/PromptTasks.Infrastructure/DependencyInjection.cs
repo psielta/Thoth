@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PromptTasks.Application.Common.Interfaces;
+using PromptTasks.Infrastructure.Ai;
 using PromptTasks.Infrastructure.AgentUsage;
 using PromptTasks.Infrastructure.FileSystem;
 using PromptTasks.Infrastructure.Persistence;
@@ -12,7 +13,7 @@ namespace PromptTasks.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment = null)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? "Host=localhost;Port=5432;Database=prompttasks;Username=prompttasks;Password=prompttasks";
@@ -57,7 +58,51 @@ public static class DependencyInjection
         services.AddSingleton<IHostedService>(provider =>
             provider.GetRequiredService<LinkedDocumentWatcherService>());
 
+        ConfigureGemini(services, configuration, environment);
+
         return services;
+    }
+
+    private static void ConfigureGemini(IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment)
+    {
+        // Load .env file in development
+        if (environment?.IsDevelopment() ?? false)
+        {
+            var envFile = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", ".env");
+            if (!File.Exists(envFile))
+            {
+                // Try repo root relative to ContentRootPath
+                envFile = Path.Combine(environment.ContentRootPath, "..", "..", "..", "..", ".env");
+            }
+
+            if (File.Exists(envFile))
+            {
+                DotNetEnv.Env.Load(envFile);
+            }
+        }
+
+        services.Configure<GeminiOptions>(opts =>
+        {
+            var section = configuration.GetSection("Gemini");
+            section.Bind(opts);
+
+            // Allow env var override for ApiKey
+            var envKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+            if (!string.IsNullOrWhiteSpace(envKey))
+                opts.ApiKey = envKey;
+        });
+
+        services.AddSingleton<IGeminiModelCatalog, GeminiModelCatalog>();
+
+        services.AddHttpClient<IGeminiClient, GeminiApiClient>((provider, client) =>
+        {
+            var geminiOptions = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<GeminiOptions>>().Value;
+            var baseUrl = geminiOptions.BaseUrl;
+            if (!baseUrl.EndsWith('/'))
+                baseUrl += "/";
+            client.BaseAddress = new Uri(baseUrl);
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(geminiOptions.StreamTimeoutSeconds, 60));
+        });
     }
 
     private static void ConfigureAgentUsage(IServiceCollection services, IConfiguration configuration)

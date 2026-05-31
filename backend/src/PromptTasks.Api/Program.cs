@@ -12,7 +12,7 @@ builder.WebHost.UseUrls("http://localhost:5080");
 
 builder.Services
     .AddApplication()
-    .AddInfrastructure(builder.Configuration)
+    .AddInfrastructure(builder.Configuration, builder.Environment)
     .AddApiServices(builder.Configuration);
 
 var app = builder.Build();

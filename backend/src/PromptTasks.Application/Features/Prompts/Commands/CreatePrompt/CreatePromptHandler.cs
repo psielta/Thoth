@@ -1,4 +1,5 @@
 using MediatR;
+using PromptTasks.Application.Common.Exceptions;
 using PromptTasks.Application.Common.Interfaces;
 using PromptTasks.Application.Common.Mappings;
 using PromptTasks.Application.Common.Models;
@@ -18,10 +19,18 @@ public sealed class CreatePromptHandler(
     public async Task<PromptDto> Handle(CreatePromptCommand request, CancellationToken cancellationToken)
     {
         var directory = PromptMutationHelpers.GetWorkingDirectory(context, request.WorkingDirectoryId, currentUser.UserId);
+        var parentPrompt = request.ParentPromptId.HasValue
+            ? PromptMutationHelpers.GetPrompt(context, request.ParentPromptId.Value, currentUser.UserId)
+            : null;
+        if (parentPrompt is not null && parentPrompt.WorkingDirectoryId != directory.Id)
+        {
+            throw new ConflictException("Child prompts must use the same working directory as the parent prompt.");
+        }
 
         var prompt = new Prompt
         {
             WorkingDirectoryId = directory.Id,
+            ParentPromptId = parentPrompt?.Id,
             Title = request.Title.Trim(),
             Content = request.Content,
             TargetAgent = request.TargetAgent,

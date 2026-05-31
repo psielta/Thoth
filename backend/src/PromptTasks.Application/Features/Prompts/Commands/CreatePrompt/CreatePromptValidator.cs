@@ -7,6 +7,9 @@ public sealed class CreatePromptValidator : AbstractValidator<CreatePromptComman
     public CreatePromptValidator()
     {
         RuleFor(command => command.WorkingDirectoryId).NotEmpty();
+        RuleFor(command => command.ParentPromptId)
+            .NotEqual(Guid.Empty)
+            .When(command => command.ParentPromptId.HasValue);
         RuleFor(command => command.Title).NotEmpty().MaximumLength(220);
         RuleFor(command => command.Content).NotNull().MaximumLength(200_000);
         RuleFor(command => command.TargetAgent).IsInEnum();

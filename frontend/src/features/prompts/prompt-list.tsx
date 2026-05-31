@@ -32,6 +32,7 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
   const filters = useMemo(
     () => ({
       workingDirectoryId,
+      rootOnly: true,
       q: q.trim() || undefined,
       status: status || undefined,
       agent: agent || undefined,

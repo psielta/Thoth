@@ -88,6 +88,7 @@ export function GeneratePromptDrawer({
 
       return createPrompt({
         workingDirectoryId: draftQuery.data.workingDirectoryId,
+        parentPromptId: draftQuery.data.parentPromptId,
         title: values.title,
         content: values.content,
         targetAgent: values.targetAgent,
@@ -98,7 +99,7 @@ export function GeneratePromptDrawer({
     },
     onSuccess: async (prompt, payload) => {
       await afterSave(prompt)
-      toast.success('Prompt criado.')
+      toast.success('Prompt filho criado.')
 
       if (payload.openAfterCreate) {
         await navigate({
@@ -158,7 +159,7 @@ export function GeneratePromptDrawer({
         <div className="flex min-w-0 items-start justify-between gap-3 border-b border-[#d9dfd5] p-4">
           <div className="min-w-0">
             <h2 id="generate-prompt-title" className="text-base font-semibold text-[#172126]">
-              Gerar prompt
+              Gerar prompt filho
             </h2>
             <p className="mt-1 truncate text-sm text-[#66746b]" title={template.description}>
               {template.displayName}
@@ -241,11 +242,11 @@ export function GeneratePromptDrawer({
           </Button>
           <Button type="button" variant="secondary" onClick={() => submit(false)} disabled={!draftQuery.data || isBusy}>
             {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Criar
+            Criar filho
           </Button>
           <Button type="button" onClick={() => submit(true)} disabled={!draftQuery.data || isBusy}>
             {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Criar e abrir
+            Criar e abrir filho
           </Button>
         </div>
       </div>

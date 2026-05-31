@@ -56,6 +56,7 @@ describe('prompt template api', () => {
         templateKey: 'ReviewPlan',
         linkedDocumentId: '019e9f6a-94e7-7a23-965d-c8b05c63ee59',
         workingDirectoryId: '019e9f6a-9fb2-7f24-ac3a-bf099d2c93c0',
+        parentPromptId: '019e9f6a-a269-7991-95d5-4e602dcf773d',
         title: 'Revisar plano',
         content: 'Dado o plano "C:/plan.md", valide o plano.',
         targetAgent: 'Codex',

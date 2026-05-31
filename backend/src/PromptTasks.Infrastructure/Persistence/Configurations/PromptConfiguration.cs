@@ -26,10 +26,16 @@ public sealed class PromptConfiguration : IEntityTypeConfiguration<Prompt>
 
         builder.HasIndex(prompt => new { prompt.WorkingDirectoryId, prompt.Status });
         builder.HasIndex(prompt => new { prompt.WorkingDirectoryId, prompt.UpdatedAtUtc });
+        builder.HasIndex(prompt => new { prompt.ParentPromptId, prompt.UpdatedAtUtc });
 
         builder.HasOne(prompt => prompt.Owner)
             .WithMany()
             .HasForeignKey(prompt => prompt.OwnerId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(prompt => prompt.ParentPrompt)
+            .WithMany(prompt => prompt.ChildPrompts)
+            .HasForeignKey(prompt => prompt.ParentPromptId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

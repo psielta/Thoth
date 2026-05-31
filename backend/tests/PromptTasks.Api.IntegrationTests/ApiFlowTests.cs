@@ -262,6 +262,7 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
         draft.Should().NotBeNull();
         draft!.LinkedDocumentId.Should().Be(linked.Id);
         draft.WorkingDirectoryId.Should().Be(wd.Id);
+        draft.ParentPromptId.Should().Be(prompt.Id);
         draft.TargetAgent.Should().Be(TargetAgent.Codex);
         draft.Kind.Should().Be(PromptKind.Planning);
         draft.Content.Should().Be($"Dado o plano \"{planPath}\", valide o plano, aprove-o ou aponte melhorias.");
@@ -271,6 +272,7 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
             new
             {
                 workingDirectoryId = draft.WorkingDirectoryId,
+                parentPromptId = draft.ParentPromptId,
                 title = draft.Title,
                 content = draft.Content,
                 targetAgent = draft.TargetAgent,
@@ -282,6 +284,18 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
         generatedPromptResponse.EnsureSuccessStatusCode();
         var generatedPrompt = await generatedPromptResponse.Content.ReadFromJsonAsync<PromptDto>(JsonOptions);
         generatedPrompt!.Content.Should().Be(draft.Content);
+        generatedPrompt.ParentPromptId.Should().Be(prompt.Id);
+
+        var rootPrompts = await client.GetFromJsonAsync<PromptDto[]>(
+            $"/api/prompts?workingDirectoryId={wd.Id}&rootOnly=true",
+            JsonOptions);
+        rootPrompts.Should().ContainSingle(item => item.Id == prompt.Id);
+        rootPrompts.Should().NotContain(item => item.Id == generatedPrompt.Id);
+
+        var childPrompts = await client.GetFromJsonAsync<PromptDto[]>(
+            $"/api/prompts?workingDirectoryId={wd.Id}&parentPromptId={prompt.Id}",
+            JsonOptions);
+        childPrompts.Should().ContainSingle(item => item.Id == generatedPrompt.Id);
 
         var invalidTemplateResponse = await client.PostAsJsonAsync(
             $"/api/linked-documents/{linked.Id}/prompt-drafts",

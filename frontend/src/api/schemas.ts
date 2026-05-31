@@ -55,6 +55,7 @@ export const fileReferenceValidationSchema = z.object({
 export const promptSchema = z.object({
   id: z.string().uuid(),
   workingDirectoryId: z.string().uuid(),
+  parentPromptId: z.string().uuid().nullable(),
   title: z.string(),
   content: z.string(),
   targetAgent: targetAgentSchema,
@@ -128,6 +129,7 @@ export const promptDraftSchema = z.object({
   templateKey: promptTemplateKeySchema,
   linkedDocumentId: z.string().uuid(),
   workingDirectoryId: z.string().uuid(),
+  parentPromptId: z.string().uuid(),
   title: z.string(),
   content: z.string(),
   targetAgent: targetAgentSchema,

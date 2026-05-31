@@ -1,6 +1,7 @@
 using FluentAssertions;
 using FluentValidation;
 using PromptTasks.Application.Common.Behaviors;
+using PromptTasks.Application.Common.Exceptions;
 using PromptTasks.Application.Common.Interfaces;
 using PromptTasks.Application.Common.Models;
 using PromptTasks.Application.Features.Prompts.Commands.CreatePrompt;
@@ -34,6 +35,7 @@ public sealed class CreatePromptHandlerTests
 
         var command = new CreatePromptCommand(
             context.WorkingDirectoryItems[0].Id,
+            null,
             "Fix main",
             "Please inspect @src/main.go",
             TargetAgent.Codex,
@@ -55,13 +57,14 @@ public sealed class CreatePromptHandlerTests
     public async Task ValidationBehavior_aggregates_validation_failures()
     {
         var behavior = new ValidationBehavior<CreatePromptCommand, PromptDto>(new[] { new CreatePromptValidator() });
-        var invalid = new CreatePromptCommand(Guid.Empty, "", "", (TargetAgent)999, PromptKind.General, PromptStatus.Draft, null);
+        var invalid = new CreatePromptCommand(Guid.Empty, null, "", "", (TargetAgent)999, PromptKind.General, PromptStatus.Draft, null);
 
         var act = () => behavior.Handle(
             invalid,
             _ => Task.FromResult(new PromptDto(
                 Guid.Empty,
                 Guid.Empty,
+                null,
                 "",
                 "",
                 TargetAgent.Codex,
@@ -75,6 +78,99 @@ public sealed class CreatePromptHandlerTests
             CancellationToken.None);
 
         await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task Handle_links_child_prompt_to_parent_in_same_working_directory()
+    {
+        var context = new FakeApplicationDbContext();
+        var directory = new WorkingDirectory
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "repo",
+            AbsolutePath = "C:/repo",
+            OwnerId = User.SystemUserId
+        };
+        var parent = new Prompt
+        {
+            WorkingDirectoryId = directory.Id,
+            Title = "Parent",
+            Content = "Parent content",
+            OwnerId = User.SystemUserId
+        };
+        context.WorkingDirectoryItems.Add(directory);
+        context.PromptItems.Add(parent);
+        var handler = new CreatePromptHandler(
+            context,
+            new FakeWorkspaceFileService(),
+            new FakePromptNotifier(),
+            new FakeCurrentUser(),
+            new FakeDateTimeProvider());
+
+        var result = await handler.Handle(
+            new CreatePromptCommand(
+                directory.Id,
+                parent.Id,
+                "Review child",
+                "Review the plan",
+                TargetAgent.Codex,
+                PromptKind.Planning,
+                PromptStatus.Draft,
+                Array.Empty<FileMentionDto>()),
+            CancellationToken.None);
+
+        result.ParentPromptId.Should().Be(parent.Id);
+        context.PromptItems.Should().ContainSingle(prompt => prompt.ParentPromptId == parent.Id);
+    }
+
+    [Fact]
+    public async Task Handle_rejects_child_prompt_from_another_working_directory()
+    {
+        var context = new FakeApplicationDbContext();
+        var parentDirectory = new WorkingDirectory
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "parent",
+            AbsolutePath = "C:/repo-parent",
+            OwnerId = User.SystemUserId
+        };
+        var childDirectory = new WorkingDirectory
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "child",
+            AbsolutePath = "C:/repo-child",
+            OwnerId = User.SystemUserId
+        };
+        var parent = new Prompt
+        {
+            WorkingDirectoryId = parentDirectory.Id,
+            Title = "Parent",
+            Content = "Parent content",
+            OwnerId = User.SystemUserId
+        };
+        context.WorkingDirectoryItems.Add(parentDirectory);
+        context.WorkingDirectoryItems.Add(childDirectory);
+        context.PromptItems.Add(parent);
+        var handler = new CreatePromptHandler(
+            context,
+            new FakeWorkspaceFileService(),
+            new FakePromptNotifier(),
+            new FakeCurrentUser(),
+            new FakeDateTimeProvider());
+
+        var act = () => handler.Handle(
+            new CreatePromptCommand(
+                childDirectory.Id,
+                parent.Id,
+                "Review child",
+                "Review the plan",
+                TargetAgent.Codex,
+                PromptKind.Planning,
+                PromptStatus.Draft,
+                Array.Empty<FileMentionDto>()),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>();
     }
 
     private sealed class FakeApplicationDbContext : IApplicationDbContext

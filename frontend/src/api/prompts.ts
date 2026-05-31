@@ -14,6 +14,7 @@ import {
 
 export type PromptPayload = {
   workingDirectoryId: string
+  parentPromptId?: string | null
   title: string
   content: string
   targetAgent: TargetAgent
@@ -30,6 +31,12 @@ export async function listPrompts(filters: PromptFilters): Promise<Prompt[]> {
   const searchParams = new URLSearchParams()
   if (filters.workingDirectoryId) {
     searchParams.set('workingDirectoryId', filters.workingDirectoryId)
+  }
+  if (filters.parentPromptId) {
+    searchParams.set('parentPromptId', filters.parentPromptId)
+  }
+  if (filters.rootOnly) {
+    searchParams.set('rootOnly', 'true')
   }
   if (filters.status) {
     searchParams.set('status', filters.status)

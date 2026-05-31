@@ -60,6 +60,7 @@ describe('GeneratePromptDrawer', () => {
       templateKey: 'ReviewPlan',
       linkedDocumentId: '019e9f6a-94e7-7a23-965d-c8b05c63ee59',
       workingDirectoryId: '019e9f6a-9fb2-7f24-ac3a-bf099d2c93c0',
+      parentPromptId: '019e9f6a-a269-7991-95d5-4e602dcf773d',
       title: 'Revisar plano: plan.md',
       content: 'Dado o plano "C:/plan.md", valide o plano, aprove-o ou aponte melhorias.',
       targetAgent: 'Codex',
@@ -68,6 +69,7 @@ describe('GeneratePromptDrawer', () => {
     vi.mocked(createPrompt).mockResolvedValue({
       id: '019e9f6a-a5c7-78b8-9683-69966d7ecdbc',
       workingDirectoryId: '019e9f6a-9fb2-7f24-ac3a-bf099d2c93c0',
+      parentPromptId: '019e9f6a-a269-7991-95d5-4e602dcf773d',
       title: 'Prompt revisado',
       content: 'Dado o plano "C:/plan.md", valide o plano, aprove-o ou aponte melhorias.',
       targetAgent: 'Codex',
@@ -92,11 +94,12 @@ describe('GeneratePromptDrawer', () => {
     expect(screen.getByLabelText('Agente')).toHaveValue('Codex')
     expect(screen.getByLabelText('Tipo')).toHaveValue('Planning')
 
-    await user.click(screen.getByRole('button', { name: /^Criar$/ }))
+    await user.click(screen.getByRole('button', { name: /^Criar filho$/ }))
 
     await waitFor(() => {
       expect(createPrompt).toHaveBeenCalledWith({
         workingDirectoryId: '019e9f6a-9fb2-7f24-ac3a-bf099d2c93c0',
+        parentPromptId: '019e9f6a-a269-7991-95d5-4e602dcf773d',
         title: 'Prompt revisado',
         content: 'Dado o plano "C:/plan.md", valide o plano, aprove-o ou aponte melhorias.',
         targetAgent: 'Codex',

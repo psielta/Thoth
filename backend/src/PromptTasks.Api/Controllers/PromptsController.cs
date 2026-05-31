@@ -19,12 +19,14 @@ public sealed class PromptsController(ISender sender) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<PromptDto>>> Get(
         [FromQuery] Guid? workingDirectoryId,
+        [FromQuery] Guid? parentPromptId,
+        [FromQuery] bool rootOnly,
         [FromQuery] PromptStatus? status,
         [FromQuery] TargetAgent? agent,
         [FromQuery] PromptKind? kind,
         [FromQuery] string? q,
         CancellationToken cancellationToken) =>
-        Ok(await sender.Send(new GetPromptsQuery(workingDirectoryId, status, agent, kind, q), cancellationToken));
+        Ok(await sender.Send(new GetPromptsQuery(workingDirectoryId, parentPromptId, rootOnly, status, agent, kind, q), cancellationToken));
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<PromptDto>> GetById(Guid id, CancellationToken cancellationToken) =>
@@ -36,6 +38,7 @@ public sealed class PromptsController(ISender sender) : ControllerBase
         var result = await sender.Send(
             new CreatePromptCommand(
                 request.WorkingDirectoryId,
+                request.ParentPromptId,
                 request.Title,
                 request.Content,
                 request.TargetAgent,
@@ -88,6 +91,7 @@ public sealed class PromptsController(ISender sender) : ControllerBase
 
     public sealed record CreatePromptRequest(
         Guid WorkingDirectoryId,
+        Guid? ParentPromptId,
         string Title,
         string Content,
         TargetAgent TargetAgent,

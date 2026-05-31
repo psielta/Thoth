@@ -31,6 +31,7 @@ public sealed class GeneratePromptDraftHandler(
             template.Key,
             document.Id,
             prompt.WorkingDirectoryId,
+            prompt.Id,
             rendered.Title,
             rendered.Content,
             template.DefaultTargetAgent,

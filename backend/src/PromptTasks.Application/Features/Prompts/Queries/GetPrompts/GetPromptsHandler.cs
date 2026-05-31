@@ -17,6 +17,15 @@ public sealed class GetPromptsHandler(IApplicationDbContext context, ICurrentUse
             query = query.Where(prompt => prompt.WorkingDirectoryId == workingDirectoryId);
         }
 
+        if (request.ParentPromptId is { } parentPromptId)
+        {
+            query = query.Where(prompt => prompt.ParentPromptId == parentPromptId);
+        }
+        else if (request.RootOnly)
+        {
+            query = query.Where(prompt => prompt.ParentPromptId == null);
+        }
+
         if (request.Status is { } status)
         {
             query = query.Where(prompt => prompt.Status == status);

@@ -20,6 +20,7 @@ public static class DtoMapper
         new(
             prompt.Id,
             prompt.WorkingDirectoryId,
+            prompt.ParentPromptId,
             prompt.Title,
             prompt.Content,
             prompt.TargetAgent,

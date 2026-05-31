@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { FileText, MessageSquareText } from 'lucide-react'
+import { FileText, GitBranch, MessageSquareText } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { LinkedDocumentsPanel } from '@/features/linked-documents/linked-documents-panel'
+import { PromptChildrenPanel } from '@/features/prompts/prompt-children-panel'
 import { PromptForm } from '@/features/prompts/prompt-form'
 import { PromptVersions } from '@/features/prompts/prompt-versions'
 
@@ -12,7 +13,7 @@ export const Route = createFileRoute('/workspaces/$workspaceId/prompts/$promptId
 
 function PromptDetailPage() {
   const { workspaceId, promptId } = Route.useParams()
-  const [activeTab, setActiveTab] = useState<'prompt' | 'linked-plan'>('prompt')
+  const [activeTab, setActiveTab] = useState<'prompt' | 'linked-plan' | 'children'>('prompt')
 
   return (
     <div className="grid gap-4">
@@ -37,6 +38,16 @@ function PromptDetailPage() {
           <FileText className="h-4 w-4" />
           Plano vinculado
         </Button>
+        <Button
+          type="button"
+          variant={activeTab === 'children' ? 'default' : 'ghost'}
+          size="sm"
+          aria-pressed={activeTab === 'children'}
+          onClick={() => setActiveTab('children')}
+        >
+          <GitBranch className="h-4 w-4" />
+          Prompts filhos
+        </Button>
       </div>
 
       {activeTab === 'prompt' ? (
@@ -44,9 +55,15 @@ function PromptDetailPage() {
           <PromptForm workingDirectoryId={workspaceId} promptId={promptId} />
           <PromptVersions promptId={promptId} />
         </div>
-      ) : (
+      ) : null}
+
+      {activeTab === 'linked-plan' ? (
         <LinkedDocumentsPanel promptId={promptId} />
-      )}
+      ) : null}
+
+      {activeTab === 'children' ? (
+        <PromptChildrenPanel workingDirectoryId={workspaceId} parentPromptId={promptId} />
+      ) : null}
     </div>
   )
 }

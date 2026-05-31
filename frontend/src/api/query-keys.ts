@@ -2,6 +2,8 @@ import type { PromptKind, PromptStatus, TargetAgent } from './schemas'
 
 export type PromptFilters = {
   workingDirectoryId?: string
+  parentPromptId?: string
+  rootOnly?: boolean
   status?: PromptStatus
   agent?: TargetAgent
   kind?: PromptKind

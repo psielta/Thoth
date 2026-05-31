@@ -61,6 +61,7 @@ public sealed class PromptTemplateHandlerTests
         result.TemplateKey.Should().Be(PromptTemplateKey.ReviewPlan);
         result.LinkedDocumentId.Should().Be(document.Id);
         result.WorkingDirectoryId.Should().Be(prompt.WorkingDirectoryId);
+        result.ParentPromptId.Should().Be(prompt.Id);
         result.Title.Should().Be("Revisar plano: plan.md");
         result.Content.Should().Be(
             "Dado o plano \"C:/Users/psiel/.claude/plans/plan.md\", valide o plano, aprove-o ou aponte melhorias.");
@@ -114,6 +115,7 @@ public sealed class PromptTemplateHandlerTests
             _ => Task.FromResult(new GeneratedPromptDraftDto(
                 invalid.TemplateKey,
                 invalid.LinkedDocumentId,
+                Guid.CreateVersion7(),
                 Guid.CreateVersion7(),
                 "",
                 "",

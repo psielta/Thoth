@@ -87,14 +87,14 @@ export function GeneratePromptMenu({ linkedDocumentId, disabled }: GeneratePromp
         type="button"
         variant="secondary"
         size="sm"
-        className="min-w-[7.5rem]"
+        className="min-w-[9rem]"
         onClick={() => setOpen((current) => !current)}
         disabled={isDisabled}
         aria-haspopup="menu"
         aria-expanded={open}
       >
         {templatesQuery.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-        Gerar prompt
+        Gerar prompt filho
         <ChevronDown className="h-3.5 w-3.5" />
       </Button>
 

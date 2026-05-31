@@ -1,4 +1,4 @@
-import { Clock3, Loader2 } from 'lucide-react'
+import { Clock3, GitCompare, Loader2 } from 'lucide-react'
 import type { LinkedDocumentVersion } from '@/api/schemas'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -9,6 +9,10 @@ type LinkedDocumentHistoryProps = {
   versions?: LinkedDocumentVersion[]
   isLoading: boolean
   onSelectVersion: (version?: number) => void
+  compareSelection: number[]
+  onToggleCompare: (version: number) => void
+  onClearCompare: () => void
+  onCompare: () => void
 }
 
 const sourceLabels: Record<LinkedDocumentVersion['source'], string> = {
@@ -29,6 +33,10 @@ export function LinkedDocumentHistory({
   versions,
   isLoading,
   onSelectVersion,
+  compareSelection,
+  onToggleCompare,
+  onClearCompare,
+  onCompare,
 }: LinkedDocumentHistoryProps) {
   return (
     <aside className="grid content-start gap-3 rounded-lg border border-[#d9dfd5] bg-white p-3">
@@ -46,6 +54,27 @@ export function LinkedDocumentHistory({
         Atual v{currentVersion || 1}
       </Button>
 
+      {compareSelection.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            disabled={compareSelection.length !== 2}
+            onClick={onCompare}
+          >
+            <GitCompare className="h-4 w-4" />
+            Comparar versoes
+          </Button>
+          <button
+            type="button"
+            className="text-xs text-[#66746b] underline"
+            onClick={onClearCompare}
+          >
+            Limpar
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-[#66746b]">
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -54,24 +83,38 @@ export function LinkedDocumentHistory({
       ) : null}
 
       <div className="grid gap-2">
-        {versions?.map((version) => (
-          <button
-            key={version.id}
-            type="button"
-            className={cn(
-              'grid min-w-0 gap-1 rounded-md border p-2 text-left text-xs transition-colors',
-              selectedVersion === version.versionNumber
-                ? 'border-[#254632] bg-[#eef2eb] text-[#172126]'
-                : 'border-[#d9dfd5] bg-white text-[#425048] hover:bg-[#f7f8f6]',
-            )}
-            onClick={() => onSelectVersion(version.versionNumber)}
-          >
-            <span className="font-semibold text-[#172126]">v{version.versionNumber}</span>
-            <span className="truncate">{sourceLabels[version.source]}</span>
-            <span className="truncate text-[#66746b]">{dateFormatter.format(new Date(version.createdAtUtc))}</span>
-            <span className="truncate text-[#66746b]">{formatBytes(version.sizeBytes)}</span>
-          </button>
-        ))}
+        {versions?.map((version) => {
+          const isChecked = compareSelection.includes(version.versionNumber)
+          const isDisabled = compareSelection.length >= 2 && !isChecked
+          return (
+            <div key={version.id} className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                id={`compare-plan-${version.id}`}
+                className="mt-2 h-4 w-4 shrink-0 accent-[#254632]"
+                checked={isChecked}
+                onChange={() => onToggleCompare(version.versionNumber)}
+                disabled={isDisabled}
+                aria-label={`Selecionar v${version.versionNumber} para comparacao`}
+              />
+              <button
+                type="button"
+                className={cn(
+                  'grid min-w-0 flex-1 gap-1 rounded-md border p-2 text-left text-xs transition-colors',
+                  selectedVersion === version.versionNumber
+                    ? 'border-[#254632] bg-[#eef2eb] text-[#172126]'
+                    : 'border-[#d9dfd5] bg-white text-[#425048] hover:bg-[#f7f8f6]',
+                )}
+                onClick={() => onSelectVersion(version.versionNumber)}
+              >
+                <span className="font-semibold text-[#172126]">v{version.versionNumber}</span>
+                <span className="truncate">{sourceLabels[version.source]}</span>
+                <span className="truncate text-[#66746b]">{dateFormatter.format(new Date(version.createdAtUtc))}</span>
+                <span className="truncate text-[#66746b]">{formatBytes(version.sizeBytes)}</span>
+              </button>
+            </div>
+          )
+        })}
       </div>
     </aside>
   )

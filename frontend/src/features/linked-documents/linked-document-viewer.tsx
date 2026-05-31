@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, FileText, Loader2, Pause, Play, RefreshCw, Trash2 } from 'lucide-react'
 import type { ComponentProps } from 'react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeSanitize from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
@@ -20,6 +20,8 @@ import { queryKeys } from '@/api/query-keys'
 import type { LinkedDocument } from '@/api/schemas'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DiffViewerModal } from '@/features/diff/diff-viewer-modal'
+import { useLinkedPlanCompare } from '@/features/diff/use-linked-plan-compare'
 import { GeneratePromptMenu } from './generate-prompt-menu'
 import { LinkedDocumentHistory } from './linked-document-history'
 
@@ -50,9 +52,16 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   timeStyle: 'short',
 })
 
-export function LinkedDocumentViewer({ documentId, initialDocument, onRemoved }: LinkedDocumentViewerProps) {
+// Thin wrapper uses key to auto-reset all state when documentId changes.
+export function LinkedDocumentViewer(props: LinkedDocumentViewerProps) {
+  return <LinkedDocumentViewerPanel key={props.documentId} {...props} />
+}
+
+function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: LinkedDocumentViewerProps) {
   const queryClient = useQueryClient()
   const [selectedVersion, setSelectedVersion] = useState<number | undefined>()
+  const [compareSelection, setCompareSelection] = useState<number[]>([])
+  const [isCompareOpen, setIsCompareOpen] = useState(false)
 
   const documentQuery = useQuery({
     queryKey: queryKeys.linkedDocuments.detail(documentId),
@@ -67,6 +76,25 @@ export function LinkedDocumentViewer({ documentId, initialDocument, onRemoved }:
     queryKey: queryKeys.linkedDocuments.versions(documentId),
     queryFn: () => listLinkedDocumentVersions(documentId),
   })
+
+  // Derive valid selection without useEffect — stale numbers are simply excluded.
+  const validCompareSelection = useMemo(() => {
+    if (!versionsQuery.data) return compareSelection
+    const nums = new Set(versionsQuery.data.map((v) => v.versionNumber))
+    return compareSelection.filter((n) => nums.has(n))
+  }, [compareSelection, versionsQuery.data])
+
+  const sortedCompare = useMemo(
+    () => [...validCompareSelection].sort((a, b) => a - b),
+    [validCompareSelection],
+  )
+
+  const { contents, isLoading: compareLoading, error: compareError } = useLinkedPlanCompare(
+    documentId,
+    sortedCompare[0],
+    sortedCompare[1],
+    isCompareOpen,
+  )
 
   const contentQuery = useQuery({
     queryKey: queryKeys.linkedDocuments.content(documentId, contentVersion),
@@ -115,6 +143,14 @@ export function LinkedDocumentViewer({ documentId, initialDocument, onRemoved }:
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   })
+
+  const toggleCompare = (v: number) => {
+    setCompareSelection((prev) => {
+      if (prev.includes(v)) return prev.filter((x) => x !== v)
+      if (prev.length >= 2) return prev
+      return [...prev, v]
+    })
+  }
 
   const isBusy =
     refreshMutation.isPending || pauseMutation.isPending || resumeMutation.isPending || removeMutation.isPending
@@ -249,7 +285,23 @@ export function LinkedDocumentViewer({ documentId, initialDocument, onRemoved }:
         versions={versionsQuery.data}
         isLoading={versionsQuery.isLoading}
         onSelectVersion={setSelectedVersion}
+        compareSelection={validCompareSelection}
+        onToggleCompare={toggleCompare}
+        onClearCompare={() => setCompareSelection([])}
+        onCompare={() => setIsCompareOpen(true)}
       />
+
+      {isCompareOpen && sortedCompare.length === 2 ? (
+        <DiffViewerModal
+          oldContent={contents[0]}
+          newContent={contents[1]}
+          oldLabel={`v${sortedCompare[0]}`}
+          newLabel={`v${sortedCompare[1]}`}
+          isLoading={compareLoading}
+          error={compareError ?? undefined}
+          onClose={() => setIsCompareOpen(false)}
+        />
+      ) : null}
     </section>
   )
 }

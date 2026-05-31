@@ -258,55 +258,49 @@ function TypingIndicator() {
 function ChatMessage({ message }: { message: ChatStreamMessage }) {
   const isUser = message.role === 'user'
 
-  return (
-    <div className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-      {/* Avatar */}
-      <div
-        className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
-          isUser ? 'bg-[#254632]' : 'bg-[#eef2eb]'
-        }`}
-      >
-        {isUser ? (
+  if (isUser) {
+    return (
+      <div className="flex items-start justify-end gap-3">
+        <div className="flex max-w-[80%] flex-col items-end gap-1">
+          <div className="rounded-2xl rounded-tr-sm bg-[#254632] px-4 py-2.5 text-sm leading-relaxed text-white">
+            <p className="whitespace-pre-wrap">{message.content}</p>
+          </div>
+        </div>
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#254632]">
           <User className="h-4 w-4 text-white" />
-        ) : (
-          <Bot className="h-4 w-4 text-[#254632]" />
-        )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-start gap-3">
+      {/* Avatar */}
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#eef2eb]">
+        <Bot className="h-4 w-4 text-[#254632]" />
       </div>
 
-      {/* Bubble */}
-      <div className={`flex max-w-[82%] flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}>
-        {/* Thought (reasoning) */}
+      {/* Full-width model message — no bubble constraint so code blocks scroll properly */}
+      <div className="min-w-0 flex-1">
         {message.thought ? (
-          <details className="w-full">
+          <details className="mb-2">
             <summary className="cursor-pointer select-none rounded-lg border border-[#e8ede5] bg-[#f7f8f6] px-3 py-1.5 text-xs text-[#66746b] hover:bg-[#eef2eb]">
               Ver raciocinio da IA
             </summary>
-            <div className="mt-1 rounded-lg border border-[#e8ede5] bg-[#fafbf9] px-3 py-2 text-xs text-[#66746b] italic leading-relaxed">
+            <div className="mt-1 rounded-lg border border-[#e8ede5] bg-[#fafbf9] px-3 py-2 text-xs italic leading-relaxed text-[#66746b]">
               {message.thought}
             </div>
           </details>
         ) : null}
 
-        {/* Message content */}
-        <div
-          className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-            isUser
-              ? 'rounded-tr-sm bg-[#254632] text-white'
-              : 'rounded-tl-sm border border-[#e8ede5] bg-white text-[#172126]'
-          }`}
-        >
-          {isUser ? (
-            <p className="whitespace-pre-wrap">{message.content}</p>
-          ) : message.content ? (
-            <MarkdownContent content={message.content} />
-          ) : (
-            <span className="text-[#9aaf9e]">...</span>
-          )}
-        </div>
+        {message.content ? (
+          <MarkdownContent content={message.content} />
+        ) : (
+          <span className="text-sm text-[#9aaf9e]">...</span>
+        )}
 
-        {/* Cache indicator */}
         {message.cachedTokens ? (
-          <span className="text-[10px] text-[#b0bcb4]">{message.cachedTokens} tokens em cache</span>
+          <p className="mt-1 text-[10px] text-[#b0bcb4]">{message.cachedTokens} tokens em cache</p>
         ) : null}
       </div>
     </div>
@@ -349,7 +343,7 @@ function MarkdownContent({ content }: { content: string }) {
           },
           pre({ children }) {
             return (
-              <pre className="my-3 overflow-x-auto rounded-lg bg-[#0d1117] p-4 text-xs leading-relaxed">
+              <pre className="my-3 max-w-full overflow-x-auto rounded-lg bg-[#0d1117] p-4 text-xs leading-relaxed">
                 {children}
               </pre>
             )

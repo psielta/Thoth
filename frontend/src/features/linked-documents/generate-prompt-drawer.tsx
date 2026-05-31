@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
-import { AlertTriangle, Loader2, Save, Send, X } from 'lucide-react'
+import { AlertTriangle, Loader2, Save, X } from 'lucide-react'
 import { useCallback, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -30,7 +29,6 @@ type GeneratePromptDrawerProps = {
 
 type CreateGeneratedPromptPayload = {
   values: PromptFormValues
-  openAfterCreate: boolean
 }
 
 export function GeneratePromptDrawer({
@@ -38,7 +36,6 @@ export function GeneratePromptDrawer({
   template,
   onClose,
 }: GeneratePromptDrawerProps) {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const titleInputRef = useRef<HTMLInputElement>(null)
   const form = useForm<PromptFormValues>({
@@ -97,17 +94,9 @@ export function GeneratePromptDrawer({
         mentions: [],
       })
     },
-    onSuccess: async (prompt, payload) => {
+    onSuccess: async (prompt) => {
       await afterSave(prompt)
       toast.success('Prompt filho criado.')
-
-      if (payload.openAfterCreate) {
-        await navigate({
-          to: '/workspaces/$workspaceId/prompts/$promptId',
-          params: { workspaceId: prompt.workingDirectoryId, promptId: prompt.id },
-        })
-      }
-
       onClose()
     },
     onError: (error) => toast.error(getErrorMessage(error)),
@@ -139,8 +128,7 @@ export function GeneratePromptDrawer({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [requestClose])
 
-  const submit = (openAfterCreate: boolean) =>
-    form.handleSubmit((values) => createMutation.mutate({ values, openAfterCreate }))()
+  const submit = () => form.handleSubmit((values) => createMutation.mutate({ values }))()
   const titleField = form.register('title')
 
   return (
@@ -240,13 +228,9 @@ export function GeneratePromptDrawer({
           <Button type="button" variant="ghost" onClick={requestClose} disabled={isBusy}>
             Cancelar
           </Button>
-          <Button type="button" variant="secondary" onClick={() => submit(false)} disabled={!draftQuery.data || isBusy}>
+          <Button type="button" onClick={submit} disabled={!draftQuery.data || isBusy}>
             {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Criar filho
-          </Button>
-          <Button type="button" onClick={() => submit(true)} disabled={!draftQuery.data || isBusy}>
-            {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Criar e abrir filho
           </Button>
         </div>
       </div>

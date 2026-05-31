@@ -1,11 +1,13 @@
-import { Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2, MessageSquareText } from 'lucide-react'
-import { useMemo } from 'react'
+import { Copy, Loader2, MessageSquareText, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { listPrompts } from '@/api/prompts'
 import { queryKeys } from '@/api/query-keys'
-import type { PromptStatus } from '@/api/schemas'
+import type { Prompt, PromptStatus } from '@/api/schemas'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import {
   AGENT_LABELS,
   KIND_LABELS,
@@ -18,7 +20,13 @@ type PromptChildrenPanelProps = {
   parentPromptId: string
 }
 
+const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  dateStyle: 'short',
+  timeStyle: 'short',
+})
+
 export function PromptChildrenPanel({ workingDirectoryId, parentPromptId }: PromptChildrenPanelProps) {
+  const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null)
   const filters = useMemo(
     () => ({ workingDirectoryId, parentPromptId }),
     [parentPromptId, workingDirectoryId],
@@ -50,11 +58,11 @@ export function PromptChildrenPanel({ workingDirectoryId, parentPromptId }: Prom
 
       <div className="grid gap-2">
         {childrenQuery.data?.map((prompt) => (
-          <Link
+          <button
             key={prompt.id}
-            to="/workspaces/$workspaceId/prompts/$promptId"
-            params={{ workspaceId: workingDirectoryId, promptId: prompt.id }}
-            className="grid min-w-0 gap-2 rounded-md border border-[#d9dfd5] p-3 text-left transition-colors hover:border-[#8aa083] hover:bg-[#fbfcfa]"
+            type="button"
+            className="grid min-w-0 gap-2 rounded-md border border-[#d9dfd5] p-3 text-left transition-colors hover:border-[#8aa083] hover:bg-[#fbfcfa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5e7461]"
+            onClick={() => setSelectedPrompt(prompt)}
           >
             <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
@@ -67,13 +75,94 @@ export function PromptChildrenPanel({ workingDirectoryId, parentPromptId }: Prom
                 <Badge>{KIND_LABELS[prompt.kind]}</Badge>
               </div>
             </div>
-          </Link>
+          </button>
         ))}
       </div>
+
+      {selectedPrompt ? (
+        <ChildPromptDrawer prompt={selectedPrompt} onClose={() => setSelectedPrompt(null)} />
+      ) : null}
     </section>
   )
 }
 
 function StatusBadge({ status }: { status: PromptStatus }) {
   return <Badge variant={STATUS_BADGE_VARIANTS[status]}>{STATUS_LABELS[status]}</Badge>
+}
+
+function ChildPromptDrawer({ prompt, onClose }: { prompt: Prompt; onClose: () => void }) {
+  const copyContent = async () => {
+    await navigator.clipboard.writeText(prompt.content)
+    toast.success('Prompt filho copiado.')
+  }
+
+  const requestClose = useCallback(() => onClose(), [onClose])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        requestClose()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [requestClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-[#172126]/35 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="child-prompt-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          requestClose()
+        }
+      }}
+    >
+      <div className="grid h-full w-full max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] border-l border-[#d9dfd5] bg-white shadow-2xl">
+        <div className="flex min-w-0 items-start justify-between gap-3 border-b border-[#d9dfd5] p-4">
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h2 id="child-prompt-title" className="truncate text-base font-semibold text-[#172126]">
+                {prompt.title}
+              </h2>
+              <StatusBadge status={prompt.status} />
+              <Badge variant="blue">{AGENT_LABELS[prompt.targetAgent]}</Badge>
+              <Badge>{KIND_LABELS[prompt.kind]}</Badge>
+            </div>
+            <p className="mt-1 text-xs text-[#66746b]">
+              Criado em {dateFormatter.format(new Date(prompt.createdAtUtc))}
+            </p>
+          </div>
+
+          <Button type="button" variant="ghost" size="icon" onClick={requestClose} aria-label="Fechar">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="min-h-0 overflow-auto p-4">
+          <label className="grid gap-2 text-sm font-medium text-[#253035]">
+            Conteudo
+            <Textarea
+              className="min-h-[32rem] resize-y font-mono"
+              value={prompt.content}
+              readOnly
+            />
+          </label>
+        </div>
+
+        <div className="flex flex-wrap justify-end gap-2 border-t border-[#d9dfd5] p-4">
+          <Button type="button" variant="ghost" onClick={requestClose}>
+            Fechar
+          </Button>
+          <Button type="button" onClick={() => copyContent().catch(() => toast.error('Nao foi possivel copiar.'))}>
+            <Copy className="h-4 w-4" />
+            Copiar prompt
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
 }

@@ -1,12 +1,14 @@
-import { useQuery } from '@tanstack/react-query'
-import { Bot, Settings, X } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Bot, Clock, Settings, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { getAiSettings } from '@/api/ai'
 import { queryKeys } from '@/api/query-keys'
+import { useQuery } from '@tanstack/react-query'
 import { type AiChatSession } from '@/api/schemas'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AiChatPanel } from './ai-chat-panel'
 import { AiModelConfig, type ModelConfig } from './ai-model-config'
+import { AiSessionList } from './ai-session-list'
 
 type AiAssistantPanelProps = {
   promptId?: string
@@ -24,6 +26,7 @@ export function AiAssistantPanel({
   const [activeTab, setActiveTab] = useState('chat')
   const [activeSession, setActiveSession] = useState<AiChatSession | null>(null)
   const [visible, setVisible] = useState(false)
+  const queryClient = useQueryClient()
 
   // Animate in
   useEffect(() => {
@@ -46,10 +49,9 @@ export function AiAssistantPanel({
     temperature: 0.7,
     thinkingEnabled: true,
     thinkingBudget: null,
-    thinkingLevel: 'high',   // lowercase — matches Gemini API and backend default
+    thinkingLevel: 'high',
   })
 
-  // Sync with loaded settings once (use ref to avoid stale closure without extra re-render loop)
   const settingsApplied = useRef(false)
   useEffect(() => {
     if (settingsQuery.data && !settingsApplied.current) {
@@ -63,6 +65,23 @@ export function AiAssistantPanel({
       })
     }
   }, [settingsQuery.data])
+
+  // Load a session from history and switch to Chat tab
+  const handleSelectSession = (session: AiChatSession) => {
+    setActiveSession(session)
+    setActiveTab('chat')
+  }
+
+  // Start fresh: clear active session and go to Chat tab
+  const handleNewSession = () => {
+    setActiveSession(null)
+    setActiveTab('chat')
+  }
+
+  const handleSessionDeleted = () => {
+    setActiveSession(null)
+    void queryClient.invalidateQueries({ queryKey: queryKeys.ai.sessions(promptId) })
+  }
 
   return (
     <>
@@ -112,6 +131,10 @@ export function AiAssistantPanel({
                 <Bot className="mr-1.5 h-3.5 w-3.5" />
                 Chat
               </TabsTrigger>
+              <TabsTrigger value="history">
+                <Clock className="mr-1.5 h-3.5 w-3.5" />
+                Historico
+              </TabsTrigger>
               <TabsTrigger value="config">
                 <Settings className="mr-1.5 h-3.5 w-3.5" />
                 Configuracao
@@ -129,8 +152,19 @@ export function AiAssistantPanel({
               promptContent={promptContent}
               modelConfig={modelConfig}
               activeSession={activeSession}
-              onSessionCreated={setActiveSession}
-              onSessionDeleted={() => setActiveSession(null)}
+              onSessionCreated={(s) => {
+                setActiveSession(s)
+                void queryClient.invalidateQueries({ queryKey: queryKeys.ai.sessions(promptId) })
+              }}
+              onSessionDeleted={handleSessionDeleted}
+            />
+          ) : activeTab === 'history' ? (
+            <AiSessionList
+              promptId={promptId}
+              workingDirectoryId={workingDirectoryId}
+              activeSessionId={activeSession?.id}
+              onSelectSession={handleSelectSession}
+              onNewSession={handleNewSession}
             />
           ) : (
             <div className="flex-1 overflow-y-auto p-5">

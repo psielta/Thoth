@@ -42,6 +42,13 @@ public sealed class SendChatMessageHandler(
 
         var nextSequence = existingMessages.Count > 0 ? existingMessages.Max(m => m.Sequence) + 1 : 1;
 
+        // Auto-title from first user message
+        if (existingMessages.Count == 0)
+        {
+            var raw = request.Message.Trim();
+            session.Title = raw.Length <= 60 ? raw : raw[..57] + "...";
+        }
+
         var userContent = request.IncludePromptContext && !string.IsNullOrWhiteSpace(request.PromptContent)
             ? $"{request.Message}\n\n---\n**Conteúdo do prompt atual:**\n{request.PromptContent}"
             : request.Message;

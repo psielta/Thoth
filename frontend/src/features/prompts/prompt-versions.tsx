@@ -10,27 +10,12 @@ import type { PromptVersion } from '@/api/schemas'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { AGENT_LABELS, KIND_LABELS, STATUS_LABELS } from './constants'
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
   timeStyle: 'short',
 })
-
-const agentLabels: Record<PromptVersion['targetAgent'], string> = {
-  ClaudeCode: 'Claude Code',
-  Codex: 'Codex',
-}
-
-const kindLabels: Record<PromptVersion['kind'], string> = {
-  General: 'Geral',
-  Planning: 'Planejamento',
-}
-
-const statusLabels: Record<PromptVersion['status'], string> = {
-  Draft: 'Rascunho',
-  Ready: 'Pronto',
-  Archived: 'Arquivado',
-}
 
 export function PromptVersions({ promptId }: { promptId: string }) {
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null)
@@ -97,9 +82,9 @@ function PromptVersionPreview({
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <h2 className="truncate text-base font-semibold text-[#172126]">v{version.versionNumber}</h2>
-              <Badge variant="blue">{agentLabels[version.targetAgent]}</Badge>
-              <Badge variant="neutral">{kindLabels[version.kind]}</Badge>
-              <Badge variant="green">{statusLabels[version.status]}</Badge>
+              <Badge variant="blue">{AGENT_LABELS[version.targetAgent]}</Badge>
+              <Badge variant="neutral">{KIND_LABELS[version.kind]}</Badge>
+              <Badge variant="green">{STATUS_LABELS[version.status]}</Badge>
             </div>
             <p className="mt-1 truncate text-sm font-medium text-[#172126]">{version.title}</p>
             <p className="mt-1 text-xs text-[#66746b]">{dateFormatter.format(new Date(version.createdAtUtc))}</p>

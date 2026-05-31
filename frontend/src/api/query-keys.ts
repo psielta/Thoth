@@ -23,6 +23,11 @@ export const queryKeys = {
     detail: (id: string) => ['prompts', id] as const,
     versions: (id: string) => ['prompts', id, 'versions'] as const,
   },
+  promptTemplates: {
+    all: ['prompt-templates'] as const,
+    draft: (linkedDocumentId: string, templateKey: string) =>
+      ['prompt-templates', 'draft', linkedDocumentId, templateKey] as const,
+  },
   linkedDocuments: {
     all: ['linked-documents'] as const,
     forPrompt: (promptId: string) => ['linked-documents', 'prompt', promptId] as const,

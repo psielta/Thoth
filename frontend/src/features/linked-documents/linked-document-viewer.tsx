@@ -20,6 +20,7 @@ import { queryKeys } from '@/api/query-keys'
 import type { LinkedDocument } from '@/api/schemas'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { GeneratePromptMenu } from './generate-prompt-menu'
 import { LinkedDocumentHistory } from './linked-document-history'
 
 type LinkedDocumentViewerProps = {
@@ -151,6 +152,8 @@ export function LinkedDocumentViewer({ documentId, initialDocument, onRemoved }:
             </div>
 
             <div className="flex min-w-0 flex-wrap items-start gap-2 2xl:justify-end">
+              <GeneratePromptMenu linkedDocumentId={document.id} disabled={isBusy} />
+
               <Button
                 type="button"
                 variant="secondary"

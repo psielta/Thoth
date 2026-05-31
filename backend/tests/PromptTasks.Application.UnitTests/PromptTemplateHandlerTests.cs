@@ -1,0 +1,263 @@
+using FluentAssertions;
+using FluentValidation;
+using PromptTasks.Application.Common.Behaviors;
+using PromptTasks.Application.Common.Exceptions;
+using PromptTasks.Application.Common.Interfaces;
+using PromptTasks.Application.Common.Models;
+using PromptTasks.Application.Features.PromptTemplates;
+using PromptTasks.Application.Features.PromptTemplates.Commands.GeneratePromptDraft;
+using PromptTasks.Application.Features.PromptTemplates.Definitions;
+using PromptTasks.Domain.Prompts;
+using PromptTasks.Domain.Users;
+using PromptTasks.Domain.WorkingDirectories;
+
+namespace PromptTasks.Application.UnitTests;
+
+public sealed class PromptTemplateHandlerTests
+{
+    [Fact]
+    public void Catalog_returns_templates_ordered_by_key()
+    {
+        var catalog = CreateCatalog();
+
+        var templates = catalog.GetAll();
+
+        templates.Select(template => template.Key).Should()
+            .Equal(PromptTemplateKey.ReviewPlan, PromptTemplateKey.ImplementPlan);
+        catalog.Get(PromptTemplateKey.ReviewPlan).Should().BeOfType<ReviewPlanTemplate>();
+        catalog.Get(PromptTemplateKey.ImplementPlan).Should().BeOfType<ImplementPlanTemplate>();
+    }
+
+    [Fact]
+    public void Catalog_throws_for_unknown_template_key()
+    {
+        var catalog = CreateCatalog();
+
+        var act = () => catalog.Get((PromptTemplateKey)999);
+
+        act.Should().Throw<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task GeneratePromptDraft_review_plan_uses_linked_document_path_and_parent_workspace()
+    {
+        var context = new FakeApplicationDbContext();
+        var prompt = SeedPrompt(context, User.SystemUserId);
+        var document = SeedLinkedDocument(context, prompt, "C:/Users/psiel/.claude/plans/plan.md", "plan.md");
+        context.LinkedDocumentVersionItems.Add(new LinkedDocumentVersion
+        {
+            LinkedDocumentId = document.Id,
+            VersionNumber = 1,
+            Content = "# Saved plan",
+            ContentHash = "hash",
+            SizeBytes = 12
+        });
+        var handler = new GeneratePromptDraftHandler(context, CreateCatalog(), new FakeCurrentUser());
+
+        var result = await handler.Handle(
+            new GeneratePromptDraftCommand(document.Id, PromptTemplateKey.ReviewPlan),
+            CancellationToken.None);
+
+        result.TemplateKey.Should().Be(PromptTemplateKey.ReviewPlan);
+        result.LinkedDocumentId.Should().Be(document.Id);
+        result.WorkingDirectoryId.Should().Be(prompt.WorkingDirectoryId);
+        result.Title.Should().Be("Revisar plano: plan.md");
+        result.Content.Should().Be(
+            "Dado o plano \"C:/Users/psiel/.claude/plans/plan.md\", valide o plano, aprove-o ou aponte melhorias.");
+        result.TargetAgent.Should().Be(TargetAgent.Codex);
+        result.Kind.Should().Be(PromptKind.Planning);
+        context.SaveChangesCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GeneratePromptDraft_implement_plan_uses_general_kind()
+    {
+        var context = new FakeApplicationDbContext();
+        var prompt = SeedPrompt(context, User.SystemUserId);
+        var document = SeedLinkedDocument(context, prompt, "C:/plans/implementation.md", "implementation.md");
+        var handler = new GeneratePromptDraftHandler(context, CreateCatalog(), new FakeCurrentUser());
+
+        var result = await handler.Handle(
+            new GeneratePromptDraftCommand(document.Id, PromptTemplateKey.ImplementPlan),
+            CancellationToken.None);
+
+        result.Title.Should().Be("Implementar plano: implementation.md");
+        result.Content.Should().Be("Implemente o plano \"C:/plans/implementation.md\".");
+        result.TargetAgent.Should().Be(TargetAgent.Codex);
+        result.Kind.Should().Be(PromptKind.General);
+    }
+
+    [Fact]
+    public async Task GeneratePromptDraft_rejects_document_from_another_owner()
+    {
+        var context = new FakeApplicationDbContext();
+        var prompt = SeedPrompt(context, Guid.CreateVersion7());
+        var document = SeedLinkedDocument(context, prompt, "C:/plans/other.md", "other.md");
+        var handler = new GeneratePromptDraftHandler(context, CreateCatalog(), new FakeCurrentUser());
+
+        var act = () => handler.Handle(
+            new GeneratePromptDraftCommand(document.Id, PromptTemplateKey.ReviewPlan),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task GeneratePromptDraft_validation_rejects_invalid_template_key()
+    {
+        var behavior = new ValidationBehavior<GeneratePromptDraftCommand, GeneratedPromptDraftDto>(
+            new[] { new GeneratePromptDraftValidator() });
+        var invalid = new GeneratePromptDraftCommand(Guid.CreateVersion7(), (PromptTemplateKey)999);
+
+        var act = () => behavior.Handle(
+            invalid,
+            _ => Task.FromResult(new GeneratedPromptDraftDto(
+                invalid.TemplateKey,
+                invalid.LinkedDocumentId,
+                Guid.CreateVersion7(),
+                "",
+                "",
+                TargetAgent.Codex,
+                PromptKind.General)),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    private static PromptTemplateCatalog CreateCatalog() =>
+        new(new IPromptTemplateDefinition[]
+        {
+            new ImplementPlanTemplate(),
+            new ReviewPlanTemplate()
+        });
+
+    private static Prompt SeedPrompt(FakeApplicationDbContext context, Guid ownerId)
+    {
+        var directory = new WorkingDirectory
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "repo",
+            AbsolutePath = "C:/repo",
+            OwnerId = ownerId
+        };
+        var prompt = new Prompt
+        {
+            Id = Guid.CreateVersion7(),
+            WorkingDirectoryId = directory.Id,
+            Title = "Prompt",
+            Content = "Content",
+            OwnerId = ownerId
+        };
+
+        context.WorkingDirectoryItems.Add(directory);
+        context.PromptItems.Add(prompt);
+        return prompt;
+    }
+
+    private static LinkedDocument SeedLinkedDocument(
+        FakeApplicationDbContext context,
+        Prompt prompt,
+        string absolutePath,
+        string displayName)
+    {
+        var document = new LinkedDocument
+        {
+            Id = Guid.CreateVersion7(),
+            PromptId = prompt.Id,
+            WorkingDirectoryId = prompt.WorkingDirectoryId,
+            AbsolutePath = absolutePath,
+            AbsolutePathKey = absolutePath.ToLowerInvariant(),
+            DisplayName = displayName,
+            Status = LinkedDocumentStatus.Tracking,
+            CurrentVersion = 1
+        };
+
+        context.LinkedDocumentItems.Add(document);
+        return document;
+    }
+
+    private sealed class FakeApplicationDbContext : IApplicationDbContext
+    {
+        public List<User> UserItems { get; } = new();
+        public List<WorkingDirectory> WorkingDirectoryItems { get; } = new();
+        public List<Prompt> PromptItems { get; } = new();
+        public List<PromptVersion> PromptVersionItems { get; } = new();
+        public List<PromptFileReference> PromptFileReferenceItems { get; } = new();
+        public List<LinkedDocument> LinkedDocumentItems { get; } = new();
+        public List<LinkedDocumentVersion> LinkedDocumentVersionItems { get; } = new();
+        public int SaveChangesCount { get; private set; }
+
+        public IQueryable<User> Users => UserItems.AsQueryable();
+        public IQueryable<WorkingDirectory> WorkingDirectories => WorkingDirectoryItems.AsQueryable();
+        public IQueryable<Prompt> Prompts => PromptItems.AsQueryable();
+        public IQueryable<PromptVersion> PromptVersions => PromptVersionItems.AsQueryable();
+        public IQueryable<PromptFileReference> PromptFileReferences => PromptFileReferenceItems.AsQueryable();
+        public IQueryable<LinkedDocument> LinkedDocuments => LinkedDocumentItems.AsQueryable();
+        public IQueryable<LinkedDocumentVersion> LinkedDocumentVersions => LinkedDocumentVersionItems.AsQueryable();
+
+        public void Add<TEntity>(TEntity entity) where TEntity : class
+        {
+            switch (entity)
+            {
+                case Prompt prompt:
+                    PromptItems.Add(prompt);
+                    break;
+                case PromptVersion version:
+                    PromptVersionItems.Add(version);
+                    break;
+                case PromptFileReference reference:
+                    PromptFileReferenceItems.Add(reference);
+                    break;
+                case LinkedDocument document:
+                    LinkedDocumentItems.Add(document);
+                    break;
+                case LinkedDocumentVersion version:
+                    LinkedDocumentVersionItems.Add(version);
+                    break;
+            }
+        }
+
+        public void AddRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class
+        {
+            foreach (var entity in entities)
+            {
+                Add(entity);
+            }
+        }
+
+        public void Remove<TEntity>(TEntity entity) where TEntity : class
+        {
+            switch (entity)
+            {
+                case Prompt prompt:
+                    PromptItems.Remove(prompt);
+                    break;
+                case PromptFileReference reference:
+                    PromptFileReferenceItems.Remove(reference);
+                    break;
+                case LinkedDocument document:
+                    LinkedDocumentItems.Remove(document);
+                    break;
+            }
+        }
+
+        public void RemoveRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class
+        {
+            foreach (var entity in entities.ToList())
+            {
+                Remove(entity);
+            }
+        }
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            SaveChangesCount++;
+            return Task.FromResult(1);
+        }
+    }
+
+    private sealed class FakeCurrentUser : ICurrentUser
+    {
+        public Guid UserId => User.SystemUserId;
+    }
+}

@@ -5,10 +5,19 @@ import { useMemo, useState } from 'react'
 import { listPrompts } from '@/api/prompts'
 import { queryKeys } from '@/api/query-keys'
 import type { PromptKind, PromptStatus, TargetAgent } from '@/api/schemas'
-import { Badge, type BadgeProps } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import {
+  AGENT_LABELS,
+  AGENT_OPTIONS,
+  KIND_LABELS,
+  KIND_OPTIONS,
+  STATUS_BADGE_VARIANTS,
+  STATUS_LABELS,
+  STATUS_OPTIONS,
+} from './constants'
 
 type PromptListProps = {
   workingDirectoryId: string
@@ -51,9 +60,11 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
           Status
           <Select value={status} onChange={(event) => setStatus(event.target.value as PromptStatus | '')}>
             <option value="">Todos</option>
-            <option value="Draft">Rascunho</option>
-            <option value="Ready">Pronto</option>
-            <option value="Archived">Arquivado</option>
+            {STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </Select>
         </label>
 
@@ -61,8 +72,11 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
           Agente
           <Select value={agent} onChange={(event) => setAgent(event.target.value as TargetAgent | '')}>
             <option value="">Todos</option>
-            <option value="Codex">Codex</option>
-            <option value="ClaudeCode">Claude Code</option>
+            {AGENT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </Select>
         </label>
 
@@ -70,8 +84,11 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
           Tipo
           <Select value={kind} onChange={(event) => setKind(event.target.value as PromptKind | '')}>
             <option value="">Todos</option>
-            <option value="General">Geral</option>
-            <option value="Planning">Planejamento</option>
+            {KIND_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </Select>
         </label>
 
@@ -114,8 +131,8 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
                 <StatusBadge status={prompt.status} />
-                <Badge variant="blue">{prompt.targetAgent === 'ClaudeCode' ? 'Claude Code' : 'Codex'}</Badge>
-                <Badge>{prompt.kind === 'Planning' ? 'Planejamento' : 'Geral'}</Badge>
+                <Badge variant="blue">{AGENT_LABELS[prompt.targetAgent]}</Badge>
+                <Badge>{KIND_LABELS[prompt.kind]}</Badge>
               </div>
             </div>
           </Link>
@@ -126,17 +143,5 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
 }
 
 function StatusBadge({ status }: { status: PromptStatus }) {
-  const variantByStatus: Record<PromptStatus, BadgeProps['variant']> = {
-    Draft: 'amber',
-    Ready: 'green',
-    Archived: 'neutral',
-  }
-
-  const labelByStatus: Record<PromptStatus, string> = {
-    Draft: 'Rascunho',
-    Ready: 'Pronto',
-    Archived: 'Arquivado',
-  }
-
-  return <Badge variant={variantByStatus[status]}>{labelByStatus[status]}</Badge>
+  return <Badge variant={STATUS_BADGE_VARIANTS[status]}>{STATUS_LABELS[status]}</Badge>
 }

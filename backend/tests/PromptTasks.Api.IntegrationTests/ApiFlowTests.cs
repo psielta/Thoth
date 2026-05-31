@@ -202,6 +202,100 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
+    [Fact]
+    public async Task Prompt_template_flow_renders_draft_and_persists_prompt()
+    {
+        Directory.CreateDirectory(Path.Combine(_tempRoot, "repo"));
+        var planDirectory = Path.Combine(_tempRoot, "plans");
+        Directory.CreateDirectory(planDirectory);
+        var planPath = Path.Combine(planDirectory, "review-plan.md");
+        await File.WriteAllTextAsync(planPath, "# Review plan");
+
+        var client = factory.CreateClient();
+        var templates = await client.GetFromJsonAsync<PromptTemplateDto[]>("/api/prompt-templates", JsonOptions);
+        templates.Should().NotBeNull();
+        templates.Should().Contain(template =>
+            template.Key == PromptTemplateKey.ReviewPlan &&
+            template.DefaultTargetAgent == TargetAgent.Codex &&
+            template.DefaultKind == PromptKind.Planning);
+        templates.Should().Contain(template =>
+            template.Key == PromptTemplateKey.ImplementPlan &&
+            template.DefaultTargetAgent == TargetAgent.Codex &&
+            template.DefaultKind == PromptKind.General);
+
+        var wdResponse = await client.PostAsJsonAsync(
+            "/api/working-directories",
+            new { name = "repo", absolutePath = Path.Combine(_tempRoot, "repo"), respectGitignore = true },
+            JsonOptions);
+        wdResponse.EnsureSuccessStatusCode();
+        var wd = await wdResponse.Content.ReadFromJsonAsync<WorkingDirectoryDto>(JsonOptions);
+
+        var createResponse = await client.PostAsJsonAsync(
+            "/api/prompts",
+            new
+            {
+                workingDirectoryId = wd!.Id,
+                title = "Plan prompt",
+                content = "Create a plan",
+                targetAgent = TargetAgent.ClaudeCode,
+                kind = PromptKind.Planning,
+                status = PromptStatus.Draft,
+                mentions = Array.Empty<object>()
+            },
+            JsonOptions);
+        createResponse.EnsureSuccessStatusCode();
+        var prompt = await createResponse.Content.ReadFromJsonAsync<PromptDto>(JsonOptions);
+
+        var linkResponse = await client.PostAsJsonAsync(
+            $"/api/prompts/{prompt!.Id}/linked-documents",
+            new { absolutePath = planPath, documentType = LinkedDocumentType.ClaudeCodePlan },
+            JsonOptions);
+        linkResponse.EnsureSuccessStatusCode();
+        var linked = await linkResponse.Content.ReadFromJsonAsync<LinkedDocumentDto>(JsonOptions);
+
+        var draftResponse = await client.PostAsJsonAsync(
+            $"/api/linked-documents/{linked!.Id}/prompt-drafts",
+            new { templateKey = PromptTemplateKey.ReviewPlan },
+            JsonOptions);
+        draftResponse.EnsureSuccessStatusCode();
+        var draft = await draftResponse.Content.ReadFromJsonAsync<GeneratedPromptDraftDto>(JsonOptions);
+        draft.Should().NotBeNull();
+        draft!.LinkedDocumentId.Should().Be(linked.Id);
+        draft.WorkingDirectoryId.Should().Be(wd.Id);
+        draft.TargetAgent.Should().Be(TargetAgent.Codex);
+        draft.Kind.Should().Be(PromptKind.Planning);
+        draft.Content.Should().Be($"Dado o plano \"{planPath}\", valide o plano, aprove-o ou aponte melhorias.");
+
+        var generatedPromptResponse = await client.PostAsJsonAsync(
+            "/api/prompts",
+            new
+            {
+                workingDirectoryId = draft.WorkingDirectoryId,
+                title = draft.Title,
+                content = draft.Content,
+                targetAgent = draft.TargetAgent,
+                kind = draft.Kind,
+                status = PromptStatus.Draft,
+                mentions = Array.Empty<object>()
+            },
+            JsonOptions);
+        generatedPromptResponse.EnsureSuccessStatusCode();
+        var generatedPrompt = await generatedPromptResponse.Content.ReadFromJsonAsync<PromptDto>(JsonOptions);
+        generatedPrompt!.Content.Should().Be(draft.Content);
+
+        var invalidTemplateResponse = await client.PostAsJsonAsync(
+            $"/api/linked-documents/{linked.Id}/prompt-drafts",
+            new { templateKey = 999 },
+            JsonOptions);
+        invalidTemplateResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var missingDocumentResponse = await client.PostAsJsonAsync(
+            $"/api/linked-documents/{Guid.CreateVersion7()}/prompt-drafts",
+            new { templateKey = PromptTemplateKey.ReviewPlan },
+            JsonOptions);
+        missingDocumentResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempRoot))

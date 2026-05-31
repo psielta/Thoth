@@ -10,6 +10,7 @@ using PromptTasks.Application.Features.LinkedDocuments.Queries.GetLinkedDocument
 using PromptTasks.Application.Features.LinkedDocuments.Queries.GetLinkedDocumentContent;
 using PromptTasks.Application.Features.LinkedDocuments.Queries.GetLinkedDocuments;
 using PromptTasks.Application.Features.LinkedDocuments.Queries.GetLinkedDocumentVersions;
+using PromptTasks.Application.Features.PromptTemplates.Commands.GeneratePromptDraft;
 using PromptTasks.Domain.Prompts;
 
 namespace PromptTasks.Api.Controllers;
@@ -66,6 +67,13 @@ public sealed class LinkedDocumentsController(ISender sender) : ControllerBase
     public async Task<ActionResult<LinkedDocumentDto>> Refresh(Guid id, CancellationToken cancellationToken) =>
         Ok(await sender.Send(new RefreshLinkedDocumentCommand(id), cancellationToken));
 
+    [HttpPost("linked-documents/{id:guid}/prompt-drafts")]
+    public async Task<ActionResult<GeneratedPromptDraftDto>> GeneratePromptDraft(
+        Guid id,
+        GeneratePromptDraftRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await sender.Send(new GeneratePromptDraftCommand(id, request.TemplateKey), cancellationToken));
+
     [HttpDelete("linked-documents/{id:guid}")]
     public async Task<IActionResult> Remove(Guid id, CancellationToken cancellationToken)
     {
@@ -77,4 +85,6 @@ public sealed class LinkedDocumentsController(ISender sender) : ControllerBase
         string AbsolutePath,
         LinkedDocumentType DocumentType = LinkedDocumentType.ClaudeCodePlan,
         string? DisplayName = null);
+
+    public sealed record GeneratePromptDraftRequest(PromptTemplateKey TemplateKey);
 }

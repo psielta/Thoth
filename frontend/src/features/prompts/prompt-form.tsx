@@ -5,32 +5,22 @@ import { Loader2, Save, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
-import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { FormField } from '@/components/form-field'
 import { createPrompt, deletePrompt, getPrompt, updatePrompt } from '@/api/prompts'
 import { queryKeys } from '@/api/query-keys'
-import {
-  promptKindSchema,
-  promptStatusSchema,
-  targetAgentSchema,
-  type FileMention,
-  type Prompt,
-} from '@/api/schemas'
+import { type FileMention, type Prompt } from '@/api/schemas'
 import { getErrorMessage } from '@/api/client'
+import {
+  AGENT_OPTIONS,
+  KIND_OPTIONS,
+  STATUS_OPTIONS,
+  promptFormSchema,
+  type PromptFormValues,
+} from './constants'
 import { PromptEditor } from './prompt-editor'
-
-const promptFormSchema = z.object({
-  title: z.string().trim().min(3, 'Informe um titulo com pelo menos 3 caracteres.'),
-  targetAgent: targetAgentSchema,
-  kind: promptKindSchema,
-  status: promptStatusSchema,
-  content: z.string().trim().min(3, 'Escreva o prompt em markdown.'),
-})
-
-type PromptFormValues = z.infer<typeof promptFormSchema>
 
 type PromptFormProps = {
   workingDirectoryId: string
@@ -160,23 +150,31 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
 
           <FormField label="Agente" htmlFor="prompt-agent">
             <Select id="prompt-agent" {...form.register('targetAgent')}>
-              <option value="Codex">Codex</option>
-              <option value="ClaudeCode">Claude Code</option>
+              {AGENT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </Select>
           </FormField>
 
           <FormField label="Tipo" htmlFor="prompt-kind">
             <Select id="prompt-kind" {...form.register('kind')}>
-              <option value="General">Geral</option>
-              <option value="Planning">Planejamento</option>
+              {KIND_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </Select>
           </FormField>
 
           <FormField label="Status" htmlFor="prompt-status">
             <Select id="prompt-status" {...form.register('status')}>
-              <option value="Draft">Rascunho</option>
-              <option value="Ready">Pronto</option>
-              <option value="Archived">Arquivado</option>
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </Select>
           </FormField>
         </div>

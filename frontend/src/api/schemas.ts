@@ -6,6 +6,7 @@ export const promptStatusSchema = z.enum(['Draft', 'Ready', 'Archived'])
 export const linkedDocumentStatusSchema = z.enum(['Draft', 'Tracking', 'Paused', 'Error', 'Missing'])
 export const linkedDocumentTypeSchema = z.enum(['ClaudeCodePlan'])
 export const linkedDocumentVersionSourceSchema = z.enum(['Initial', 'FileChanged', 'ManualRefresh', 'Resumed'])
+export const promptTemplateKeySchema = z.string().min(1)
 
 export type TargetAgent = z.infer<typeof targetAgentSchema>
 export type PromptKind = z.infer<typeof promptKindSchema>
@@ -13,6 +14,7 @@ export type PromptStatus = z.infer<typeof promptStatusSchema>
 export type LinkedDocumentStatus = z.infer<typeof linkedDocumentStatusSchema>
 export type LinkedDocumentType = z.infer<typeof linkedDocumentTypeSchema>
 export type LinkedDocumentVersionSource = z.infer<typeof linkedDocumentVersionSourceSchema>
+export type PromptTemplateKey = z.infer<typeof promptTemplateKeySchema>
 
 export const fileMentionSchema = z.object({
   id: z.string().min(1),
@@ -114,6 +116,24 @@ export const linkedDocumentVersionSchema = z.object({
   createdAtUtc: z.string(),
 })
 
+export const promptTemplateSchema = z.object({
+  key: promptTemplateKeySchema,
+  displayName: z.string(),
+  description: z.string(),
+  defaultTargetAgent: targetAgentSchema,
+  defaultKind: promptKindSchema,
+})
+
+export const promptDraftSchema = z.object({
+  templateKey: promptTemplateKeySchema,
+  linkedDocumentId: z.string().uuid(),
+  workingDirectoryId: z.string().uuid(),
+  title: z.string(),
+  content: z.string(),
+  targetAgent: targetAgentSchema,
+  kind: promptKindSchema,
+})
+
 export type FileMention = z.infer<typeof fileMentionSchema>
 export type WorkingDirectory = z.infer<typeof workingDirectorySchema>
 export type ValidatePathResponse = z.infer<typeof validatePathResponseSchema>
@@ -124,6 +144,8 @@ export type PromptVersion = z.infer<typeof promptVersionSchema>
 export type LinkedDocument = z.infer<typeof linkedDocumentSchema>
 export type LinkedDocumentContent = z.infer<typeof linkedDocumentContentSchema>
 export type LinkedDocumentVersion = z.infer<typeof linkedDocumentVersionSchema>
+export type PromptTemplate = z.infer<typeof promptTemplateSchema>
+export type GeneratedPromptDraft = z.infer<typeof promptDraftSchema>
 
 export const workingDirectoryListSchema = z.array(workingDirectorySchema)
 export const fileSearchResultListSchema = z.array(fileSearchResultSchema)
@@ -132,3 +154,4 @@ export const promptListSchema = z.array(promptSchema)
 export const promptVersionListSchema = z.array(promptVersionSchema)
 export const linkedDocumentListSchema = z.array(linkedDocumentSchema)
 export const linkedDocumentVersionListSchema = z.array(linkedDocumentVersionSchema)
+export const promptTemplateListSchema = z.array(promptTemplateSchema)

@@ -20,6 +20,7 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 - Renderizacao de Markdown versionado no navegador com historico navegavel.
 - Templates de prompts para fluxo de revisao e implementacao de planos.
 - Indicadores no header para limites atuais de Claude Code e Codex, lendo as fontes locais dos agentes e sincronizando atualizacoes via SignalR.
+- **Assistente IA com Gemini:** refinamento de prompts, chat de suporte e configuracao de modelo diretamente na tela de criacao e edicao.
 - API REST documentada com OpenAPI/Scalar.
 - Testes unitarios, testes de integracao com PostgreSQL em container e testes de frontend com Vitest.
 
@@ -35,6 +36,7 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 - Newtonsoft.Json integrado ao ASP.NET Core.
 - SignalR para eventos em tempo real.
 - Leitura local de uso dos agentes: Claude via OAuth da instalacao local e API de uso da Anthropic; Codex via snapshots `rate_limits` dos JSONL em `~/.codex/sessions`.
+- Integracao com a Gemini API via `HttpClient` tipado: refinamento de prompts, chat com streaming SSE e context caching de dois niveis (instrucao de sistema e historico de sessao).
 - OpenAPI e Scalar para exploracao da API.
 - xUnit, FluentAssertions, Testcontainers e `Microsoft.AspNetCore.Mvc.Testing` para testes.
 
@@ -47,6 +49,7 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 - TipTap para editor Markdown com mencoes de arquivo.
 - Tailwind CSS 4 e componentes no estilo shadcn/ui.
 - SignalR client para atualizacoes em tempo real.
+- `react-markdown` com `remark-gfm` para renderizacao de respostas do assistente IA.
 - Vitest, Testing Library e jsdom para testes.
 
 ### Infraestrutura Local
@@ -95,6 +98,9 @@ O backend segue um fluxo orientado a casos de uso. Controllers chamam MediatR, h
 10. No board, o usuario pode arrastar tarefas entre fases, concluir, reabrir ou arquivar a tarefa.
 11. Na aba `Timeline`, o usuario acompanha o historico, adiciona notas, muda fase/responsavel, conclui ou reabre o fluxo.
 12. O template de fases pode ser editado em `Configuracoes`; tarefas existentes mantem um snapshot proprio das fases.
+13. Na tela de criacao ou edicao de um prompt, o botao **Refinar** envia o conteudo atual para o Gemini e exibe uma previa do prompt otimizado antes de aplicar.
+14. O botao **IA** abre um drawer lateral com chat de suporte especializado em engenharia de prompts; o usuario pode incluir o conteudo do prompt atual como contexto da conversa.
+15. O painel de **Configuracao** do drawer permite escolher o modelo Gemini, ajustar a temperatura e definir o nivel de raciocinio. As configuracoes sao salvas por usuario.
 
 ## Como Executar
 
@@ -104,7 +110,17 @@ O backend segue um fluxo orientado a casos de uso. Controllers chamam MediatR, h
 - Node.js compativel com o frontend e npm.
 - Docker Desktop ou Docker Engine com Compose.
 
-### 1. Subir o PostgreSQL
+### 1. Configurar a chave Gemini
+
+Crie um arquivo `.env` na raiz do repositorio (nunca commitado — ja esta no `.gitignore`):
+
+```text
+GEMINI_API_KEY=sua_chave_aqui
+```
+
+Obtenha a chave em [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey). Sem ela, os endpoints `/api/ai/*` retornam `503`; o restante do app funciona normalmente.
+
+### 2. Subir o PostgreSQL
 
 ```powershell
 docker compose up -d
@@ -120,7 +136,7 @@ Username=prompttasks
 Password=prompttasks
 ```
 
-### 2. Executar a API
+### 3. Executar a API
 
 ```powershell
 dotnet run --project backend/src/PromptTasks.Api/PromptTasks.Api.csproj
@@ -132,7 +148,7 @@ Servicos expostos:
 - SignalR hub: `http://localhost:5080/hubs/prompts`
 - Scalar/OpenAPI: `http://localhost:5080/scalar`
 
-### 3. Executar o frontend
+### 4. Executar o frontend
 
 ```powershell
 cd frontend
@@ -181,7 +197,6 @@ npm audit --audit-level=moderate
 
 - Adicionar visualizacao de diferencas entre versoes de prompts e entre versoes de planos Markdown vinculados, permitindo revisar exatamente o que mudou no prompt ou o que o Claude alterou no plano.
 - Permitir salvar uma copia do Markdown de um plano vinculado em um diretorio definido pelo usuario, preservando historico local fora do arquivo monitorado original.
-- Implementar integracao com Gemini para apoiar refinamento de prompts e uso de IA em pontos estrategicos do fluxo, como sugestoes de melhoria, organizacao de contexto e apoio a revisao.
 
 ## Decisoes de Produto Importantes
 
@@ -194,6 +209,10 @@ npm audit --audit-level=moderate
 - Arquivos mencionados em prompts precisam existir dentro do diretorio de trabalho.
 - Planos vinculados podem ser monitorados em background, pausados e retomados.
 - Ao arquivar um prompt, os planos vinculados devem parar de ser monitorados.
+- Ao arquivar ou excluir um prompt, os caches Gemini das sessoes associadas sao liberados proativamente para evitar custo de armazenamento desnecessario.
+- A chave `GEMINI_API_KEY` nunca trafega pelo navegador; todas as chamadas a API Gemini sao feitas exclusivamente pelo backend.
+- O chat usa context caching em dois niveis: instrucao de sistema compartilhada por modelo (TTL 1h) e cache de historico por sessao criado apos atingir o limite de tokens configurado.
+- O nivel de raciocinio padrao e `high`; usuarios podem reduzir para `medium` ou `low` na aba Configuracao do drawer de IA.
 
 ## Documentacao para Agentes
 

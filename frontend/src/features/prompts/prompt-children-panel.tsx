@@ -7,7 +7,7 @@ import { queryKeys } from '@/api/query-keys'
 import type { Prompt, PromptStatus } from '@/api/schemas'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import { PromptEditor } from './prompt-editor'
 import {
   AGENT_LABELS,
   KIND_LABELS,
@@ -142,15 +142,16 @@ function ChildPromptDrawer({ prompt, onClose }: { prompt: Prompt; onClose: () =>
           </Button>
         </div>
 
-        <div className="min-h-0 overflow-auto p-4">
-          <label className="grid gap-2 text-sm font-medium text-[#253035]">
-            Conteudo
-            <Textarea
-              className="min-h-[32rem] resize-y font-mono"
-              value={prompt.content}
-              readOnly
-            />
-          </label>
+        <div className="min-h-0 overflow-hidden p-4">
+          <PromptEditor
+            workingDirectoryId={prompt.workingDirectoryId}
+            value={prompt.content}
+            onChange={() => undefined}
+            editable={false}
+            className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]"
+            contentClassName="min-h-0 overflow-auto"
+            editorClassName="min-h-full"
+          />
         </div>
 
         <div className="flex flex-wrap justify-end gap-2 border-t border-[#d9dfd5] p-4">

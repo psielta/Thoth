@@ -1,25 +1,25 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Loader2, Save, X } from 'lucide-react'
-import { useCallback, useEffect, useRef } from 'react'
+import { AlertTriangle, Copy, Loader2, Save, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
 import { createPrompt } from '@/api/prompts'
 import { renderPromptDraft } from '@/api/prompt-templates'
 import { queryKeys } from '@/api/query-keys'
-import type { Prompt, PromptTemplate } from '@/api/schemas'
+import type { FileMention, Prompt, PromptTemplate } from '@/api/schemas'
 import { FormField } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import {
   AGENT_OPTIONS,
   KIND_OPTIONS,
   promptFormSchema,
   type PromptFormValues,
 } from '@/features/prompts/constants'
+import { PromptEditor } from '@/features/prompts/prompt-editor'
 
 type GeneratePromptDrawerProps = {
   linkedDocumentId: string
@@ -29,6 +29,7 @@ type GeneratePromptDrawerProps = {
 
 type CreateGeneratedPromptPayload = {
   values: PromptFormValues
+  copyAfterCreate: boolean
 }
 
 export function GeneratePromptDrawer({
@@ -38,6 +39,8 @@ export function GeneratePromptDrawer({
 }: GeneratePromptDrawerProps) {
   const queryClient = useQueryClient()
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const [contentOverride, setContentOverride] = useState<string | null>(null)
+  const [editorMentions, setEditorMentions] = useState<FileMention[] | null>(null)
   const form = useForm<PromptFormValues>({
     resolver: zodResolver(promptFormSchema),
     defaultValues: {
@@ -54,6 +57,7 @@ export function GeneratePromptDrawer({
     queryFn: () => renderPromptDraft(linkedDocumentId, template.key),
     retry: false,
   })
+  const editorContent = contentOverride ?? draftQuery.data?.content ?? ''
 
   useEffect(() => {
     if (!draftQuery.data) {
@@ -91,12 +95,21 @@ export function GeneratePromptDrawer({
         targetAgent: values.targetAgent,
         kind: values.kind,
         status: 'Draft',
-        mentions: [],
+        mentions: editorMentions ?? [],
       })
     },
-    onSuccess: async (prompt) => {
+    onSuccess: async (prompt, payload) => {
       await afterSave(prompt)
-      toast.success('Prompt filho criado.')
+      if (payload.copyAfterCreate) {
+        try {
+          await navigator.clipboard.writeText(payload.values.content)
+          toast.success('Prompt filho criado e copiado.')
+        } catch {
+          toast.warning('Prompt filho criado, mas nao foi possivel copiar.')
+        }
+      } else {
+        toast.success('Prompt filho criado.')
+      }
       onClose()
     },
     onError: (error) => toast.error(getErrorMessage(error)),
@@ -128,7 +141,13 @@ export function GeneratePromptDrawer({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [requestClose])
 
-  const submit = () => form.handleSubmit((values) => createMutation.mutate({ values }))()
+  const submit = (copyAfterCreate: boolean) =>
+    form.handleSubmit((values) =>
+      createMutation.mutate({
+        values: { ...values, content: editorContent },
+        copyAfterCreate,
+      }),
+    )()
   const titleField = form.register('title')
 
   return (
@@ -158,7 +177,7 @@ export function GeneratePromptDrawer({
           </Button>
         </div>
 
-        <div className="min-h-0 overflow-auto p-4">
+        <div className="min-h-0 overflow-hidden p-4">
           {draftQuery.isLoading ? (
             <div className="flex items-center gap-2 rounded-md border border-[#d9dfd5] bg-[#f7f8f6] p-3 text-sm text-[#66746b]">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -179,7 +198,9 @@ export function GeneratePromptDrawer({
           ) : null}
 
           {draftQuery.data ? (
-            <form className="grid gap-4">
+            <form className="grid h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-4">
+              <input type="hidden" {...form.register('content')} value={editorContent} />
+
               <FormField label="Titulo" htmlFor="generated-prompt-title" error={form.formState.errors.title?.message}>
                 <Input
                   id="generated-prompt-title"
@@ -213,13 +234,25 @@ export function GeneratePromptDrawer({
                 </FormField>
               </div>
 
-              <FormField label="Conteudo" htmlFor="generated-prompt-content" error={form.formState.errors.content?.message}>
-                <Textarea
-                  id="generated-prompt-content"
-                  className="min-h-[24rem] resize-y font-mono"
-                  {...form.register('content')}
+              <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-1.5">
+                <PromptEditor
+                  workingDirectoryId={draftQuery.data.workingDirectoryId}
+                  value={editorContent}
+                  onChange={(value, nextMentions) => {
+                    setContentOverride(value)
+                    form.setValue('content', value, { shouldDirty: true, shouldValidate: true })
+                    setEditorMentions(nextMentions)
+                  }}
+                  className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]"
+                  contentClassName="min-h-0 overflow-auto"
+                  editorClassName="min-h-full"
                 />
-              </FormField>
+                {form.formState.errors.content?.message ? (
+                  <p className="text-xs font-medium text-[#b42318]">
+                    {form.formState.errors.content.message}
+                  </p>
+                ) : null}
+              </div>
             </form>
           ) : null}
         </div>
@@ -228,7 +261,11 @@ export function GeneratePromptDrawer({
           <Button type="button" variant="ghost" onClick={requestClose} disabled={isBusy}>
             Cancelar
           </Button>
-          <Button type="button" onClick={submit} disabled={!draftQuery.data || isBusy}>
+          <Button type="button" variant="secondary" onClick={() => submit(true)} disabled={!draftQuery.data || isBusy}>
+            {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+            Criar e copiar
+          </Button>
+          <Button type="button" onClick={() => submit(false)} disabled={!draftQuery.data || isBusy}>
             {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Criar filho
           </Button>

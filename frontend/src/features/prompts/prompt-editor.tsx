@@ -1,4 +1,5 @@
 import { Markdown } from '@tiptap/markdown'
+import { Extension, type MarkdownToken } from '@tiptap/core'
 import type { EditorView } from '@tiptap/pm/view'
 import type { JSONContent } from '@tiptap/react'
 import { EditorContent, useEditor } from '@tiptap/react'
@@ -9,18 +10,32 @@ import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
 import { searchFiles, validateFileReferences } from '@/api/files'
 import type { FileMention, FileSearchResult } from '@/api/schemas'
+import { cn } from '@/lib/utils'
 import { createFileMentionSuggestion, FileMention as FileMentionExtension } from './file-mention'
 
 type PromptEditorProps = {
   workingDirectoryId: string
   value: string
   onChange: (value: string, mentions: FileMention[]) => void
+  className?: string
+  contentClassName?: string
+  editorClassName?: string
+  editable?: boolean
 }
 
 const fileSearchCache = new Map<string, Promise<FileSearchResult[]>>()
 const plainFileMentionPattern = /(^|[\s([{"'])@([^\s@]+(?:[\\/][^\s@]+)+)/g
 const trailingPathPunctuationPattern = /[)"',.;:!?]+$/
 const maxPastedMentionValidationCount = 100
+
+const MarkdownEscapeText = Extension.create({
+  name: 'markdownEscapeText',
+  markdownTokenName: 'escape',
+  parseMarkdown: (token: MarkdownToken) => ({
+    type: 'text',
+    text: token.raw || token.text || '',
+  }),
+})
 
 type PlainFileMentionReplacement = {
   from: number
@@ -33,7 +48,15 @@ type NormalizePlainMentionOptions = {
   showLoading?: boolean
 }
 
-export function PromptEditor({ workingDirectoryId, value, onChange }: PromptEditorProps) {
+export function PromptEditor({
+  workingDirectoryId,
+  value,
+  onChange,
+  className,
+  contentClassName,
+  editorClassName,
+  editable = true,
+}: PromptEditorProps) {
   const [isValidatingMentions, setIsValidatingMentions] = useState(false)
 
   const searchMentions = useCallback(
@@ -123,6 +146,7 @@ export function PromptEditor({ workingDirectoryId, value, onChange }: PromptEdit
   const extensions = useMemo(
     () => [
       StarterKit,
+      MarkdownEscapeText,
       FileMentionExtension.configure({
         HTMLAttributes: {
           class: 'file-mention',
@@ -140,11 +164,16 @@ export function PromptEditor({ workingDirectoryId, value, onChange }: PromptEdit
     extensions,
     content: value || '',
     contentType: 'markdown',
+    editable,
     editorProps: {
       attributes: {
-        class: 'tiptap px-4 py-3 text-left text-sm leading-6 text-[#172126]',
+        class: cn('tiptap px-4 py-3 text-left text-sm leading-6 text-[#172126]', editorClassName),
       },
       handlePaste: (view) => {
+        if (!editable) {
+          return false
+        }
+
         window.setTimeout(() => {
           void validateAndNormalizePlainMentions(view, { alertInvalid: true, showLoading: true })
         }, 0)
@@ -152,6 +181,10 @@ export function PromptEditor({ workingDirectoryId, value, onChange }: PromptEdit
       },
     },
     onCreate: ({ editor: currentEditor }) => {
+      if (!editable) {
+        return
+      }
+
       queueMicrotask(() => {
         void validateAndNormalizePlainMentions(currentEditor.view)
       })
@@ -162,18 +195,24 @@ export function PromptEditor({ workingDirectoryId, value, onChange }: PromptEdit
   })
 
   useEffect(() => {
+    editor?.setEditable(editable)
+  }, [editable, editor])
+
+  useEffect(() => {
     if (!editor || editor.getMarkdown() === value) {
       return
     }
 
     editor.commands.setContent(value || '', { contentType: 'markdown' })
-    queueMicrotask(() => {
-      void validateAndNormalizePlainMentions(editor.view)
-    })
-  }, [editor, validateAndNormalizePlainMentions, value])
+    if (editable) {
+      queueMicrotask(() => {
+        void validateAndNormalizePlainMentions(editor.view)
+      })
+    }
+  }, [editable, editor, validateAndNormalizePlainMentions, value])
 
   return (
-    <div className="overflow-hidden rounded-lg border border-[#cbd5c8] bg-white">
+    <div className={cn('overflow-hidden rounded-lg border border-[#cbd5c8] bg-white', className)}>
       <div className="flex items-center justify-between gap-3 border-b border-[#d9dfd5] bg-[#f7f8f6] px-4 py-2 text-xs font-medium uppercase tracking-normal text-[#66746b]">
         <span>Markdown com mencoes de arquivo</span>
         {isValidatingMentions ? (
@@ -183,7 +222,7 @@ export function PromptEditor({ workingDirectoryId, value, onChange }: PromptEdit
           </span>
         ) : null}
       </div>
-      <EditorContent editor={editor} />
+      <EditorContent editor={editor} className={contentClassName} />
     </div>
   )
 }

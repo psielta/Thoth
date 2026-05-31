@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPrompt } from '@/api/prompts'
 import { renderPromptDraft } from '@/api/prompt-templates'
 import type { PromptTemplate } from '@/api/schemas'
@@ -33,6 +33,8 @@ const template: PromptTemplate = {
   defaultTargetAgent: 'Codex',
   defaultKind: 'Planning',
 }
+const draftContent =
+  'Dado o plano "C:\\Users\\psiel\\.claude\\plans\\plan.md", valide o plano, aprove-o ou aponte melhorias.'
 
 function renderDrawer() {
   const queryClient = new QueryClient({
@@ -62,7 +64,7 @@ describe('GeneratePromptDrawer', () => {
       workingDirectoryId: '019e9f6a-9fb2-7f24-ac3a-bf099d2c93c0',
       parentPromptId: '019e9f6a-a269-7991-95d5-4e602dcf773d',
       title: 'Revisar plano: plan.md',
-      content: 'Dado o plano "C:/plan.md", valide o plano, aprove-o ou aponte melhorias.',
+      content: draftContent,
       targetAgent: 'Codex',
       kind: 'Planning',
     })
@@ -71,7 +73,7 @@ describe('GeneratePromptDrawer', () => {
       workingDirectoryId: '019e9f6a-9fb2-7f24-ac3a-bf099d2c93c0',
       parentPromptId: '019e9f6a-a269-7991-95d5-4e602dcf773d',
       title: 'Prompt revisado',
-      content: 'Dado o plano "C:/plan.md", valide o plano, aprove-o ou aponte melhorias.',
+      content: draftContent,
       targetAgent: 'Codex',
       kind: 'Planning',
       status: 'Draft',
@@ -81,6 +83,10 @@ describe('GeneratePromptDrawer', () => {
       updatedAtUtc: '2026-05-31T00:00:00Z',
       mentions: [],
     })
+  })
+
+  afterEach(() => {
+    cleanup()
   })
 
   it('loads a draft, allows editing, and creates a persisted prompt', async () => {
@@ -101,12 +107,19 @@ describe('GeneratePromptDrawer', () => {
         workingDirectoryId: '019e9f6a-9fb2-7f24-ac3a-bf099d2c93c0',
         parentPromptId: '019e9f6a-a269-7991-95d5-4e602dcf773d',
         title: 'Prompt revisado',
-        content: 'Dado o plano "C:/plan.md", valide o plano, aprove-o ou aponte melhorias.',
+        content: draftContent,
         targetAgent: 'Codex',
         kind: 'Planning',
         status: 'Draft',
         mentions: [],
       })
     })
+  })
+
+  it('shows the create and copy action', async () => {
+    renderDrawer()
+
+    await screen.findByDisplayValue('Revisar plano: plan.md')
+    expect(screen.getByRole('button', { name: /^Criar e copiar$/ })).toBeInTheDocument()
   })
 })

@@ -171,6 +171,7 @@ npm audit --audit-level=moderate
 - Implementar uma timeline operacional para cada prompt, permitindo acompanhar o estado atual da tarefa associada, eventos relevantes, mudancas de status e historico de execucao do fluxo.
 - Evoluir o header da aplicacao para exibir informacoes dos agentes Claude e Codex, com destaque para disponibilidade, contexto operacional e limites de uso atuais.
 - Adicionar visualizacao de diferencas entre versoes de prompts e entre versoes de planos Markdown vinculados, permitindo revisar exatamente o que mudou no prompt ou o que o Claude alterou no plano.
+- Permitir salvar uma copia do Markdown de um plano vinculado em um diretorio definido pelo usuario, preservando historico local fora do arquivo monitorado original.
 - Implementar integracao com Gemini para apoiar refinamento de prompts e uso de IA em pontos estrategicos do fluxo, como sugestoes de melhoria, organizacao de contexto e apoio a revisao.
 
 ## Decisoes de Produto Importantes

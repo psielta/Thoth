@@ -34,10 +34,10 @@ export function AiModelConfig({ value, onChange, compact }: AiModelConfigProps) 
     const m = models.find((x) => x.id === modelId)
     if (!m) return
 
-    // Reset thinking config when model changes
+    // Reset thinking config when model changes — keep thinking on at high by default
     const thinkingEnabled = m.canDisableThinking ? value.thinkingEnabled : true
     const thinkingBudget = m.thinkingMode === 'budget' ? (thinkingEnabled ? m.thinkingBudgetMin : 0) : null
-    const thinkingLevel = m.thinkingMode === 'level' ? 'LOW' : null
+    const thinkingLevel = m.thinkingMode === 'level' ? 'high' : null
     onChange({ ...value, model: modelId, thinkingEnabled, thinkingBudget, thinkingLevel })
   }
 
@@ -115,12 +115,13 @@ export function AiModelConfig({ value, onChange, compact }: AiModelConfigProps) 
           {thinkingVisible && selected.thinkingMode === 'level' ? (
             <FormField label="Nivel de raciocinio">
               <Select
-                value={value.thinkingLevel ?? 'LOW'}
+                value={value.thinkingLevel ?? 'high'}
                 onChange={(e) => onChange({ ...value, thinkingLevel: e.target.value })}
               >
-                <option value="LOW">Baixo</option>
-                <option value="MEDIUM">Medio</option>
-                <option value="HIGH">Alto</option>
+                <option value="minimal">Minimo</option>
+                <option value="low">Baixo</option>
+                <option value="medium">Medio</option>
+                <option value="high">Alto (recomendado)</option>
               </Select>
             </FormField>
           ) : null}

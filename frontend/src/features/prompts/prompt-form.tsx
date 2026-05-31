@@ -166,16 +166,24 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
 
   return (
     <>
-    {showRefineDialog ? (
-      <RefineDialog
-        content={content}
-        onApply={(refined) => {
-          form.setValue('content', refined, { shouldDirty: true, shouldValidate: true })
-          setEditorMentions({ promptId, mentions: [] })
-        }}
-        onClose={() => setShowRefineDialog(false)}
-      />
-    ) : null}
+      {showRefineDialog ? (
+        <RefineDialog
+          content={content}
+          onApply={(refined) => {
+            form.setValue('content', refined, { shouldDirty: true, shouldValidate: true })
+            setEditorMentions({ promptId, mentions: [] })
+          }}
+          onClose={() => setShowRefineDialog(false)}
+        />
+      ) : null}
+      {showAiPanel ? (
+        <AiAssistantPanel
+          promptId={promptId}
+          workingDirectoryId={workingDirectoryId}
+          promptContent={content}
+          onClose={() => setShowAiPanel(false)}
+        />
+      ) : null}
     <form onSubmit={onSubmit} className="grid gap-5">
       <div className="grid gap-4 rounded-lg border border-[#d9dfd5] bg-white p-4">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem_10rem_10rem]">
@@ -270,16 +278,6 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
         </div>
       </div>
 
-      {showAiPanel ? (
-        <div className="rounded-lg border border-[#d9dfd5] bg-white" style={{ height: '500px' }}>
-          <AiAssistantPanel
-            promptId={promptId}
-            workingDirectoryId={workingDirectoryId}
-            promptContent={content}
-            onClose={() => setShowAiPanel(false)}
-          />
-        </div>
-      ) : null}
     </form>
     </>
   )

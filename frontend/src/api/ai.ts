@@ -79,15 +79,28 @@ export async function deleteChatSession(id: string): Promise<void> {
   await api.delete(`ai/sessions/${id}`)
 }
 
+type ChatChunk = { text: string; isThought: boolean; done: boolean; cachedTokens: number | null }
+
+function parseSseLine(line: string): ChatChunk | null {
+  const trimmed = line.trim()
+  if (!trimmed || trimmed.startsWith(':')) return null
+  const data = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed
+  try {
+    return JSON.parse(data) as ChatChunk
+  } catch {
+    return null
+  }
+}
+
 export async function* streamChatMessage(params: {
   sessionId: string
   message: string
   includePromptContext: boolean
   promptContent?: string
-}): AsyncGenerator<{ text: string; isThought: boolean; done: boolean; cachedTokens: number | null }> {
+}): AsyncGenerator<ChatChunk> {
   const response = await fetch(`${apiBaseUrl}/ai/sessions/${params.sessionId}/messages`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify({
       message: params.message,
       includePromptContext: params.includePromptContext,
@@ -96,7 +109,8 @@ export async function* streamChatMessage(params: {
   })
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`)
+    const text = await response.text().catch(() => '')
+    throw new Error(`HTTP ${response.status}${text ? `: ${text}` : ''}`)
   }
 
   const reader = response.body?.getReader()
@@ -110,38 +124,26 @@ export async function* streamChatMessage(params: {
     if (done) break
 
     buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
 
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed) continue
-      try {
-        const chunk = JSON.parse(trimmed) as {
-          text: string
-          isThought: boolean
-          done: boolean
-          cachedTokens: number | null
-        }
-        yield chunk
-      } catch {
-        // skip non-JSON lines
+    // SSE events are separated by double newlines
+    const events = buffer.split('\n\n')
+    buffer = events.pop() ?? ''
+
+    for (const event of events) {
+      if (!event.trim()) continue
+      // each event may have multiple "data:" lines — join them
+      for (const line of event.split('\n')) {
+        const chunk = parseSseLine(line)
+        if (chunk) yield chunk
       }
     }
   }
 
-  // process remaining buffer
+  // flush remaining buffer
   if (buffer.trim()) {
-    try {
-      const chunk = JSON.parse(buffer) as {
-        text: string
-        isThought: boolean
-        done: boolean
-        cachedTokens: number | null
-      }
-      yield chunk
-    } catch {
-      // ignore
+    for (const line of buffer.split('\n')) {
+      const chunk = parseSseLine(line)
+      if (chunk) yield chunk
     }
   }
 }

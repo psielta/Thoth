@@ -28,10 +28,7 @@ export function Tabs({
 
 export function TabsList({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div
-      role="tablist"
-      className={cn('flex rounded-md border border-[#d9dfd5] bg-[#f5f7f4] p-0.5', className)}
-    >
+    <div role="tablist" className={cn('flex gap-1', className)}>
       {children}
     </div>
   )
@@ -55,10 +52,10 @@ export function TabsTrigger({
       aria-selected={active}
       onClick={() => onChange(value)}
       className={cn(
-        'flex-1 rounded px-3 py-1 text-sm font-medium transition-colors',
+        'flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition-all',
         active
-          ? 'bg-white text-[#172126] shadow-sm'
-          : 'text-[#66746b] hover:text-[#172126]',
+          ? 'bg-[#eef2eb] text-[#172126]'
+          : 'text-[#66746b] hover:bg-[#f7f8f6] hover:text-[#172126]',
         className,
       )}
     >

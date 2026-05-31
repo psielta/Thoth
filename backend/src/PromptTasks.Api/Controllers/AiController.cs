@@ -91,11 +91,20 @@ public sealed class AiController(ISender sender) : ControllerBase
     }
 
     [HttpPost("sessions/{id:guid}/messages")]
-    public async IAsyncEnumerable<ChatChunkDto> SendMessage(
+    public async Task SendMessage(
         Guid id,
-        SendMessageRequest request,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        [FromBody] SendMessageRequest request,
+        CancellationToken cancellationToken)
     {
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Append("X-Accel-Buffering", "no");
+
+        var settings = new Newtonsoft.Json.JsonSerializerSettings
+        {
+            ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver(),
+        };
+
         var stream = sender.CreateStream(new SendChatMessageCommand(
             id,
             request.Message,
@@ -104,7 +113,11 @@ public sealed class AiController(ISender sender) : ControllerBase
             cancellationToken);
 
         await foreach (var chunk in stream.WithCancellation(cancellationToken))
-            yield return chunk;
+        {
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(chunk, settings);
+            await Response.WriteAsync($"data: {json}\n\n", cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
+        }
     }
 
     public sealed record UpdateAiSettingsRequest(

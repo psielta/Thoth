@@ -310,7 +310,7 @@ public sealed class GeminiApiClient(
             case "level":
                 config["thinkingConfig"] = new JObject
                 {
-                    ["thinkingLevel"] = request.Thinking.Level ?? "LOW",
+                    ["thinkingLevel"] = (request.Thinking.Level ?? "high").ToLowerInvariant(),
                     ["includeThoughts"] = request.IncludeThoughts
                 };
                 break;

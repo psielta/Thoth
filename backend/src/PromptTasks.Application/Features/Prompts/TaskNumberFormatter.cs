@@ -198,22 +198,40 @@ public static partial class TaskNumberFormatter
             return false;
         }
 
-        var compact = format.Replace("-", string.Empty, StringComparison.Ordinal);
-        var index = 0;
-        while (index < compact.Length)
+        if (format[0] == '-' || format[^1] == '-' || format.Contains("--", StringComparison.Ordinal))
         {
-            var token = DateTokens
-                .OrderByDescending(item => item.Length)
-                .FirstOrDefault(item => compact.AsSpan(index).StartsWith(item, StringComparison.Ordinal));
-            if (token is null)
+            return false;
+        }
+
+        var index = 0;
+        while (index < format.Length)
+        {
+            if (format[index] == '-')
+            {
+                index++;
+                continue;
+            }
+
+            var start = index;
+            var runCharacter = format[index];
+            if (runCharacter is not ('d' or 'M' or 'y'))
             {
                 return false;
             }
 
-            index += token.Length;
+            while (index < format.Length && format[index] == runCharacter)
+            {
+                index++;
+            }
+
+            var run = format[start..index];
+            if (!DateTokens.Contains(run))
+            {
+                return false;
+            }
         }
 
-        return format.All(character => char.IsLetter(character) || character == '-');
+        return true;
     }
 
     private enum TokenKind

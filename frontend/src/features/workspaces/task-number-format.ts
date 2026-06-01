@@ -2,7 +2,7 @@ const DEFAULT_DATE_FORMAT = 'ddMMyy'
 const TOKEN_PATTERN = /\{([^{}]+)\}/g
 const TASK_NUMBER_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
 const LITERAL_PATTERN = /^[A-Za-z0-9_-]*$/
-const DATE_TOKEN_PATTERN = /yyyy|dd|MM|yy/g
+const DATE_TOKENS = new Set(['dd', 'MM', 'yy', 'yyyy'])
 
 export function formatTaskNumberPreview(pattern: string, sequence: number, date: Date) {
   return pattern.replace(TOKEN_PATTERN, (_, rawToken: string) => {
@@ -94,13 +94,33 @@ function validateToken(token: string, errors: string[]) {
 }
 
 function isValidDateFormat(format: string) {
-  if (!format || !/^[A-Za-z-]+$/.test(format)) {
+  if (!format || format.startsWith('-') || format.endsWith('-') || format.includes('--')) {
     return false
   }
 
-  const compact = format.replaceAll('-', '')
-  const reconstructed = Array.from(compact.matchAll(DATE_TOKEN_PATTERN), (match) => match[0]).join('')
-  return reconstructed === compact
+  let index = 0
+  while (index < format.length) {
+    if (format[index] === '-') {
+      index += 1
+      continue
+    }
+
+    const start = index
+    const runCharacter = format[index]
+    if (runCharacter !== 'd' && runCharacter !== 'M' && runCharacter !== 'y') {
+      return false
+    }
+
+    while (index < format.length && format[index] === runCharacter) {
+      index += 1
+    }
+
+    if (!DATE_TOKENS.has(format.slice(start, index))) {
+      return false
+    }
+  }
+
+  return true
 }
 
 function formatDate(date: Date, format: string) {

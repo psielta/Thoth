@@ -15,6 +15,8 @@ describe('task number format', () => {
     expect(validateTaskNumberPattern('BP{N}{Date}')).toHaveLength(0)
     expect(validateTaskNumberPattern('BP/{N}{Date}')).toContain('Texto literal pode conter apenas letras, numeros, _ e -.')
     expect(validateTaskNumberPattern('BP{N}{Date:yyyy/MM}')).toContain('Use apenas dd, MM, yy e yyyy no formato de data.')
+    expect(validateTaskNumberPattern('BP{N}{Date:MMMM}')).toContain('Use apenas dd, MM, yy e yyyy no formato de data.')
+    expect(validateTaskNumberPattern('BP{N}{Date:dddd}')).toContain('Use apenas dd, MM, yy e yyyy no formato de data.')
     expect(validateTaskNumberPattern('BP{Date}')).toContain('Inclua {N}.')
     expect(validateTaskNumberPattern('BP{N}')).toContain('Inclua {Date}.')
   })

@@ -26,6 +26,8 @@ public sealed class TaskNumberFormatterTests
     [InlineData("BP/{N}{Date}", "Literal text may only contain letters, numbers, underscore and hyphen.")]
     [InlineData("BP {N}{Date}", "Literal text may only contain letters, numbers, underscore and hyphen.")]
     [InlineData("BP{N}{Date:yyyy/MM}", "{Date} only supports dd, MM, yy and yyyy tokens, optionally separated by hyphens.")]
+    [InlineData("BP{N}{Date:MMMM}", "{Date} only supports dd, MM, yy and yyyy tokens, optionally separated by hyphens.")]
+    [InlineData("BP{N}{Date:dddd}", "{Date} only supports dd, MM, yy and yyyy tokens, optionally separated by hyphens.")]
     [InlineData("BP{N:A}{Date}", "{N} only supports zero-fill formats like {N:000}.")]
     public void Validate_rejects_invalid_patterns(string pattern, string expectedError)
     {

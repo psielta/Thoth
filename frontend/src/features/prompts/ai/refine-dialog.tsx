@@ -73,7 +73,7 @@ export function RefineDialog({ content, workingDirectoryId, onApply, onClose }: 
     },
     onSuccess: (result) => {
       setPreview(result.content)
-      toast.success(`Refinado - ${result.promptTokens} tokens entrada, ${result.candidateTokens} gerados.`)
+      toast.success(`Refinado — ${result.promptTokens} tokens entrada, ${result.candidateTokens} gerados.`)
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   })
@@ -115,11 +115,11 @@ export function RefineDialog({ content, workingDirectoryId, onApply, onClose }: 
           <>
             <div className="flex flex-col gap-1.5">
               <p className="text-xs font-medium uppercase tracking-wide text-subtle-foreground">
-                Conteudo atual - {content.length} caracteres
+                Conteúdo atual · {content.length} caracteres
               </p>
               <div className="max-h-48 overflow-y-auto rounded-lg border border-secondary bg-card p-4">
                 <pre className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                  {content.length > 600 ? `${content.slice(0, 600)}\n...` : content}
+                  {content.length > 600 ? `${content.slice(0, 600)}\n…` : content}
                 </pre>
               </div>
             </div>
@@ -137,7 +137,7 @@ export function RefineDialog({ content, workingDirectoryId, onApply, onClose }: 
 
             <div className="grid gap-2">
               <p className="text-xs font-medium uppercase tracking-wide text-subtle-foreground">
-                Instrucoes de refinamento (opcional)
+                Instruções de refinamento (opcional)
               </p>
               <PromptEditor
                 workingDirectoryId={workingDirectoryId}

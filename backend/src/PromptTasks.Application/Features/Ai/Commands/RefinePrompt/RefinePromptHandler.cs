@@ -59,8 +59,8 @@ public sealed class RefinePromptHandler(
         {
             var customInstructions = request.CustomInstructions.Trim();
             instructionBlocks.Add(
-                "## Instrucoes adicionais do usuario\n\n"
-              + "Ao refinar, siga estas instrucoes:\n"
+                "## Instruções adicionais do usuário\n\n"
+              + "Ao refinar, siga estas instruções:\n"
               + customInstructions);
         }
 

@@ -10,6 +10,7 @@ import {
   type AiSettings,
   type GeminiModel,
   type RefinedPrompt,
+  type RefinePromptRequest,
 } from './schemas'
 
 const AI_REQUEST_TIMEOUT_MS = 300_000
@@ -35,15 +36,7 @@ export async function updateAiSettings(settings: {
   return aiSettingsSchema.parse(data)
 }
 
-export async function refinePrompt(params: {
-  content: string
-  model: string
-  temperature: number
-  thinkingMode?: string
-  thinkingBudget?: number | null
-  thinkingLevel?: string | null
-  workingDirectoryId?: string
-}): Promise<RefinedPrompt> {
+export async function refinePrompt(params: RefinePromptRequest): Promise<RefinedPrompt> {
   const data = await api.post('ai/refine', { json: params, timeout: AI_REQUEST_TIMEOUT_MS }).json()
   return refinedPromptSchema.parse(data)
 }

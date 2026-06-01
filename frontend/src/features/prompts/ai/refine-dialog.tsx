@@ -3,15 +3,17 @@ import { Loader2, RotateCcw, Sparkles, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { getAiSettings, refinePrompt } from '@/api/ai'
-import { queryKeys } from '@/api/query-keys'
 import { getErrorMessage } from '@/api/client'
+import { queryKeys } from '@/api/query-keys'
 import { Button } from '@/components/ui/button'
+import { PromptEditor } from '../prompt-editor'
 import { AiModelConfig, type ModelConfig } from './ai-model-config'
+import { ContextFilePicker } from './context-file-picker'
 import { MarkdownContent } from './markdown-content'
 
 type RefineDialogProps = {
   content: string
-  workingDirectoryId?: string
+  workingDirectoryId: string
   onApply: (refined: string) => void
   onClose: () => void
 }
@@ -32,8 +34,9 @@ export function RefineDialog({ content, workingDirectoryId, onApply, onClose }: 
 
   const [config, setConfig] = useState<ModelConfig>(DEFAULT_CONFIG)
   const [preview, setPreview] = useState<string | null>(null)
+  const [contextFiles, setContextFiles] = useState<string[]>([])
+  const [customInstructions, setCustomInstructions] = useState('')
 
-  // Sync settings once when they load (same pattern as AiAssistantPanel)
   const applied = useRef(false)
   useEffect(() => {
     if (settingsQuery.data && !applied.current) {
@@ -49,8 +52,10 @@ export function RefineDialog({ content, workingDirectoryId, onApply, onClose }: 
   }, [settingsQuery.data])
 
   const refineMutation = useMutation({
-    mutationFn: () =>
-      refinePrompt({
+    mutationFn: () => {
+      const trimmedCustomInstructions = customInstructions.trim()
+
+      return refinePrompt({
         content,
         model: config.model,
         temperature: config.temperature,
@@ -62,10 +67,13 @@ export function RefineDialog({ content, workingDirectoryId, onApply, onClose }: 
         thinkingBudget: config.thinkingEnabled ? config.thinkingBudget : null,
         thinkingLevel: config.thinkingEnabled ? config.thinkingLevel : null,
         workingDirectoryId,
-      }),
+        contextFiles,
+        customInstructions: trimmedCustomInstructions.length > 0 ? trimmedCustomInstructions : undefined,
+      })
+    },
     onSuccess: (result) => {
       setPreview(result.content)
-      toast.success(`Refinado — ${result.promptTokens} tokens entrada, ${result.candidateTokens} gerados.`)
+      toast.success(`Refinado - ${result.promptTokens} tokens entrada, ${result.candidateTokens} gerados.`)
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   })
@@ -80,7 +88,6 @@ export function RefineDialog({ content, workingDirectoryId, onApply, onClose }: 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 pt-16">
       <div className="flex w-full max-w-3xl flex-col gap-5 rounded-xl border border-border bg-card p-6 shadow-xl">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
@@ -92,6 +99,7 @@ export function RefineDialog({ content, workingDirectoryId, onApply, onClose }: 
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
@@ -99,31 +107,55 @@ export function RefineDialog({ content, workingDirectoryId, onApply, onClose }: 
           </button>
         </div>
 
-        {/* Model config */}
         <div className="rounded-lg border border-secondary bg-background p-4">
           <AiModelConfig value={config} onChange={setConfig} compact />
         </div>
 
-        {/* Current content preview (before refine) */}
         {!preview ? (
-          <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-medium uppercase tracking-wide text-subtle-foreground">
-              Conteudo atual · {content.length} caracteres
-            </p>
-            <div className="max-h-48 overflow-y-auto rounded-lg border border-secondary bg-card p-4">
-              <pre className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                {content.length > 600 ? content.slice(0, 600) + '\n…' : content}
-              </pre>
+          <>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs font-medium uppercase tracking-wide text-subtle-foreground">
+                Conteudo atual - {content.length} caracteres
+              </p>
+              <div className="max-h-48 overflow-y-auto rounded-lg border border-secondary bg-card p-4">
+                <pre className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+                  {content.length > 600 ? `${content.slice(0, 600)}\n...` : content}
+                </pre>
+              </div>
             </div>
-          </div>
+
+            <div className="grid gap-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-subtle-foreground">
+                Arquivos de contexto (opcional)
+              </p>
+              <ContextFilePicker
+                workingDirectoryId={workingDirectoryId}
+                value={contextFiles}
+                onChange={setContextFiles}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-subtle-foreground">
+                Instrucoes de refinamento (opcional)
+              </p>
+              <PromptEditor
+                workingDirectoryId={workingDirectoryId}
+                value={customInstructions}
+                onChange={(markdown) => setCustomInstructions(markdown)}
+                contentClassName="max-h-36 overflow-y-auto"
+                editorClassName="min-h-24"
+              />
+            </div>
+          </>
         ) : (
-          /* Refined result */
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-wide text-primary">
                 Resultado refinado
               </p>
               <button
+                type="button"
                 onClick={() => setPreview(null)}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
               >
@@ -137,7 +169,6 @@ export function RefineDialog({ content, workingDirectoryId, onApply, onClose }: 
           </div>
         )}
 
-        {/* Footer */}
         <div className="flex items-center justify-between">
           <p className="text-xs text-subtle-foreground">
             Revise antes de aplicar. Mencoes @arquivo serao revalidadas.

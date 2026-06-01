@@ -35,7 +35,9 @@ public sealed class AiWorkspaceContextTests
                 FakeModelCatalog.ModelId,
                 0.4,
                 new GeminiThinking("none", 0, null),
-                workspace.Id),
+                workspace.Id,
+                Array.Empty<string>(),
+                null),
             CancellationToken.None);
 
         gemini.LastRefineRequest.Should().NotBeNull();
@@ -64,7 +66,9 @@ public sealed class AiWorkspaceContextTests
                 FakeModelCatalog.ModelId,
                 0.4,
                 new GeminiThinking("none", 0, null),
-                disabled.Id),
+                disabled.Id,
+                Array.Empty<string>(),
+                null),
             CancellationToken.None);
 
         gemini.LastRefineRequest!.SystemInstruction.Should().NotContain("workspace context");
@@ -75,11 +79,141 @@ public sealed class AiWorkspaceContextTests
                 FakeModelCatalog.ModelId,
                 0.4,
                 new GeminiThinking("none", 0, null),
-                otherOwner.Id),
+                otherOwner.Id,
+                Array.Empty<string>(),
+                null),
             CancellationToken.None);
 
         gemini.LastRefineRequest!.SystemInstruction.Should().NotContain("workspace context");
         workspaceFiles.ReadCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RefinePrompt_injects_selected_files_when_workspace_context_is_disabled()
+    {
+        var context = new FakeApplicationDbContext();
+        var workspace = SeedWorkspace(context, enableAiContext: false);
+        var gemini = new FakeGeminiClient();
+        var workspaceFiles = new FakeWorkspaceFileService { SelectedFilesContext = "selected files context" };
+        var handler = new RefinePromptHandler(
+            gemini,
+            new FakeModelCatalog(),
+            context,
+            workspaceFiles,
+            new FakeCurrentUser());
+
+        await handler.Handle(
+            new RefinePromptCommand(
+                "Improve this",
+                FakeModelCatalog.ModelId,
+                0.4,
+                new GeminiThinking("none", 0, null),
+                workspace.Id,
+                new[] { "src/main.cs" },
+                null),
+            CancellationToken.None);
+
+        gemini.LastRefineRequest.Should().NotBeNull();
+        gemini.LastRefineRequest!.SystemInstruction.Should().Contain("selected files context");
+        workspaceFiles.ReadCount.Should().Be(0);
+        workspaceFiles.ReadSelectedFilesCount.Should().Be(1);
+        workspaceFiles.LastSelectedPaths.Should().Equal("src/main.cs");
+    }
+
+    [Fact]
+    public async Task RefinePrompt_injects_custom_instructions()
+    {
+        var context = new FakeApplicationDbContext();
+        var gemini = new FakeGeminiClient();
+        var handler = new RefinePromptHandler(
+            gemini,
+            new FakeModelCatalog(),
+            context,
+            new FakeWorkspaceFileService(),
+            new FakeCurrentUser());
+
+        await handler.Handle(
+            new RefinePromptCommand(
+                "Improve this",
+                FakeModelCatalog.ModelId,
+                0.4,
+                new GeminiThinking("none", 0, null),
+                null,
+                Array.Empty<string>(),
+                "Focus on data validation"),
+            CancellationToken.None);
+
+        gemini.LastRefineRequest.Should().NotBeNull();
+        gemini.LastRefineRequest!.SystemInstruction.Should().Contain("Instrucoes adicionais do usuario");
+        gemini.LastRefineRequest.SystemInstruction.Should().Contain("Focus on data validation");
+    }
+
+    [Fact]
+    public async Task RefinePrompt_combines_workspace_context_selected_files_and_custom_instructions()
+    {
+        var context = new FakeApplicationDbContext();
+        var workspace = SeedWorkspace(context, enableAiContext: true);
+        var gemini = new FakeGeminiClient();
+        var workspaceFiles = new FakeWorkspaceFileService
+        {
+            Context = "workspace context",
+            SelectedFilesContext = "selected files context"
+        };
+        var handler = new RefinePromptHandler(
+            gemini,
+            new FakeModelCatalog(),
+            context,
+            workspaceFiles,
+            new FakeCurrentUser());
+
+        await handler.Handle(
+            new RefinePromptCommand(
+                "Improve this",
+                FakeModelCatalog.ModelId,
+                0.4,
+                new GeminiThinking("none", 0, null),
+                workspace.Id,
+                new[] { "src/main.cs" },
+                "Keep it concise"),
+            CancellationToken.None);
+
+        var instruction = gemini.LastRefineRequest!.SystemInstruction;
+        instruction.Should().Contain("workspace context");
+        instruction.Should().Contain("selected files context");
+        instruction.Should().Contain("Keep it concise");
+        instruction.IndexOf("workspace context", StringComparison.Ordinal)
+            .Should().BeLessThan(instruction.IndexOf("selected files context", StringComparison.Ordinal));
+        instruction.IndexOf("selected files context", StringComparison.Ordinal)
+            .Should().BeLessThan(instruction.IndexOf("Keep it concise", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task RefinePrompt_does_not_read_selected_files_from_workspace_owned_by_other_user()
+    {
+        var context = new FakeApplicationDbContext();
+        var otherOwner = SeedWorkspace(context, enableAiContext: false, ownerId: Guid.CreateVersion7());
+        var gemini = new FakeGeminiClient();
+        var workspaceFiles = new FakeWorkspaceFileService { SelectedFilesContext = "selected files context" };
+        var handler = new RefinePromptHandler(
+            gemini,
+            new FakeModelCatalog(),
+            context,
+            workspaceFiles,
+            new FakeCurrentUser());
+
+        await handler.Handle(
+            new RefinePromptCommand(
+                "Improve this",
+                FakeModelCatalog.ModelId,
+                0.4,
+                new GeminiThinking("none", 0, null),
+                otherOwner.Id,
+                new[] { "src/main.cs" },
+                null),
+            CancellationToken.None);
+
+        workspaceFiles.ReadSelectedFilesCount.Should().Be(0);
+        gemini.LastRefineRequest!.SystemInstruction.Should().NotContain("selected files context");
     }
 
     [Fact]
@@ -434,8 +568,11 @@ public sealed class AiWorkspaceContextTests
     private sealed class FakeWorkspaceFileService : IWorkspaceFileService
     {
         public string? Context { get; init; }
+        public string? SelectedFilesContext { get; init; }
         public string? CanonicalPath { get; init; }
         public int ReadCount { get; private set; }
+        public int ReadSelectedFilesCount { get; private set; }
+        public IReadOnlyList<string> LastSelectedPaths { get; private set; } = Array.Empty<string>();
 
         public Task<ValidatedPathResult> ValidatePathAsync(string absolutePath, CancellationToken cancellationToken) =>
             Task.FromResult(ValidatedPathResult.Valid(CanonicalPath ?? absolutePath));
@@ -444,6 +581,16 @@ public sealed class AiWorkspaceContextTests
         {
             ReadCount++;
             return Task.FromResult(Context);
+        }
+
+        public Task<string?> ReadSelectedFilesAsync(
+            string rootAbsolutePath,
+            IReadOnlyList<string> relativePaths,
+            CancellationToken cancellationToken)
+        {
+            ReadSelectedFilesCount++;
+            LastSelectedPaths = relativePaths.ToList();
+            return Task.FromResult(SelectedFilesContext);
         }
 
         public Task<IReadOnlyList<FileSearchResultDto>> SearchAsync(

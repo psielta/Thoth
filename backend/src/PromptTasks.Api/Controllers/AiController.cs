@@ -54,7 +54,9 @@ public sealed class AiController(ISender sender) : ControllerBase
                 request.Model,
                 request.Temperature,
                 thinking,
-                request.WorkingDirectoryId),
+                request.WorkingDirectoryId,
+                request.ContextFiles ?? Array.Empty<string>(),
+                request.CustomInstructions),
             cancellationToken));
     }
 
@@ -139,7 +141,9 @@ public sealed class AiController(ISender sender) : ControllerBase
         string? ThinkingMode,
         int? ThinkingBudget,
         string? ThinkingLevel,
-        Guid? WorkingDirectoryId);
+        Guid? WorkingDirectoryId,
+        IReadOnlyList<string>? ContextFiles,
+        string? CustomInstructions);
 
     public sealed record StartSessionRequest(
         string? Title,

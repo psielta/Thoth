@@ -329,6 +329,17 @@ export const refinedPromptSchema = z.object({
   promptTokens: z.number(),
   candidateTokens: z.number(),
 })
+export const refinePromptRequestSchema = z.object({
+  content: z.string(),
+  model: z.string(),
+  temperature: z.number(),
+  thinkingMode: z.string().optional(),
+  thinkingBudget: z.number().nullable().optional(),
+  thinkingLevel: z.string().nullable().optional(),
+  workingDirectoryId: z.string().uuid().optional(),
+  contextFiles: z.array(z.string()),
+  customInstructions: z.string().optional(),
+})
 export const chatChunkSchema = z.object({
   text: z.string(),
   isThought: z.boolean(),
@@ -340,6 +351,7 @@ export type AiSettings = z.infer<typeof aiSettingsSchema>
 export type AiChatMessage = z.infer<typeof aiChatMessageSchema>
 export type AiChatSession = z.infer<typeof aiChatSessionSchema>
 export type RefinedPrompt = z.infer<typeof refinedPromptSchema>
+export type RefinePromptRequest = z.infer<typeof refinePromptRequestSchema>
 export type ChatChunk = z.infer<typeof chatChunkSchema>
 export const geminiModelListSchema = z.array(geminiModelSchema)
 export const aiChatSessionListSchema = z.array(aiChatSessionSchema)

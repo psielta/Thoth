@@ -188,6 +188,90 @@ public sealed class WorkspaceFileServiceTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task ReadSelectedFiles_reads_existing_files_and_ignores_missing()
+    {
+        File.WriteAllText(Path.Combine(_root, "src", "helper.cs"), "helper content");
+
+        var result = await _service.ReadSelectedFilesAsync(
+            _root,
+            new[] { "src/main.go", "src/missing.cs", "src/helper.cs" },
+            CancellationToken.None);
+
+        result.Should().Contain("## Arquivos de contexto selecionados");
+        result.Should().Contain("### src/main.go");
+        result.Should().Contain("package main");
+        result.Should().Contain("### src/helper.cs");
+        result.Should().Contain("helper content");
+        result.Should().NotContain("missing.cs");
+    }
+
+    [Fact]
+    public async Task ReadSelectedFiles_returns_null_when_no_files_are_readable()
+    {
+        var result = await _service.ReadSelectedFilesAsync(
+            _root,
+            new[] { "src/missing.cs", "../outside.txt" },
+            CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ReadSelectedFiles_skips_files_over_size_limit_and_respects_total_limit()
+    {
+        File.WriteAllText(Path.Combine(_root, "src", "large.txt"), new string('a', 65 * 1024));
+        File.WriteAllText(Path.Combine(_root, "src", "first.txt"), new string('b', 30_000));
+        File.WriteAllText(Path.Combine(_root, "src", "second.txt"), new string('c', 30_000));
+
+        var result = await _service.ReadSelectedFilesAsync(
+            _root,
+            new[] { "src/large.txt", "src/first.txt", "src/second.txt" },
+            CancellationToken.None);
+
+        result.Should().Contain("### src/first.txt");
+        result.Should().NotContain("### src/large.txt");
+        result.Should().NotContain("### src/second.txt");
+    }
+
+    [Fact]
+    [Trait("Requires", "SymlinkPrivilege")]
+    public async Task ReadSelectedFiles_skips_symlink_escape_when_supported()
+    {
+        var outside = Path.Combine(Path.GetTempPath(), $"prompttasks-outside-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(outside);
+        var outsideFile = Path.Combine(outside, "secret.txt");
+        File.WriteAllText(outsideFile, "secret context");
+        File.WriteAllText(Path.Combine(_root, "src", "safe.txt"), "safe context");
+        var link = Path.Combine(_root, "src", "secret-link.txt");
+
+        try
+        {
+            File.CreateSymbolicLink(link, outsideFile);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            Directory.Delete(outside, recursive: true);
+            throw Xunit.Sdk.SkipException.ForSkip("This platform or user token cannot create symbolic links.");
+        }
+
+        try
+        {
+            var result = await _service.ReadSelectedFilesAsync(
+                _root,
+                new[] { "src/safe.txt", "src/secret-link.txt" },
+                CancellationToken.None);
+
+            result.Should().Contain("safe context");
+            result.Should().NotContain("secret context");
+            result.Should().NotContain("### src/secret-link.txt");
+        }
+        finally
+        {
+            Directory.Delete(outside, recursive: true);
+        }
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

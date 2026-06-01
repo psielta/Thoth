@@ -12,6 +12,8 @@ import {
   type RefinedPrompt,
 } from './schemas'
 
+const AI_REFINE_TIMEOUT_MS = 300_000
+
 export async function getAiModels(): Promise<GeminiModel[]> {
   const data = await api.get('ai/models').json()
   return geminiModelListSchema.parse(data)
@@ -42,7 +44,7 @@ export async function refinePrompt(params: {
   thinkingLevel?: string | null
   workingDirectoryId?: string
 }): Promise<RefinedPrompt> {
-  const data = await api.post('ai/refine', { json: params }).json()
+  const data = await api.post('ai/refine', { json: params, timeout: AI_REFINE_TIMEOUT_MS }).json()
   return refinedPromptSchema.parse(data)
 }
 

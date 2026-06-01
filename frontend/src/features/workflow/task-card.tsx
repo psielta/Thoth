@@ -97,7 +97,7 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd 
       <Link
         to="/workspaces/$workspaceId/prompts/$promptId"
         params={{ workspaceId: task.workingDirectoryId, promptId: task.promptId }}
-        search={{ tab: 'timeline' }}
+        search={{}}
         className="grid gap-2"
       >
         <span className="line-clamp-2 text-sm font-semibold text-foreground">{task.title}</span>

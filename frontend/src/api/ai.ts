@@ -12,7 +12,7 @@ import {
   type RefinedPrompt,
 } from './schemas'
 
-const AI_REFINE_TIMEOUT_MS = 300_000
+const AI_REQUEST_TIMEOUT_MS = 300_000
 
 export async function getAiModels(): Promise<GeminiModel[]> {
   const data = await api.get('ai/models').json()
@@ -44,7 +44,7 @@ export async function refinePrompt(params: {
   thinkingLevel?: string | null
   workingDirectoryId?: string
 }): Promise<RefinedPrompt> {
-  const data = await api.post('ai/refine', { json: params, timeout: AI_REFINE_TIMEOUT_MS }).json()
+  const data = await api.post('ai/refine', { json: params, timeout: AI_REQUEST_TIMEOUT_MS }).json()
   return refinedPromptSchema.parse(data)
 }
 
@@ -95,15 +95,22 @@ function parseSseLine(line: string): ChatChunk | null {
   }
 }
 
+function buildTimeoutSignal(signal?: AbortSignal) {
+  const timeoutSignal = AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS)
+  return signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
+}
+
 export async function* streamChatMessage(params: {
   sessionId: string
   message: string
   includePromptContext: boolean
   promptContent?: string
+  signal?: AbortSignal
 }): AsyncGenerator<ChatChunk> {
   const response = await fetch(`${apiBaseUrl}/ai/sessions/${params.sessionId}/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    signal: buildTimeoutSignal(params.signal),
     body: JSON.stringify({
       message: params.message,
       includePromptContext: params.includePromptContext,

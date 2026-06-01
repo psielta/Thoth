@@ -40,12 +40,16 @@ export function useChatStream() {
         { id: modelMsgId, role: 'model', content: '', thought: '' },
       ])
 
+      const controller = new AbortController()
+      abortRef.current = controller
+
       try {
         for await (const chunk of streamChatMessage({
           sessionId: params.sessionId,
           message: params.text,
           includePromptContext: params.includePromptContext,
           promptContent: params.promptContent,
+          signal: controller.signal,
         })) {
           if (chunk.done) {
             setMessages((prev) =>
@@ -70,6 +74,9 @@ export function useChatStream() {
         setError(err instanceof Error ? err.message : 'Erro ao enviar mensagem.')
         setMessages((prev) => prev.filter((m) => m.id !== modelMsgId))
       } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null
+        }
         setIsStreaming(false)
       }
     },

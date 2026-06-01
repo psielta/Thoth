@@ -199,7 +199,10 @@ export function WorkflowPanel({ promptId, onNavigateTab }: WorkflowPanelProps) {
               Mudar fase
               <Select
                 value={workflow.currentPhaseId ?? ''}
-                onChange={(event) => action.mutate(() => setPhase(promptId, event.target.value, rowVersion))}
+                onChange={(event) => {
+                  const phaseId = event.target.value
+                  action.mutate(() => setPhase(promptId, phaseId, rowVersion))
+                }}
                 disabled={busy}
                 className="w-44"
               >
@@ -214,7 +217,10 @@ export function WorkflowPanel({ promptId, onNavigateTab }: WorkflowPanelProps) {
               Responsável
               <Select
                 value={workflow.currentActor ?? ''}
-                onChange={(event) => action.mutate(() => changeActor(promptId, event.target.value as WorkflowActor, rowVersion))}
+                onChange={(event) => {
+                  const actor = event.target.value as WorkflowActor
+                  action.mutate(() => changeActor(promptId, actor, rowVersion))
+                }}
                 disabled={busy}
                 className="w-32"
               >

@@ -27,7 +27,7 @@ public sealed class RefinePromptHandler(
         if (catalog.GetModel(request.Model) is null)
             throw new NotFoundException($"Modelo '{request.Model}' não encontrado.");
 
-        var systemInstruction = RefineSystemInstruction;
+        var instructionBlocks = new List<string> { RefineSystemInstruction };
         if (request.WorkingDirectoryId is { } workspaceId)
         {
             var workspace = context.WorkingDirectories
@@ -38,10 +38,33 @@ public sealed class RefinePromptHandler(
                 var workspaceContext = await workspaceFiles.ReadWorkspaceContextAsync(workspace.AbsolutePath, cancellationToken);
                 if (!string.IsNullOrWhiteSpace(workspaceContext))
                 {
-                    systemInstruction = $"{RefineSystemInstruction}\n\n{workspaceContext}";
+                    instructionBlocks.Add(workspaceContext);
+                }
+            }
+
+            if (workspace is not null && request.ContextFiles is { Count: > 0 } contextFiles)
+            {
+                var selectedFilesContext = await workspaceFiles.ReadSelectedFilesAsync(
+                    workspace.AbsolutePath,
+                    contextFiles,
+                    cancellationToken);
+                if (!string.IsNullOrWhiteSpace(selectedFilesContext))
+                {
+                    instructionBlocks.Add(selectedFilesContext);
                 }
             }
         }
+
+        if (!string.IsNullOrWhiteSpace(request.CustomInstructions))
+        {
+            var customInstructions = request.CustomInstructions.Trim();
+            instructionBlocks.Add(
+                "## Instrucoes adicionais do usuario\n\n"
+              + "Ao refinar, siga estas instrucoes:\n"
+              + customInstructions);
+        }
+
+        var systemInstruction = string.Join("\n\n", instructionBlocks);
 
         var geminiRequest = new GeminiGenerationRequest(
             Model: request.Model,

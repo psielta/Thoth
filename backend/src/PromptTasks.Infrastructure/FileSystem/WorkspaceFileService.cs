@@ -155,6 +155,100 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
              + string.Join("\n\n", sections);
     }
 
+    public async Task<string?> ReadSelectedFilesAsync(
+        string rootAbsolutePath,
+        IReadOnlyList<string> relativePaths,
+        CancellationToken cancellationToken)
+    {
+        string rootCanonical;
+        try
+        {
+            rootCanonical = CanonicalizeExistingPath(rootAbsolutePath);
+        }
+        catch (Exception exception) when (exception is IOException
+                                             or UnauthorizedAccessException
+                                             or ArgumentException
+                                             or NotSupportedException
+                                             or PathTraversalException)
+        {
+            return null;
+        }
+
+        var sections = new List<string>();
+        var totalChars = 0;
+        var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var rawPath in relativePaths)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var relativePath = rawPath?.Trim().TrimStart('@') ?? string.Empty;
+            if (relativePath.Length == 0 || Path.IsPathRooted(relativePath) || HasParentTraversal(relativePath))
+            {
+                continue;
+            }
+
+            var normalizedInputPath = NormalizeRelativePath(relativePath);
+            if (!seenPaths.Add(normalizedInputPath))
+            {
+                continue;
+            }
+
+            string content;
+            string normalizedDisplayPath;
+            try
+            {
+                var candidateLogical = Path.GetFullPath(Path.Combine(rootCanonical, NormalizeInputRelativePath(relativePath)));
+                if (!File.Exists(candidateLogical))
+                {
+                    continue;
+                }
+
+                var candidateCanonical = CanonicalizeExistingPath(candidateLogical);
+                EnsureContained(rootCanonical, candidateCanonical);
+
+                var info = new FileInfo(candidateCanonical);
+                if (info.Length == 0 || info.Length > MaxContextFileBytes)
+                {
+                    continue;
+                }
+
+                normalizedDisplayPath = NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateLogical));
+                await using var stream = new FileStream(
+                    candidateCanonical,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete);
+                using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+                content = (await reader.ReadToEndAsync(cancellationToken)).Trim();
+            }
+            catch (Exception exception) when (exception is IOException
+                                                 or UnauthorizedAccessException
+                                                 or ArgumentException
+                                                 or NotSupportedException
+                                                 or PathTraversalException)
+            {
+                continue;
+            }
+
+            if (content.Length == 0 || totalChars + content.Length > MaxTotalContextChars)
+            {
+                continue;
+            }
+
+            sections.Add($"### {normalizedDisplayPath}\n\n{content}");
+            totalChars += content.Length;
+        }
+
+        if (sections.Count == 0)
+        {
+            return null;
+        }
+
+        return "## Arquivos de contexto selecionados\n\n"
+             + string.Join("\n\n", sections);
+    }
+
     public async Task<IReadOnlyList<FileSearchResultDto>> SearchAsync(
         Guid workingDirectoryId,
         string rootAbsolutePath,

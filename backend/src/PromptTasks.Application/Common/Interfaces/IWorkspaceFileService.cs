@@ -8,6 +8,11 @@ public interface IWorkspaceFileService
 
     Task<string?> ReadWorkspaceContextAsync(string rootAbsolutePath, CancellationToken cancellationToken);
 
+    Task<string?> ReadSelectedFilesAsync(
+        string rootAbsolutePath,
+        IReadOnlyList<string> relativePaths,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<FileSearchResultDto>> SearchAsync(
         Guid workingDirectoryId,
         string rootAbsolutePath,

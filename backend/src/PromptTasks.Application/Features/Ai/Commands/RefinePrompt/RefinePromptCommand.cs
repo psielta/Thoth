@@ -9,4 +9,6 @@ public sealed record RefinePromptCommand(
     string Model,
     double Temperature,
     GeminiThinking Thinking,
-    Guid? WorkingDirectoryId) : IRequest<RefinedPromptDto>;
+    Guid? WorkingDirectoryId,
+    IReadOnlyList<string> ContextFiles,
+    string? CustomInstructions) : IRequest<RefinedPromptDto>;

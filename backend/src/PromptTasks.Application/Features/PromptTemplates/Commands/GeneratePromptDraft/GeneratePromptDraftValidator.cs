@@ -10,7 +10,7 @@ public sealed class GeneratePromptDraftValidator : AbstractValidator<GeneratePro
         RuleFor(command => command.LinkedDocumentId).NotEmpty();
         RuleFor(command => command.TemplateKey).IsInEnum();
         When(
-            command => command.TemplateKey == PromptTemplateKey.ReviewPullRequest,
+            command => command.TemplateKey is PromptTemplateKey.ReviewPullRequest or PromptTemplateKey.MergePullRequest,
             () =>
             {
                 RuleFor(command => command.PullRequest)

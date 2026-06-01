@@ -19,7 +19,7 @@ public sealed class ReviewPullRequestTemplate : IPromptTemplateDefinition
         PromptTemplateContext context,
         CancellationToken cancellationToken)
     {
-        var pullRequestReference = FormatPullRequestReference(context.PullRequestReference);
+        var pullRequestReference = PullRequestTemplateHelpers.FormatPullRequestReference(context.PullRequestReference);
 
         return Task.FromResult(new RenderedPromptTemplate(
             $"Revisar {pullRequestReference}: {context.DisplayName}",
@@ -30,19 +30,5 @@ public sealed class ReviewPullRequestTemplate : IPromptTemplateDefinition
 
             Priorize bugs, riscos comportamentais e testes faltantes. Traga os achados com severidade e referencias concretas de arquivos/linhas quando possivel.
             """));
-    }
-
-    private static string FormatPullRequestReference(string? value)
-    {
-        var normalized = value?.Trim() ?? string.Empty;
-        if (normalized.StartsWith('#') ||
-            normalized.StartsWith("PR ", StringComparison.OrdinalIgnoreCase) ||
-            normalized.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-            normalized.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-        {
-            return normalized;
-        }
-
-        return $"PR #{normalized}";
     }
 }

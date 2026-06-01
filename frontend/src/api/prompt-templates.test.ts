@@ -36,6 +36,20 @@ describe('prompt template api', () => {
           defaultKind: 'Planning',
           input: null,
         },
+        {
+          key: 'MergePullRequest',
+          displayName: 'Fazer merge da PR',
+          description: 'Faz merge da PR',
+          defaultTargetAgent: 'Codex',
+          defaultKind: 'General',
+          input: {
+            key: 'pullRequest',
+            label: 'PR',
+            placeholder: '#123 ou URL da PR',
+            helpText: 'Informe o numero ou link da PR.',
+            required: true,
+          },
+        },
       ]),
     )
 
@@ -47,6 +61,20 @@ describe('prompt template api', () => {
         defaultTargetAgent: 'Codex',
         defaultKind: 'Planning',
         input: null,
+      },
+      {
+        key: 'MergePullRequest',
+        displayName: 'Fazer merge da PR',
+        description: 'Faz merge da PR',
+        defaultTargetAgent: 'Codex',
+        defaultKind: 'General',
+        input: {
+          key: 'pullRequest',
+          label: 'PR',
+          placeholder: '#123 ou URL da PR',
+          helpText: 'Informe o numero ou link da PR.',
+          required: true,
+        },
       },
     ])
     expect(apiMock.get).toHaveBeenCalledWith('prompt-templates')
@@ -100,6 +128,30 @@ describe('prompt template api', () => {
     expect(apiMock.post).toHaveBeenCalledWith(
       'linked-documents/019e9f6a-94e7-7a23-965d-c8b05c63ee59/prompt-drafts',
       { json: { templateKey: 'ReviewPullRequest', pullRequest: '42' } },
+    )
+  })
+
+  it('sends the pull request when rendering PR merge drafts', async () => {
+    apiMock.post.mockReturnValue(
+      jsonResponse({
+        templateKey: 'MergePullRequest',
+        linkedDocumentId: '019e9f6a-94e7-7a23-965d-c8b05c63ee59',
+        workingDirectoryId: '019e9f6a-9fb2-7f24-ac3a-bf099d2c93c0',
+        parentPromptId: '019e9f6a-a269-7991-95d5-4e602dcf773d',
+        title: 'Fazer merge da PR #42',
+        content: 'Faca o merge da PR #42.',
+        targetAgent: 'Codex',
+        kind: 'General',
+      }),
+    )
+
+    await renderPromptDraft('019e9f6a-94e7-7a23-965d-c8b05c63ee59', 'MergePullRequest', {
+      pullRequest: '42',
+    })
+
+    expect(apiMock.post).toHaveBeenCalledWith(
+      'linked-documents/019e9f6a-94e7-7a23-965d-c8b05c63ee59/prompt-drafts',
+      { json: { templateKey: 'MergePullRequest', pullRequest: '42' } },
     )
   })
 

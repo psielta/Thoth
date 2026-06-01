@@ -240,6 +240,12 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
             template.DefaultKind == PromptKind.General &&
             template.Input != null &&
             template.Input.Key == "pullRequest");
+        templates.Should().Contain(template =>
+            template.Key == PromptTemplateKey.MergePullRequest &&
+            template.DefaultTargetAgent == TargetAgent.Codex &&
+            template.DefaultKind == PromptKind.General &&
+            template.Input != null &&
+            template.Input.Key == "pullRequest");
 
         var wdResponse = await client.PostAsJsonAsync(
             "/api/working-directories",
@@ -294,6 +300,15 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
         prDraft!.Title.Should().Be("Revisar PR #42: review-plan.md");
         prDraft.Content.Should().Contain($"Revise a PR #42 que implementa o plano `{planPath}`.");
 
+        var mergeDraftResponse = await client.PostAsJsonAsync(
+            $"/api/linked-documents/{linked.Id}/prompt-drafts",
+            new { templateKey = PromptTemplateKey.MergePullRequest, pullRequest = "42" },
+            JsonOptions);
+        mergeDraftResponse.EnsureSuccessStatusCode();
+        var mergeDraft = await mergeDraftResponse.Content.ReadFromJsonAsync<GeneratedPromptDraftDto>(JsonOptions);
+        mergeDraft!.Title.Should().Be("Fazer merge da PR #42: review-plan.md");
+        mergeDraft.Content.Should().Contain($"Faca o merge da PR #42 que implementa o plano `{planPath}`.");
+
         var generatedPromptResponse = await client.PostAsJsonAsync(
             "/api/prompts",
             new
@@ -335,6 +350,12 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
             new { templateKey = PromptTemplateKey.ReviewPullRequest },
             JsonOptions);
         missingPrResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var missingMergePrResponse = await client.PostAsJsonAsync(
+            $"/api/linked-documents/{linked.Id}/prompt-drafts",
+            new { templateKey = PromptTemplateKey.MergePullRequest },
+            JsonOptions);
+        missingMergePrResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         var missingDocumentResponse = await client.PostAsJsonAsync(
             $"/api/linked-documents/{Guid.CreateVersion7()}/prompt-drafts",

@@ -29,13 +29,15 @@ public sealed class PromptTemplateHandlerTests
                 PromptTemplateKey.ReviewPlanWithParentPrompt,
                 PromptTemplateKey.ReReviewPlan,
                 PromptTemplateKey.ImplementPlanInWorktree,
-                PromptTemplateKey.ReviewPullRequest);
+                PromptTemplateKey.ReviewPullRequest,
+                PromptTemplateKey.MergePullRequest);
         catalog.Get(PromptTemplateKey.ReviewPlan).Should().BeOfType<ReviewPlanTemplate>();
         catalog.Get(PromptTemplateKey.ImplementPlan).Should().BeOfType<ImplementPlanTemplate>();
         catalog.Get(PromptTemplateKey.ReviewPlanWithParentPrompt).Should().BeOfType<ReviewPlanWithParentPromptTemplate>();
         catalog.Get(PromptTemplateKey.ReReviewPlan).Should().BeOfType<ReReviewPlanTemplate>();
         catalog.Get(PromptTemplateKey.ImplementPlanInWorktree).Should().BeOfType<ImplementPlanInWorktreeTemplate>();
         catalog.Get(PromptTemplateKey.ReviewPullRequest).Should().BeOfType<ReviewPullRequestTemplate>();
+        catalog.Get(PromptTemplateKey.MergePullRequest).Should().BeOfType<MergePullRequestTemplate>();
     }
 
     [Fact]
@@ -189,6 +191,28 @@ public sealed class PromptTemplateHandlerTests
     }
 
     [Fact]
+    public async Task GeneratePromptDraft_merge_pull_request_uses_pr_reference()
+    {
+        var context = new FakeApplicationDbContext();
+        var prompt = SeedPrompt(context, User.SystemUserId);
+        var document = SeedLinkedDocument(context, prompt, "C:/plans/merge-plan.md", "merge-plan.md");
+        var handler = new GeneratePromptDraftHandler(context, CreateCatalog(), new FakeCurrentUser());
+
+        var result = await handler.Handle(
+            new GeneratePromptDraftCommand(document.Id, PromptTemplateKey.MergePullRequest, "123"),
+            CancellationToken.None);
+
+        result.TemplateKey.Should().Be(PromptTemplateKey.MergePullRequest);
+        result.Title.Should().Be("Fazer merge da PR #123: merge-plan.md");
+        result.Content.Should().Contain("Faca o merge da PR #123 que implementa o plano `C:/plans/merge-plan.md`.");
+        result.Content.Should().Contain("sincronize a branch principal local com o remoto");
+        result.Content.Should().Contain("remova a worktree se ela existir");
+        result.Content.Should().Contain("exclua a branch local/remota se ainda existirem e for seguro");
+        result.TargetAgent.Should().Be(TargetAgent.Codex);
+        result.Kind.Should().Be(PromptKind.General);
+    }
+
+    [Fact]
     public async Task GeneratePromptDraft_rejects_document_from_another_owner()
     {
         var context = new FakeApplicationDbContext();
@@ -226,12 +250,14 @@ public sealed class PromptTemplateHandlerTests
         await act.Should().ThrowAsync<ValidationException>();
     }
 
-    [Fact]
-    public async Task GeneratePromptDraft_validation_requires_pr_for_review_pull_request()
+    [Theory]
+    [InlineData(PromptTemplateKey.ReviewPullRequest)]
+    [InlineData(PromptTemplateKey.MergePullRequest)]
+    public async Task GeneratePromptDraft_validation_requires_pr_for_pull_request_templates(PromptTemplateKey templateKey)
     {
         var behavior = new ValidationBehavior<GeneratePromptDraftCommand, GeneratedPromptDraftDto>(
             new[] { new GeneratePromptDraftValidator() });
-        var invalid = new GeneratePromptDraftCommand(Guid.CreateVersion7(), PromptTemplateKey.ReviewPullRequest);
+        var invalid = new GeneratePromptDraftCommand(Guid.CreateVersion7(), templateKey);
 
         var act = () => behavior.Handle(
             invalid,
@@ -257,7 +283,8 @@ public sealed class PromptTemplateHandlerTests
             new ReviewPlanWithParentPromptTemplate(),
             new ReReviewPlanTemplate(),
             new ImplementPlanInWorktreeTemplate(),
-            new ReviewPullRequestTemplate()
+            new ReviewPullRequestTemplate(),
+            new MergePullRequestTemplate()
         });
 
     private static Prompt SeedPrompt(

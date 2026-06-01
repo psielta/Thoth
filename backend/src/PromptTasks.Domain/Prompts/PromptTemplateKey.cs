@@ -7,5 +7,6 @@ public enum PromptTemplateKey
     ReviewPlanWithParentPrompt = 3,
     ReReviewPlan = 4,
     ImplementPlanInWorktree = 5,
-    ReviewPullRequest = 6
+    ReviewPullRequest = 6,
+    MergePullRequest = 7
 }

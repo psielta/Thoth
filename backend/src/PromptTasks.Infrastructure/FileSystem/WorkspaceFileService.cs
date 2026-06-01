@@ -1,13 +1,17 @@
 using System.Text;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.Logging;
 using PromptTasks.Application.Common.Exceptions;
 using PromptTasks.Application.Common.Interfaces;
 using PromptTasks.Application.Common.Models;
 
 namespace PromptTasks.Infrastructure.FileSystem;
 
-public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider dateTimeProvider) : IWorkspaceFileService
+public sealed class WorkspaceFileService(
+    IMemoryCache cache,
+    IDateTimeProvider dateTimeProvider,
+    ILogger<WorkspaceFileService> logger) : IWorkspaceFileService
 {
     private sealed record FileIndexEntry(string RelativePath, string FileName, bool IsDirectory);
 
@@ -176,7 +180,7 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
 
         var sections = new List<string>();
         var totalChars = 0;
-        var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenCanonicalPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var rawPath in relativePaths)
         {
@@ -184,12 +188,6 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
 
             var relativePath = rawPath?.Trim().TrimStart('@') ?? string.Empty;
             if (relativePath.Length == 0 || Path.IsPathRooted(relativePath) || HasParentTraversal(relativePath))
-            {
-                continue;
-            }
-
-            var normalizedInputPath = NormalizeRelativePath(relativePath);
-            if (!seenPaths.Add(normalizedInputPath))
             {
                 continue;
             }
@@ -206,14 +204,29 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
 
                 var candidateCanonical = CanonicalizeExistingPath(candidateLogical);
                 EnsureContained(rootCanonical, candidateCanonical);
-
-                var info = new FileInfo(candidateCanonical);
-                if (info.Length == 0 || info.Length > MaxContextFileBytes)
+                if (!seenCanonicalPaths.Add(candidateCanonical))
                 {
                     continue;
                 }
 
-                normalizedDisplayPath = NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateLogical));
+                normalizedDisplayPath = NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateCanonical));
+
+                var info = new FileInfo(candidateCanonical);
+                if (info.Length == 0)
+                {
+                    continue;
+                }
+
+                if (info.Length > MaxContextFileBytes)
+                {
+                    logger.LogDebug(
+                        "Selected context file {RelativePath} was skipped because it has {FileBytes} bytes and the per-file limit is {MaxContextFileBytes} bytes.",
+                        normalizedDisplayPath,
+                        info.Length,
+                        MaxContextFileBytes);
+                    continue;
+                }
+
                 await using var stream = new FileStream(
                     candidateCanonical,
                     FileMode.Open,
@@ -233,6 +246,16 @@ public sealed class WorkspaceFileService(IMemoryCache cache, IDateTimeProvider d
 
             if (content.Length == 0 || totalChars + content.Length > MaxTotalContextChars)
             {
+                if (content.Length > 0)
+                {
+                    logger.LogDebug(
+                        "Selected context file {RelativePath} was skipped because it would exceed the total context limit of {MaxTotalContextChars} characters. Current characters: {CurrentTotalChars}; file characters: {FileChars}.",
+                        normalizedDisplayPath,
+                        MaxTotalContextChars,
+                        totalChars,
+                        content.Length);
+                }
+
                 continue;
             }
 

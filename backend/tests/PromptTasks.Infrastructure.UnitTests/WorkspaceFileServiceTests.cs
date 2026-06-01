@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging.Abstractions;
 using PromptTasks.Application.Common.Exceptions;
 using PromptTasks.Application.Common.Interfaces;
 using PromptTasks.Infrastructure.FileSystem;
@@ -18,7 +19,10 @@ public sealed class WorkspaceFileServiceTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, "node_modules"));
         File.WriteAllText(Path.Combine(_root, "src", "main.go"), "package main");
         File.WriteAllText(Path.Combine(_root, "node_modules", "main.js"), "ignored");
-        _service = new WorkspaceFileService(new MemoryCache(new MemoryCacheOptions()), new FakeDateTimeProvider());
+        _service = new WorkspaceFileService(
+            new MemoryCache(new MemoryCacheOptions()),
+            new FakeDateTimeProvider(),
+            NullLogger<WorkspaceFileService>.Instance);
     }
 
     [Fact]
@@ -232,6 +236,18 @@ public sealed class WorkspaceFileServiceTests : IDisposable
         result.Should().Contain("### src/first.txt");
         result.Should().NotContain("### src/large.txt");
         result.Should().NotContain("### src/second.txt");
+    }
+
+    [Fact]
+    public async Task ReadSelectedFiles_deduplicates_canonical_paths()
+    {
+        var result = await _service.ReadSelectedFilesAsync(
+            _root,
+            new[] { "src/main.go", "./src/main.go", "src//main.go" },
+            CancellationToken.None);
+
+        result.Should().Contain("package main");
+        result!.Split("### src/main.go").Length.Should().Be(2);
     }
 
     [Fact]

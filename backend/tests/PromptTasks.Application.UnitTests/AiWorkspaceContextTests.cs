@@ -144,7 +144,7 @@ public sealed class AiWorkspaceContextTests
             CancellationToken.None);
 
         gemini.LastRefineRequest.Should().NotBeNull();
-        gemini.LastRefineRequest!.SystemInstruction.Should().Contain("Instrucoes adicionais do usuario");
+        gemini.LastRefineRequest!.SystemInstruction.Should().Contain("Instruções adicionais do usuário");
         gemini.LastRefineRequest.SystemInstruction.Should().Contain("Focus on data validation");
     }
 

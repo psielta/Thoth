@@ -33,7 +33,7 @@ vi.mock('../prompt-editor', () => ({
     onChange: (value: string, mentions: unknown[]) => void
   }) => (
     <textarea
-      aria-label="Instrucoes de refinamento"
+      aria-label="Instruções de refinamento"
       value={value}
       onChange={(event) => onChange(event.currentTarget.value, [])}
     />
@@ -117,7 +117,7 @@ describe('RefineDialog', () => {
     await user.click(await screen.findByRole('button', { name: /src\/main\.cs/ }))
     expect(screen.getByLabelText('Arquivos selecionados')).toHaveTextContent('src/main.cs')
 
-    await user.type(screen.getByLabelText('Instrucoes de refinamento'), 'Torne o tom mais formal')
+    await user.type(screen.getByLabelText('Instruções de refinamento'), 'Torne o tom mais formal')
     await user.click(screen.getByRole('button', { name: /^Refinar$/ }))
 
     await waitFor(() => {

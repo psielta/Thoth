@@ -90,8 +90,8 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd 
       draggable={!moveDisabled && !isBusy}
       onDragStart={(event) => onDragStart?.(task, event)}
       onDragEnd={onDragEnd}
-      className={`grid gap-3 rounded-lg border bg-white p-3 transition-colors ${
-        isHumanTurn ? 'border-[#e0b84a]' : 'border-[#d9dfd5]'
+      className={`grid gap-3 rounded-lg border bg-card p-3 transition-colors ${
+        isHumanTurn ? 'border-warning-solid' : 'border-border'
       } ${moveDisabled || isBusy ? '' : 'cursor-grab active:cursor-grabbing'} ${dragging || archive.isPending ? 'opacity-45' : ''}`}
     >
       <Link
@@ -100,8 +100,8 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd 
         search={{ tab: 'timeline' }}
         className="grid gap-2"
       >
-        <span className="line-clamp-2 text-sm font-semibold text-[#172126]">{task.title}</span>
-        <span className="flex items-center gap-1 text-xs text-[#66746b]">
+        <span className="line-clamp-2 text-sm font-semibold text-foreground">{task.title}</span>
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <FolderGit2 className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">{task.workingDirectoryName}</span>
         </span>
@@ -111,13 +111,13 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd 
         {task.currentPhaseName ? (
           <PhaseBadge name={task.currentPhaseName} color={task.currentPhaseColor} />
         ) : (
-          <span className="rounded-md bg-[#eef2eb] px-2 py-1 text-xs font-medium text-[#66746b]">Fluxo não iniciado</span>
+          <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">Fluxo não iniciado</span>
         )}
         {task.currentActor ? <ActorBadge actor={task.currentActor} highlight /> : null}
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <span className="min-w-0 text-xs text-[#8a958c]">
+        <span className="min-w-0 text-xs text-subtle-foreground">
           {task.enteredCurrentPhaseAtUtc
             ? `nesta fase ${formatRelativeTime(task.enteredCurrentPhaseAtUtc)}`
             : `atualizada ${formatRelativeTime(task.updatedAtUtc)}`}
@@ -144,7 +144,7 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd 
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-[#66746b]"
+            className="h-8 w-8 text-muted-foreground"
             onClick={() => archive.mutate()}
             disabled={isBusy || moveDisabled || task.promptStatus === 'Archived'}
             title="Arquivar"

@@ -26,7 +26,7 @@ export default defineConfig([
         'error',
         {
           allowConstantExport: true,
-          allowExportNames: ['Route', 'usePromptHub'],
+          allowExportNames: ['Route', 'usePromptHub', 'useTheme'],
         },
       ],
     },

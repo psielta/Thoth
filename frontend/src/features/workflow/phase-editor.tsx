@@ -69,12 +69,12 @@ export function PhaseEditor({
   return (
     <div className="grid gap-2">
       {rows.map((row, index) => (
-        <div key={row.key} className="flex items-center gap-2 rounded-md border border-[#d9dfd5] bg-white p-2">
+        <div key={row.key} className="flex items-center gap-2 rounded-md border border-border bg-card p-2">
           <input
             type="color"
             value={row.color}
             onChange={(event) => update(row.key, { color: event.target.value })}
-            className="h-8 w-8 shrink-0 cursor-pointer rounded border border-[#d9dfd5] bg-white"
+            className="h-8 w-8 shrink-0 cursor-pointer rounded border border-border bg-card"
             aria-label="Cor da fase"
           />
           <Input

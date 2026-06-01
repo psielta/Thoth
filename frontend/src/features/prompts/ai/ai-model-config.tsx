@@ -85,9 +85,9 @@ export function AiModelConfig({ value, onChange, compact }: AiModelConfigProps) 
       </div>
 
       {thinkingVisible ? (
-        <div className="flex flex-col gap-2 rounded-md border border-[#d9dfd5] bg-[#f8faf7] p-3">
+        <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-[#172126]">Raciocinio</span>
+            <span className="text-sm font-medium text-foreground">Raciocinio</span>
             {selected.canDisableThinking ? (
               <Switch
                 id="thinking-toggle"
@@ -96,7 +96,7 @@ export function AiModelConfig({ value, onChange, compact }: AiModelConfigProps) 
                 label={value.thinkingEnabled ? 'Ativado' : 'Desativado'}
               />
             ) : (
-              <span className="text-xs text-[#66746b]">Sempre ativo</span>
+              <span className="text-xs text-muted-foreground">Sempre ativo</span>
             )}
           </div>
 

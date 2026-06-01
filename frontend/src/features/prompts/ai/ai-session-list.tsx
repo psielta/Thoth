@@ -50,13 +50,13 @@ export function AiSessionList({
   return (
     <div className="flex h-full flex-col">
       {/* Toolbar */}
-      <div className="flex items-center justify-between border-b border-[#e8ede5] px-4 py-3">
-        <span className="text-sm font-medium text-[#172126]">
+      <div className="flex items-center justify-between border-b border-secondary px-4 py-3">
+        <span className="text-sm font-medium text-foreground">
           {sessions.length === 0 ? 'Nenhuma sessao' : `${sessions.length} sessao${sessions.length > 1 ? 'es' : ''}`}
         </span>
         <button
           onClick={onNewSession}
-          className="flex items-center gap-1.5 rounded-lg bg-[#254632] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#1a3323]"
+          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover"
         >
           <Plus className="h-3.5 w-3.5" />
           Nova sessao
@@ -66,7 +66,7 @@ export function AiSessionList({
       {/* List */}
       <div className="flex-1 overflow-y-auto p-3">
         {sessionsQuery.isLoading ? (
-          <div className="flex items-center justify-center py-12 text-sm text-[#9aaf9e]">
+          <div className="flex items-center justify-center py-12 text-sm text-subtle-foreground">
             Carregando...
           </div>
         ) : sessions.length === 0 ? (
@@ -119,25 +119,25 @@ function SessionItem({
     <div
       className={`group flex cursor-pointer items-start gap-3 rounded-lg px-3 py-2.5 transition-colors ${
         isActive
-          ? 'bg-[#eef2eb] ring-1 ring-[#254632]/20'
-          : 'hover:bg-[#f7f8f6]'
+          ? 'bg-muted ring-1 ring-primary/20'
+          : 'hover:bg-background'
       }`}
       onClick={onSelect}
     >
       {/* Icon */}
-      <div className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full ${isActive ? 'bg-[#254632]' : 'bg-[#e8ede5]'}`}>
-        <MessageSquare className={`h-3.5 w-3.5 ${isActive ? 'text-white' : 'text-[#66746b]'}`} />
+      <div className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full ${isActive ? 'bg-primary' : 'bg-secondary'}`}>
+        <MessageSquare className={`h-3.5 w-3.5 ${isActive ? 'text-white' : 'text-muted-foreground'}`} />
       </div>
 
       {/* Content */}
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-sm font-medium ${isActive ? 'text-[#172126]' : 'text-[#374151]'}`}>
+        <p className={`truncate text-sm font-medium ${isActive ? 'text-foreground' : 'text-foreground'}`}>
           {isLoading ? 'Carregando...' : session.title}
         </p>
         <div className="mt-0.5 flex items-center gap-2">
-          <span className="truncate text-xs text-[#9aaf9e]">{session.model}</span>
-          <span className="text-[#d9dfd5]">·</span>
-          <span className="flex-shrink-0 text-xs text-[#9aaf9e]">{formatted}</span>
+          <span className="truncate text-xs text-subtle-foreground">{session.model}</span>
+          <span className="text-border">·</span>
+          <span className="flex-shrink-0 text-xs text-subtle-foreground">{formatted}</span>
         </div>
       </div>
 
@@ -145,7 +145,7 @@ function SessionItem({
       <button
         onClick={(e) => { e.stopPropagation(); onDelete() }}
         disabled={isDeleting}
-        className="ml-1 flex-shrink-0 rounded-md p-1 text-transparent transition-colors group-hover:text-[#9aaf9e] hover:!text-[#b42318]"
+        className="ml-1 flex-shrink-0 rounded-md p-1 text-transparent transition-colors group-hover:text-subtle-foreground hover:!text-destructive"
         title="Remover sessao"
       >
         <Trash2 className="h-3.5 w-3.5" />
@@ -157,12 +157,12 @@ function SessionItem({
 function EmptyHistory() {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f7f8f6]">
-        <Bot className="h-6 w-6 text-[#d9dfd5]" />
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background">
+        <Bot className="h-6 w-6 text-border" />
       </div>
       <div>
-        <p className="text-sm font-medium text-[#66746b]">Nenhuma conversa ainda</p>
-        <p className="mt-1 text-xs text-[#9aaf9e]">Inicie uma nova sessao no Chat.</p>
+        <p className="text-sm font-medium text-muted-foreground">Nenhuma conversa ainda</p>
+        <p className="mt-1 text-xs text-subtle-foreground">Inicie uma nova sessao no Chat.</p>
       </div>
     </div>
   )

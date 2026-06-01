@@ -19,20 +19,20 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
         />
         <div
           className={cn(
-            'h-5 w-9 rounded-full border border-[#d9dfd5] bg-[#eef2eb] transition-colors',
-            'peer-checked:border-[#254632] peer-checked:bg-[#254632]',
-            'peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#254632]',
+            'h-5 w-9 rounded-full border border-border bg-muted transition-colors',
+            'peer-checked:border-primary peer-checked:bg-primary',
+            'peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary',
             className,
           )}
         />
         <div
           className={cn(
-            'absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-[#66746b] transition-transform',
-            'peer-checked:translate-x-4 peer-checked:bg-white',
+            'absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-muted-foreground transition-transform',
+            'peer-checked:translate-x-4 peer-checked:bg-card',
           )}
         />
       </div>
-      {label ? <span className="text-sm text-[#172126]">{label}</span> : null}
+      {label ? <span className="text-sm text-foreground">{label}</span> : null}
     </label>
   ),
 )

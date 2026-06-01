@@ -167,7 +167,7 @@ export function PromptEditor({
     editable,
     editorProps: {
       attributes: {
-        class: cn('tiptap px-4 py-3 text-left text-sm leading-6 text-[#172126]', editorClassName),
+        class: cn('tiptap px-4 py-3 text-left text-sm leading-6 text-foreground', editorClassName),
       },
       handlePaste: (view) => {
         if (!editable) {
@@ -222,12 +222,12 @@ export function PromptEditor({
   }, [editor])
 
   return (
-    <div className={cn('overflow-hidden rounded-lg border border-[#cbd5c8] bg-white', className)}>
-      <div className="flex items-center justify-between gap-3 border-b border-[#d9dfd5] bg-[#f7f8f6] px-4 py-2 text-xs font-medium uppercase tracking-normal text-[#66746b]">
+    <div className={cn('overflow-hidden rounded-lg border border-input bg-card', className)}>
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
         <span>Markdown com mencoes de arquivo</span>
         <div className="flex items-center gap-2">
           {isValidatingMentions ? (
-            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[0.68rem] text-[#42664d]">
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[0.68rem] text-success-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
               Validando mencoes
             </span>
@@ -236,12 +236,12 @@ export function PromptEditor({
             type="button"
             onClick={handleCopy}
             title="Copiar markdown"
-            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[0.68rem] transition-colors hover:bg-[#e8ede5] hover:text-[#172126]"
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[0.68rem] transition-colors hover:bg-secondary hover:text-foreground"
           >
             {copied ? (
               <>
-                <Check className="h-3 w-3 text-[#254632]" />
-                <span className="text-[#254632]">Copiado</span>
+                <Check className="h-3 w-3 text-primary" />
+                <span className="text-primary">Copiado</span>
               </>
             ) : (
               <>

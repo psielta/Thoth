@@ -5,10 +5,10 @@ import { cn } from '@/lib/utils'
 const progressFillVariants = cva('h-full rounded-full transition-[width,background-color]', {
   variants: {
     variant: {
-      ok: 'bg-[#254632]',
-      warn: 'bg-[#c88712]',
-      crit: 'bg-[#b42318]',
-      muted: 'bg-[#9aa69d]',
+      ok: 'bg-primary',
+      warn: 'bg-warning-solid',
+      crit: 'bg-destructive',
+      muted: 'bg-subtle-foreground',
     },
   },
   defaultVariants: {
@@ -30,7 +30,7 @@ export function Progress({ value, variant, className, ...props }: ProgressProps)
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(normalized)}
-      className={cn('h-1.5 overflow-hidden rounded-full bg-[#e7ece6]', className)}
+      className={cn('h-1.5 overflow-hidden rounded-full bg-accent', className)}
       {...props}
     >
       <div className={progressFillVariants({ variant })} style={{ width: `${normalized}%` }} />

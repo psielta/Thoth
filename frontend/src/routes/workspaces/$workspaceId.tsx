@@ -52,7 +52,7 @@ function WorkspaceLayout() {
 
   return (
     <div className="grid gap-5">
-      <div className="flex flex-col gap-3 rounded-lg border border-[#d9dfd5] bg-white p-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <Link to="/workspaces">
             <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2">
@@ -61,31 +61,31 @@ function WorkspaceLayout() {
             </Button>
           </Link>
           {workspaceQuery.isLoading ? (
-            <div className="flex items-center gap-2 text-sm text-[#66746b]">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Carregando diretorio
             </div>
           ) : (
             <>
-              <h1 className="truncate text-2xl font-semibold text-[#172126]">{workspaceQuery.data?.name}</h1>
-              <p className="mt-1 truncate text-sm text-[#66746b]">{workspaceQuery.data?.absolutePath}</p>
+              <h1 className="truncate text-2xl font-semibold text-foreground">{workspaceQuery.data?.name}</h1>
+              <p className="mt-1 truncate text-sm text-muted-foreground">{workspaceQuery.data?.absolutePath}</p>
             </>
           )}
         </div>
-        <div className="flex items-center gap-2 rounded-md border border-[#d9dfd5] px-2.5 py-1.5 text-xs text-[#66746b]">
-          <Radio className={hub.connected ? 'h-3.5 w-3.5 text-[#1f7a3a]' : 'h-3.5 w-3.5 text-[#b42318]'} />
+        <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground">
+          <Radio className={hub.connected ? 'h-3.5 w-3.5 text-success-foreground' : 'h-3.5 w-3.5 text-destructive'} />
           {hub.connected ? 'Tempo real ativo' : 'Reconectando'}
         </div>
       </div>
       {workspaceQuery.data ? (
-        <div className="flex flex-col gap-3 rounded-lg border border-[#d9dfd5] bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-[#eef2eb]">
-              <Sparkles className="h-4 w-4 text-[#254632]" />
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-muted">
+              <Sparkles className="h-4 w-4 text-primary" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-[#172126]">Contexto de IA</h2>
-              <p className="mt-1 text-sm text-[#66746b]">
+              <h2 className="text-sm font-semibold text-foreground">Contexto de IA</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
                 README.md, CLAUDE.md e AGENT.md entram nas instrucoes do Gemini.
               </p>
             </div>

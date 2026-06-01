@@ -7,10 +7,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border-[#254632] bg-[#254632] text-white hover:bg-[#1c3727] focus-visible:outline-[#254632]',
-        secondary: 'border-[#cbd5c8] bg-white text-[#172126] hover:bg-[#eef2eb] focus-visible:outline-[#5e7461]',
-        ghost: 'border-transparent bg-transparent text-[#253035] hover:bg-[#e7ece6] focus-visible:outline-[#5e7461]',
-        destructive: 'border-[#b42318] bg-[#b42318] text-white hover:bg-[#971d14] focus-visible:outline-[#b42318]',
+        default: 'border-primary bg-primary text-white hover:bg-primary-hover focus-visible:outline-primary',
+        secondary: 'border-input bg-card text-foreground hover:bg-muted focus-visible:outline-ring',
+        ghost: 'border-transparent bg-transparent text-foreground hover:bg-accent focus-visible:outline-ring',
+        destructive: 'border-destructive bg-destructive text-white hover:bg-destructive-hover focus-visible:outline-destructive',
       },
       size: {
         default: 'px-3.5',

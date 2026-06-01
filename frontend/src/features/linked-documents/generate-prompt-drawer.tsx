@@ -152,7 +152,7 @@ export function GeneratePromptDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-[#172126]/35 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="generate-prompt-title"
@@ -162,13 +162,13 @@ export function GeneratePromptDrawer({
         }
       }}
     >
-      <div className="grid h-full w-full max-w-xl grid-rows-[auto_minmax(0,1fr)_auto] border-l border-[#d9dfd5] bg-white shadow-2xl">
-        <div className="flex min-w-0 items-start justify-between gap-3 border-b border-[#d9dfd5] p-4">
+      <div className="grid h-full w-full max-w-xl grid-rows-[auto_minmax(0,1fr)_auto] border-l border-border bg-card shadow-2xl">
+        <div className="flex min-w-0 items-start justify-between gap-3 border-b border-border p-4">
           <div className="min-w-0">
-            <h2 id="generate-prompt-title" className="text-base font-semibold text-[#172126]">
+            <h2 id="generate-prompt-title" className="text-base font-semibold text-foreground">
               Gerar prompt filho
             </h2>
-            <p className="mt-1 truncate text-sm text-[#66746b]" title={template.description}>
+            <p className="mt-1 truncate text-sm text-muted-foreground" title={template.description}>
               {template.displayName}
             </p>
           </div>
@@ -179,14 +179,14 @@ export function GeneratePromptDrawer({
 
         <div className="min-h-0 overflow-hidden p-4">
           {draftQuery.isLoading ? (
-            <div className="flex items-center gap-2 rounded-md border border-[#d9dfd5] bg-[#f7f8f6] p-3 text-sm text-[#66746b]">
+            <div className="flex items-center gap-2 rounded-md border border-border bg-background p-3 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Gerando prompt
             </div>
           ) : null}
 
           {draftQuery.error ? (
-            <div className="grid gap-3 rounded-md border border-[#f8b4aa] bg-[#fff3f0] p-3 text-sm text-[#8a241b]">
+            <div className="grid gap-3 rounded-md border border-danger-border bg-danger-soft p-3 text-sm text-danger-soft-foreground">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{getErrorMessage(draftQuery.error)}</span>
@@ -248,7 +248,7 @@ export function GeneratePromptDrawer({
                   editorClassName="min-h-full"
                 />
                 {form.formState.errors.content?.message ? (
-                  <p className="text-xs font-medium text-[#b42318]">
+                  <p className="text-xs font-medium text-destructive">
                     {form.formState.errors.content.message}
                   </p>
                 ) : null}
@@ -257,7 +257,7 @@ export function GeneratePromptDrawer({
           ) : null}
         </div>
 
-        <div className="flex flex-wrap justify-end gap-2 border-t border-[#d9dfd5] p-4">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-border p-4">
           <Button type="button" variant="ghost" onClick={requestClose} disabled={isBusy}>
             Cancelar
           </Button>

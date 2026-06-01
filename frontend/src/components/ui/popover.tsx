@@ -85,7 +85,7 @@ export function Popover({ trigger, children, className, triggerClassName, ariaLa
         <div
           ref={floatingRef}
           className={cn(
-            'fixed z-50 w-[min(24rem,calc(100vw-1rem))] rounded-md border border-[#d9dfd5] bg-white p-3 shadow-xl',
+            'fixed z-50 w-[min(24rem,calc(100vw-1rem))] rounded-md border border-border bg-card p-3 shadow-xl',
             className,
           )}
         >

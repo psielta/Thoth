@@ -37,15 +37,15 @@ function SettingsPage() {
             Quadro
           </Button>
         </Link>
-        <h1 className="text-2xl font-semibold text-[#172126]">Configurações do fluxo</h1>
-        <p className="mt-1 text-sm text-[#66746b]">
+        <h1 className="text-2xl font-semibold text-foreground">Configurações do fluxo</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Edite as fases padrão e o responsável de cada uma. Tarefas novas usam este template; tarefas em andamento não são alteradas.
         </p>
       </div>
 
-      <div className="rounded-lg border border-[#d9dfd5] bg-white p-4">
+      <div className="rounded-lg border border-border bg-card p-4">
         {templateQuery.isLoading || !templateQuery.data ? (
-          <div className="flex items-center gap-2 text-sm text-[#66746b]">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Carregando template
           </div>

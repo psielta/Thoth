@@ -39,7 +39,7 @@ function PromptDetailPage() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap gap-2 rounded-lg border border-[#d9dfd5] bg-white p-2">
+      <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-card p-2">
         <Button
           type="button"
           variant={activeTab === 'prompt' ? 'default' : 'ghost'}

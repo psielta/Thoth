@@ -40,7 +40,7 @@ export function DiffViewerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 grid bg-[#172126]/35 p-4 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-50 grid bg-black/50 p-4 backdrop-blur-sm sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="diff-modal-title"
@@ -48,13 +48,13 @@ export function DiffViewerModal({
         if (e.target === e.currentTarget) requestClose()
       }}
     >
-      <div className="mx-auto grid h-full w-full max-w-7xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-[#d9dfd5] bg-white shadow-2xl">
-        <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#d9dfd5] p-4">
+      <div className="mx-auto grid h-full w-full max-w-7xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-card shadow-2xl">
+        <div className="flex min-w-0 items-center justify-between gap-3 border-b border-border p-4">
           <div className="flex min-w-0 items-center gap-3">
-            <h2 id="diff-modal-title" className="shrink-0 text-base font-semibold text-[#172126]">
+            <h2 id="diff-modal-title" className="shrink-0 text-base font-semibold text-foreground">
               Comparar versoes
             </h2>
-            <span className="truncate text-sm text-[#66746b]">
+            <span className="truncate text-sm text-muted-foreground">
               {oldLabel} → {newLabel}
             </span>
           </div>
@@ -111,7 +111,7 @@ function LoadingSkeleton() {
       {[70, 90, 55, 80, 65, 75, 50, 85].map((w, i) => (
         <div
           key={i}
-          className="h-4 animate-pulse rounded bg-[#eef2eb]"
+          className="h-4 animate-pulse rounded bg-muted"
           style={{ width: `${w}%` }}
         />
       ))}
@@ -121,7 +121,7 @@ function LoadingSkeleton() {
 
 function ErrorState({ error }: { error: unknown }) {
   return (
-    <div className="m-4 flex items-start gap-2 rounded-md border border-[#f8b4aa] bg-[#fff3f0] p-3 text-sm text-[#8a241b]">
+    <div className="m-4 flex items-start gap-2 rounded-md border border-danger-border bg-danger-soft p-3 text-sm text-danger-soft-foreground">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
       <span>{getErrorMessage(error)}</span>
     </div>

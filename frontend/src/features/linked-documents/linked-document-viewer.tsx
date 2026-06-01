@@ -157,7 +157,7 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
 
   if (!document) {
     return (
-      <div className="flex min-h-[22rem] items-center justify-center rounded-lg border border-[#d9dfd5] bg-white text-sm text-[#66746b]">
+      <div className="flex min-h-[22rem] items-center justify-center rounded-lg border border-border bg-card text-sm text-muted-foreground">
         Selecione um markdown vinculado.
       </div>
     )
@@ -165,21 +165,21 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
 
   return (
     <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]">
-      <div className="grid min-w-0 content-start gap-4 rounded-lg border border-[#d9dfd5] bg-white">
-        <div className="grid min-w-0 content-start gap-3 border-b border-[#d9dfd5] p-4">
+      <div className="grid min-w-0 content-start gap-4 rounded-lg border border-border bg-card">
+        <div className="grid min-w-0 content-start gap-3 border-b border-border p-4">
           <div className="grid min-w-0 content-start gap-3 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-start">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-2">
-                <FileText className="h-4 w-4 shrink-0 text-[#5e7461]" />
-                <h2 className="truncate text-base font-semibold text-[#172126]">{document.displayName}</h2>
+                <FileText className="h-4 w-4 shrink-0 text-ring" />
+                <h2 className="truncate text-base font-semibold text-foreground">{document.displayName}</h2>
                 <Badge className="shrink-0" variant={statusVariants[document.status]}>
                   {statusLabels[document.status]}
                 </Badge>
               </div>
-              <p className="mt-1 truncate text-xs text-[#66746b]" title={document.absolutePath}>
+              <p className="mt-1 truncate text-xs text-muted-foreground" title={document.absolutePath}>
                 {document.absolutePath}
               </p>
-              <p className="mt-1 text-xs text-[#66746b]">
+              <p className="mt-1 text-xs text-muted-foreground">
                 v{document.currentVersion || 1}
                 {document.lastSyncedAtUtc
                   ? ` atualizado em ${dateFormatter.format(new Date(document.lastSyncedAtUtc))}`
@@ -252,7 +252,7 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
           </div>
 
           {document.lastError ? (
-            <div className="flex items-start gap-2 rounded-md border border-[#f8b4aa] bg-[#fff3f0] p-3 text-sm text-[#8a241b]">
+            <div className="flex items-start gap-2 rounded-md border border-danger-border bg-danger-soft p-3 text-sm text-danger-soft-foreground">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span className="min-w-0">{document.lastError}</span>
             </div>
@@ -261,12 +261,12 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
 
         <div className="min-h-[36rem] min-w-0 p-4">
           {contentQuery.isLoading ? (
-            <div className="flex items-center gap-2 text-sm text-[#66746b]">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Carregando markdown
             </div>
           ) : contentQuery.error ? (
-            <div className="rounded-md border border-[#f8b4aa] bg-[#fff3f0] p-3 text-sm text-[#8a241b]">
+            <div className="rounded-md border border-danger-border bg-danger-soft p-3 text-sm text-danger-soft-foreground">
               {getErrorMessage(contentQuery.error)}
             </div>
           ) : (

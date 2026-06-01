@@ -145,7 +145,7 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
 
   if (promptId && promptQuery.isError) {
     return (
-      <div className="rounded-lg border border-[#f8b4aa] bg-[#fff3f0] p-4 text-sm text-[#8a241b]">
+      <div className="rounded-lg border border-danger-border bg-danger-soft p-4 text-sm text-danger-soft-foreground">
         {getErrorMessage(promptQuery.error)}
       </div>
     )
@@ -157,7 +157,7 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
 
   if (promptId && (promptQuery.isLoading || !promptQuery.data || isWaitingForPromptValues)) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-[#d9dfd5] bg-white p-4 text-sm text-[#66746b]">
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Carregando prompt
       </div>
@@ -186,7 +186,7 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
         />
       ) : null}
     <form onSubmit={onSubmit} className="grid gap-5">
-      <div className="grid gap-4 rounded-lg border border-[#d9dfd5] bg-white p-4">
+      <div className="grid gap-4 rounded-lg border border-border bg-card p-4">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem_10rem_10rem]">
           <FormField label="Titulo" htmlFor="prompt-title" error={form.formState.errors.title?.message}>
             <Input id="prompt-title" placeholder="Planejar refatoracao do modulo X" {...form.register('title')} />
@@ -224,7 +224,7 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
         </div>
 
         {form.formState.errors.content?.message ? (
-          <p className="text-sm font-medium text-[#b42318]">{form.formState.errors.content.message}</p>
+          <p className="text-sm font-medium text-destructive">{form.formState.errors.content.message}</p>
         ) : null}
 
         <PromptEditor
@@ -237,7 +237,7 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
         />
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-h-5 text-sm text-[#66746b]">
+          <div className="min-h-5 text-sm text-muted-foreground">
             {mentions.length ? `${mentions.length} arquivo(s) mencionado(s)` : 'Nenhum arquivo mencionado'}
           </div>
           <div className="flex flex-wrap gap-2">

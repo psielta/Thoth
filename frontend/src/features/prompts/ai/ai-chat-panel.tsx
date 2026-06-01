@@ -132,16 +132,16 @@ export function AiChatPanel({
     <div className="flex h-full flex-col">
       {/* Session header */}
       {activeSession ? (
-        <div className="flex items-center justify-between border-b border-[#e8ede5] bg-[#f7f8f6] px-4 py-2.5">
+        <div className="flex items-center justify-between border-b border-secondary bg-background px-4 py-2.5">
           <div className="flex items-center gap-2 min-w-0">
             <div className="h-2 w-2 rounded-full bg-[#4ade80] flex-shrink-0" />
-            <span className="text-xs font-medium text-[#172126] truncate">{activeSession.title}</span>
-            <span className="text-xs text-[#9aaf9e] flex-shrink-0">· {activeSession.model}</span>
+            <span className="text-xs font-medium text-foreground truncate">{activeSession.title}</span>
+            <span className="text-xs text-subtle-foreground flex-shrink-0">· {activeSession.model}</span>
           </div>
           <button
             onClick={() => deleteSessionMutation.mutate()}
             disabled={deleteSessionMutation.isPending}
-            className="ml-2 flex-shrink-0 rounded-md p-1.5 text-[#9aaf9e] transition-colors hover:bg-[#fee2e2] hover:text-[#b42318]"
+            className="ml-2 flex-shrink-0 rounded-md p-1.5 text-subtle-foreground transition-colors hover:bg-danger-soft hover:text-destructive"
             title="Encerrar sessao"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -162,7 +162,7 @@ export function AiChatPanel({
               <TypingIndicator />
             ) : null}
             {error ? (
-              <div className="rounded-lg border border-[#fca5a5] bg-[#fff1f1] px-4 py-3 text-sm text-[#991b1b]">
+              <div className="rounded-lg border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger-soft-foreground">
                 {error}
               </div>
             ) : null}
@@ -172,7 +172,7 @@ export function AiChatPanel({
       </div>
 
       {/* Input area */}
-      <div className="border-t border-[#e8ede5] p-3">
+      <div className="border-t border-secondary p-3">
         {promptContent ? (
           <div className="mb-2">
             <Switch
@@ -183,7 +183,7 @@ export function AiChatPanel({
             />
           </div>
         ) : null}
-        <div className="flex items-end gap-2 rounded-xl border border-[#d9dfd5] bg-white px-3 py-2 shadow-sm focus-within:border-[#254632] focus-within:ring-1 focus-within:ring-[#254632] transition-all">
+        <div className="flex items-end gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
           <textarea
             ref={textareaRef}
             value={input}
@@ -192,14 +192,14 @@ export function AiChatPanel({
             placeholder="Mensagem... (Enter envia, Shift+Enter nova linha)"
             rows={1}
             style={{ height: 'auto', minHeight: '24px', maxHeight: '160px' }}
-            className="flex-1 resize-none bg-transparent text-sm text-[#172126] placeholder:text-[#9aaf9e] focus:outline-none leading-6"
+            className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-subtle-foreground focus:outline-none leading-6"
             disabled={isBusy}
           />
           <button
             type="button"
             onClick={() => void handleSend()}
             disabled={!input.trim() || isBusy}
-            className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-lg bg-[#254632] text-white transition-all hover:bg-[#1a3323] disabled:bg-[#d9dfd5] disabled:text-[#9aaf9e] disabled:cursor-not-allowed"
+            className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-lg bg-primary text-white transition-all hover:bg-primary-hover disabled:bg-border disabled:text-subtle-foreground disabled:cursor-not-allowed"
           >
             {isBusy ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -208,7 +208,7 @@ export function AiChatPanel({
             )}
           </button>
         </div>
-        <p className="mt-1.5 text-center text-[10px] text-[#b0bcb4]">
+        <p className="mt-1.5 text-center text-[10px] text-subtle-foreground">
           Gemini pode cometer erros. Verifique informacoes importantes.
         </p>
       </div>
@@ -219,17 +219,17 @@ export function AiChatPanel({
 function EmptyState({ hasPromptContent }: { hasPromptContent: boolean }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 py-12 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#eef2eb]">
-        <Bot className="h-7 w-7 text-[#254632]" />
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+        <Bot className="h-7 w-7 text-primary" />
       </div>
       <div>
-        <p className="text-sm font-medium text-[#172126]">Assistente de Engenharia de Prompts</p>
-        <p className="mt-1 text-xs text-[#66746b]">
+        <p className="text-sm font-medium text-foreground">Assistente de Engenharia de Prompts</p>
+        <p className="mt-1 text-xs text-muted-foreground">
           Tire duvidas sobre como estruturar seus prompts para Claude Code e Codex.
         </p>
       </div>
       {hasPromptContent ? (
-        <p className="rounded-lg border border-[#d9dfd5] bg-[#f7f8f6] px-3 py-2 text-xs text-[#66746b]">
+        <p className="rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
           Ative &quot;Incluir conteudo do prompt&quot; para enviar o prompt atual como contexto.
         </p>
       ) : null}
@@ -240,14 +240,14 @@ function EmptyState({ hasPromptContent }: { hasPromptContent: boolean }) {
 function TypingIndicator() {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#eef2eb]">
-        <Bot className="h-4 w-4 text-[#254632]" />
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+        <Bot className="h-4 w-4 text-primary" />
       </div>
-      <div className="rounded-2xl rounded-tl-sm border border-[#e8ede5] bg-white px-4 py-3">
+      <div className="rounded-2xl rounded-tl-sm border border-secondary bg-card px-4 py-3">
         <div className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#9aaf9e]" style={{ animationDelay: '0ms' }} />
-          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#9aaf9e]" style={{ animationDelay: '150ms' }} />
-          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#9aaf9e]" style={{ animationDelay: '300ms' }} />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-subtle-foreground" style={{ animationDelay: '0ms' }} />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-subtle-foreground" style={{ animationDelay: '150ms' }} />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-subtle-foreground" style={{ animationDelay: '300ms' }} />
         </div>
       </div>
     </div>
@@ -261,11 +261,11 @@ function ChatMessage({ message }: { message: ChatStreamMessage }) {
     return (
       <div className="flex items-start justify-end gap-3">
         <div className="flex max-w-[80%] flex-col items-end gap-1">
-          <div className="rounded-2xl rounded-tr-sm bg-[#254632] px-4 py-2.5 text-sm leading-relaxed text-white">
+          <div className="rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-sm leading-relaxed text-white">
             <p className="whitespace-pre-wrap">{message.content}</p>
           </div>
         </div>
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#254632]">
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary">
           <User className="h-4 w-4 text-white" />
         </div>
       </div>
@@ -275,18 +275,18 @@ function ChatMessage({ message }: { message: ChatStreamMessage }) {
   return (
     <div className="flex items-start gap-3">
       {/* Avatar */}
-      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#eef2eb]">
-        <Bot className="h-4 w-4 text-[#254632]" />
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+        <Bot className="h-4 w-4 text-primary" />
       </div>
 
       {/* Full-width model message — no bubble constraint so code blocks scroll properly */}
       <div className="min-w-0 flex-1">
         {message.thought ? (
           <details className="mb-2">
-            <summary className="cursor-pointer select-none rounded-lg border border-[#e8ede5] bg-[#f7f8f6] px-3 py-1.5 text-xs text-[#66746b] hover:bg-[#eef2eb]">
+            <summary className="cursor-pointer select-none rounded-lg border border-secondary bg-background px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted">
               Ver raciocinio da IA
             </summary>
-            <div className="mt-1 rounded-lg border border-[#e8ede5] bg-[#fafbf9] px-3 py-2 text-xs italic leading-relaxed text-[#66746b]">
+            <div className="mt-1 rounded-lg border border-secondary bg-card px-3 py-2 text-xs italic leading-relaxed text-muted-foreground">
               {message.thought}
             </div>
           </details>
@@ -295,11 +295,11 @@ function ChatMessage({ message }: { message: ChatStreamMessage }) {
         {message.content ? (
           <MarkdownContent content={message.content} />
         ) : (
-          <span className="text-sm text-[#9aaf9e]">...</span>
+          <span className="text-sm text-subtle-foreground">...</span>
         )}
 
         {message.cachedTokens ? (
-          <p className="mt-1 text-[10px] text-[#b0bcb4]">{message.cachedTokens} tokens em cache</p>
+          <p className="mt-1 text-[10px] text-subtle-foreground">{message.cachedTokens} tokens em cache</p>
         ) : null}
       </div>
     </div>

@@ -90,7 +90,7 @@ export function WorkflowPanel({ promptId, onNavigateTab }: WorkflowPanelProps) {
 
   if (workflowQuery.isLoading) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-[#d9dfd5] bg-white p-4 text-sm text-[#66746b]">
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Carregando fluxo
       </div>
@@ -102,11 +102,11 @@ export function WorkflowPanel({ promptId, onNavigateTab }: WorkflowPanelProps) {
   if (!workflow) {
     const templatePhases = templateQuery.data?.phases ?? []
     return (
-      <div className="grid gap-3 rounded-lg border border-[#d9dfd5] bg-white p-6">
-        <h2 className="text-base font-semibold text-[#172126]">Fluxo não iniciado</h2>
-        <p className="text-sm text-[#66746b]">Inicie o fluxo para acompanhar fases e a timeline desta tarefa.</p>
+      <div className="grid gap-3 rounded-lg border border-border bg-card p-6">
+        <h2 className="text-base font-semibold text-foreground">Fluxo não iniciado</h2>
+        <p className="text-sm text-muted-foreground">Inicie o fluxo para acompanhar fases e a timeline desta tarefa.</p>
         <div className="flex flex-wrap items-end gap-2">
-          <label className="grid gap-1.5 text-sm font-medium text-[#253035]">
+          <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Começar na fase
             <Select
               value={String(initialPhaseIndex)}
@@ -159,18 +159,18 @@ export function WorkflowPanel({ promptId, onNavigateTab }: WorkflowPanelProps) {
 
   return (
     <div className="grid gap-4">
-      <div className="grid gap-3 rounded-lg border border-[#d9dfd5] bg-white p-4">
+      <div className="grid gap-3 rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-[#66746b]">Agora:</span>
+          <span className="text-sm text-muted-foreground">Agora:</span>
           {workflow.currentPhaseName ? (
             <PhaseBadge name={workflow.currentPhaseName} color={workflow.currentPhaseColor} />
           ) : null}
           {workflow.currentActor ? <ActorBadge actor={workflow.currentActor} highlight /> : null}
-          <span className="rounded-md bg-[#eef2eb] px-2 py-1 text-xs font-medium text-[#425048]">
+          <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
             {WORKFLOW_STATUS_LABELS[workflow.status]}
           </span>
           {workflow.enteredCurrentPhaseAtUtc ? (
-            <span className="text-xs text-[#8a958c]">nesta fase {formatRelativeTime(workflow.enteredCurrentPhaseAtUtc)}</span>
+            <span className="text-xs text-subtle-foreground">nesta fase {formatRelativeTime(workflow.enteredCurrentPhaseAtUtc)}</span>
           ) : null}
         </div>
 
@@ -195,7 +195,7 @@ export function WorkflowPanel({ promptId, onNavigateTab }: WorkflowPanelProps) {
               {nextPhase ? <ArrowRight className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
               {nextPhase ? 'Avançar' : 'Concluir'}
             </Button>
-            <label className="flex items-center gap-1.5 text-xs text-[#66746b]">
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
               Mudar fase
               <Select
                 value={workflow.currentPhaseId ?? ''}
@@ -210,7 +210,7 @@ export function WorkflowPanel({ promptId, onNavigateTab }: WorkflowPanelProps) {
                 ))}
               </Select>
             </label>
-            <label className="flex items-center gap-1.5 text-xs text-[#66746b]">
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
               Responsável
               <Select
                 value={workflow.currentActor ?? ''}
@@ -250,8 +250,8 @@ export function WorkflowPanel({ promptId, onNavigateTab }: WorkflowPanelProps) {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-[#eef2eb] pt-3">
-          <span className="text-xs text-[#8a958c]">Atalhos:</span>
+        <div className="flex flex-wrap items-center gap-2 border-t border-muted pt-3">
+          <span className="text-xs text-subtle-foreground">Atalhos:</span>
           <Button type="button" variant="ghost" size="sm" onClick={() => onNavigateTab('children')}>
             <GitBranch className="h-4 w-4" />
             Prompts filhos
@@ -281,8 +281,8 @@ export function WorkflowPanel({ promptId, onNavigateTab }: WorkflowPanelProps) {
         ) : null}
       </div>
 
-      <div className="grid gap-2 rounded-lg border border-[#d9dfd5] bg-white p-4">
-        <label className="text-sm font-medium text-[#253035]" htmlFor="workflow-note">
+      <div className="grid gap-2 rounded-lg border border-border bg-card p-4">
+        <label className="text-sm font-medium text-foreground" htmlFor="workflow-note">
           Adicionar nota
         </label>
         <Textarea
@@ -305,8 +305,8 @@ export function WorkflowPanel({ promptId, onNavigateTab }: WorkflowPanelProps) {
         </div>
       </div>
 
-      <div className="grid gap-3 rounded-lg border border-[#d9dfd5] bg-white p-4">
-        <h2 className="text-base font-semibold text-[#172126]">Timeline</h2>
+      <div className="grid gap-3 rounded-lg border border-border bg-card p-4">
+        <h2 className="text-base font-semibold text-foreground">Timeline</h2>
         <WorkflowTimeline events={workflow.events} />
       </div>
     </div>

@@ -11,8 +11,8 @@ function NewPromptPage() {
   return (
     <section className="grid gap-4">
       <div>
-        <h2 className="text-xl font-semibold text-[#172126]">Novo prompt</h2>
-        <p className="mt-1 text-sm text-[#66746b]">Digite @ no editor para pesquisar arquivos do diretorio.</p>
+        <h2 className="text-xl font-semibold text-foreground">Novo prompt</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Digite @ no editor para pesquisar arquivos do diretorio.</p>
       </div>
       <PromptForm workingDirectoryId={workspaceId} />
     </section>

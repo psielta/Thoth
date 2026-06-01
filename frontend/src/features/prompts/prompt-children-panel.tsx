@@ -37,21 +37,21 @@ export function PromptChildrenPanel({ workingDirectoryId, parentPromptId }: Prom
   })
 
   return (
-    <section className="grid gap-3 rounded-lg border border-[#d9dfd5] bg-white p-4">
-      <div className="flex items-center gap-2 text-sm font-semibold text-[#172126]">
-        <MessageSquareText className="h-4 w-4 text-[#5e7461]" />
+    <section className="grid gap-3 rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <MessageSquareText className="h-4 w-4 text-ring" />
         Prompts filhos
       </div>
 
       {childrenQuery.isLoading ? (
-        <div className="flex items-center gap-2 text-sm text-[#66746b]">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Carregando
         </div>
       ) : null}
 
       {!childrenQuery.isLoading && !childrenQuery.data?.length ? (
-        <div className="rounded-md border border-dashed border-[#cbd5c8] bg-[#fbfcfa] p-3 text-sm text-[#66746b]">
+        <div className="rounded-md border border-dashed border-input bg-card p-3 text-sm text-muted-foreground">
           Nenhum prompt filho.
         </div>
       ) : null}
@@ -61,13 +61,13 @@ export function PromptChildrenPanel({ workingDirectoryId, parentPromptId }: Prom
           <button
             key={prompt.id}
             type="button"
-            className="grid min-w-0 gap-2 rounded-md border border-[#d9dfd5] p-3 text-left transition-colors hover:border-[#8aa083] hover:bg-[#fbfcfa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5e7461]"
+            className="grid min-w-0 gap-2 rounded-md border border-border p-3 text-left transition-colors hover:border-ring hover:bg-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             onClick={() => setSelectedPrompt(prompt)}
           >
             <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
-                <div className="truncate text-sm font-medium text-[#172126]">{prompt.title}</div>
-                <p className="mt-1 line-clamp-2 text-sm text-[#66746b]">{prompt.content}</p>
+                <div className="truncate text-sm font-medium text-foreground">{prompt.title}</div>
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{prompt.content}</p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-1.5">
                 <StatusBadge status={prompt.status} />
@@ -111,7 +111,7 @@ function ChildPromptDrawer({ prompt, onClose }: { prompt: Prompt; onClose: () =>
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-[#172126]/35 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="child-prompt-title"
@@ -121,18 +121,18 @@ function ChildPromptDrawer({ prompt, onClose }: { prompt: Prompt; onClose: () =>
         }
       }}
     >
-      <div className="grid h-full w-full max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] border-l border-[#d9dfd5] bg-white shadow-2xl">
-        <div className="flex min-w-0 items-start justify-between gap-3 border-b border-[#d9dfd5] p-4">
+      <div className="grid h-full w-full max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] border-l border-border bg-card shadow-2xl">
+        <div className="flex min-w-0 items-start justify-between gap-3 border-b border-border p-4">
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <h2 id="child-prompt-title" className="truncate text-base font-semibold text-[#172126]">
+              <h2 id="child-prompt-title" className="truncate text-base font-semibold text-foreground">
                 {prompt.title}
               </h2>
               <StatusBadge status={prompt.status} />
               <Badge variant="blue">{AGENT_LABELS[prompt.targetAgent]}</Badge>
               <Badge>{KIND_LABELS[prompt.kind]}</Badge>
             </div>
-            <p className="mt-1 text-xs text-[#66746b]">
+            <p className="mt-1 text-xs text-muted-foreground">
               Criado em {dateFormatter.format(new Date(prompt.createdAtUtc))}
             </p>
           </div>
@@ -154,7 +154,7 @@ function ChildPromptDrawer({ prompt, onClose }: { prompt: Prompt; onClose: () =>
           />
         </div>
 
-        <div className="flex flex-wrap justify-end gap-2 border-t border-[#d9dfd5] p-4">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-border p-4">
           <Button type="button" variant="ghost" onClick={requestClose}>
             Fechar
           </Button>

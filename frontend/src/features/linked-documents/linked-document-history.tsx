@@ -39,9 +39,9 @@ export function LinkedDocumentHistory({
   onCompare,
 }: LinkedDocumentHistoryProps) {
   return (
-    <aside className="grid content-start gap-3 rounded-lg border border-[#d9dfd5] bg-white p-3">
-      <div className="flex items-center gap-2 text-sm font-semibold text-[#172126]">
-        <Clock3 className="h-4 w-4 text-[#5e7461]" />
+    <aside className="grid content-start gap-3 rounded-lg border border-border bg-card p-3">
+      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <Clock3 className="h-4 w-4 text-ring" />
         Versoes
       </div>
 
@@ -67,7 +67,7 @@ export function LinkedDocumentHistory({
           </Button>
           <button
             type="button"
-            className="text-xs text-[#66746b] underline"
+            className="text-xs text-muted-foreground underline"
             onClick={onClearCompare}
           >
             Limpar
@@ -76,7 +76,7 @@ export function LinkedDocumentHistory({
       )}
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-sm text-[#66746b]">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Carregando
         </div>
@@ -91,7 +91,7 @@ export function LinkedDocumentHistory({
               <input
                 type="checkbox"
                 id={`compare-plan-${version.id}`}
-                className="mt-2 h-4 w-4 shrink-0 accent-[#254632]"
+                className="mt-2 h-4 w-4 shrink-0 accent-primary"
                 checked={isChecked}
                 onChange={() => onToggleCompare(version.versionNumber)}
                 disabled={isDisabled}
@@ -102,15 +102,15 @@ export function LinkedDocumentHistory({
                 className={cn(
                   'grid min-w-0 flex-1 gap-1 rounded-md border p-2 text-left text-xs transition-colors',
                   selectedVersion === version.versionNumber
-                    ? 'border-[#254632] bg-[#eef2eb] text-[#172126]'
-                    : 'border-[#d9dfd5] bg-white text-[#425048] hover:bg-[#f7f8f6]',
+                    ? 'border-primary bg-muted text-foreground'
+                    : 'border-border bg-card text-muted-foreground hover:bg-background',
                 )}
                 onClick={() => onSelectVersion(version.versionNumber)}
               >
-                <span className="font-semibold text-[#172126]">v{version.versionNumber}</span>
+                <span className="font-semibold text-foreground">v{version.versionNumber}</span>
                 <span className="truncate">{sourceLabels[version.source]}</span>
-                <span className="truncate text-[#66746b]">{dateFormatter.format(new Date(version.createdAtUtc))}</span>
-                <span className="truncate text-[#66746b]">{formatBytes(version.sizeBytes)}</span>
+                <span className="truncate text-muted-foreground">{dateFormatter.format(new Date(version.createdAtUtc))}</span>
+                <span className="truncate text-muted-foreground">{formatBytes(version.sizeBytes)}</span>
               </button>
             </div>
           )

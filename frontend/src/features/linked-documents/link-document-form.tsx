@@ -54,7 +54,7 @@ export function LinkDocumentForm({ promptId, onLinked }: LinkDocumentFormProps) 
   const onSubmit = form.handleSubmit((values) => linkMutation.mutate(values))
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-3 border-b border-[#d9dfd5] pb-4">
+    <form onSubmit={onSubmit} className="grid gap-3 border-b border-border pb-4">
       <FormField
         label="Markdown do plano"
         htmlFor="linked-document-path"

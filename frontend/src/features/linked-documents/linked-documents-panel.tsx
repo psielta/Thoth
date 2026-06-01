@@ -50,14 +50,14 @@ export function LinkedDocumentsPanel({ promptId }: LinkedDocumentsPanelProps) {
 
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[22rem_minmax(0,1fr)]">
-      <aside className="grid content-start gap-4 rounded-lg border border-[#d9dfd5] bg-white p-4">
+      <aside className="grid content-start gap-4 rounded-lg border border-border bg-card p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-[#172126]">Planos vinculados</h2>
-            <p className="mt-1 text-sm text-[#66746b]">Markdown externo com historico e tempo real.</p>
+            <h2 className="text-base font-semibold text-foreground">Planos vinculados</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Markdown externo com historico e tempo real.</p>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5 rounded-md border border-[#d9dfd5] px-2 py-1 text-xs text-[#66746b]">
-            <Radio className={hub.connected ? 'h-3.5 w-3.5 text-[#1f7a3a]' : 'h-3.5 w-3.5 text-[#b42318]'} />
+          <div className="flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground">
+            <Radio className={hub.connected ? 'h-3.5 w-3.5 text-success-foreground' : 'h-3.5 w-3.5 text-destructive'} />
             {hub.connected ? 'Online' : 'Offline'}
           </div>
         </div>
@@ -65,13 +65,13 @@ export function LinkedDocumentsPanel({ promptId }: LinkedDocumentsPanelProps) {
         <LinkDocumentForm promptId={promptId} onLinked={(document) => setSelectedDocumentId(document.id)} />
 
         <div className="grid gap-2">
-          <div className="flex items-center justify-between gap-2 text-sm font-semibold text-[#172126]">
+          <div className="flex items-center justify-between gap-2 text-sm font-semibold text-foreground">
             <span>Markdowns</span>
-            {documentsQuery.isFetching ? <Loader2 className="h-4 w-4 animate-spin text-[#66746b]" /> : null}
+            {documentsQuery.isFetching ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
           </div>
 
           {!documentsQuery.isLoading && !documents.length ? (
-            <div className="rounded-md border border-dashed border-[#cbd5c8] p-3 text-sm text-[#66746b]">
+            <div className="rounded-md border border-dashed border-input p-3 text-sm text-muted-foreground">
               Nenhum markdown vinculado a este prompt.
             </div>
           ) : null}
@@ -84,15 +84,15 @@ export function LinkedDocumentsPanel({ promptId }: LinkedDocumentsPanelProps) {
               className={cn(
                 'h-auto min-w-0 justify-start border px-3 py-2 text-left',
                 effectiveSelectedDocumentId === document.id
-                  ? 'border-[#254632] bg-[#eef2eb]'
-                  : 'border-[#d9dfd5] bg-white hover:bg-[#f7f8f6]',
+                  ? 'border-primary bg-muted'
+                  : 'border-border bg-card hover:bg-background',
               )}
               onClick={() => setSelectedDocumentId(document.id)}
             >
-              <FileText className="h-4 w-4 shrink-0 text-[#5e7461]" />
+              <FileText className="h-4 w-4 shrink-0 text-ring" />
               <span className="grid min-w-0 flex-1 gap-1">
-                <span className="truncate text-sm font-semibold text-[#172126]">{document.displayName}</span>
-                <span className="truncate text-xs font-normal text-[#66746b]" title={document.absolutePath}>
+                <span className="truncate text-sm font-semibold text-foreground">{document.displayName}</span>
+                <span className="truncate text-xs font-normal text-muted-foreground" title={document.absolutePath}>
                   {document.absolutePath}
                 </span>
               </span>
@@ -111,7 +111,7 @@ export function LinkedDocumentsPanel({ promptId }: LinkedDocumentsPanelProps) {
           onRemoved={() => setSelectedDocumentId(null)}
         />
       ) : (
-        <div className="flex min-h-[28rem] items-center justify-center rounded-lg border border-[#d9dfd5] bg-white p-4 text-center text-sm text-[#66746b]">
+        <div className="flex min-h-[28rem] items-center justify-center rounded-lg border border-border bg-card p-4 text-center text-sm text-muted-foreground">
           Vincule um markdown para renderizar o plano e acompanhar novas versoes.
         </div>
       )}

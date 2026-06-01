@@ -57,10 +57,10 @@ export function WorkspaceForm() {
   const onSubmit = form.handleSubmit((values) => createMutation.mutate(values))
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-4 rounded-lg border border-[#d9dfd5] bg-white p-4">
+    <form onSubmit={onSubmit} className="grid gap-4 rounded-lg border border-border bg-card p-4">
       <div className="grid gap-1">
-        <h2 className="text-base font-semibold text-[#172126]">Novo diretorio</h2>
-        <p className="text-sm text-[#66746b]">Registre a raiz onde os prompts pesquisarao arquivos.</p>
+        <h2 className="text-base font-semibold text-foreground">Novo diretorio</h2>
+        <p className="text-sm text-muted-foreground">Registre a raiz onde os prompts pesquisarao arquivos.</p>
       </div>
 
       <FormField label="Nome" htmlFor="workspace-name" error={form.formState.errors.name?.message}>
@@ -86,15 +86,15 @@ export function WorkspaceForm() {
         </div>
       </FormField>
 
-      {pathFeedback ? <p className="text-sm text-[#425048]">{pathFeedback}</p> : null}
+      {pathFeedback ? <p className="text-sm text-muted-foreground">{pathFeedback}</p> : null}
 
-      <label className="flex items-center gap-2 text-sm text-[#425048]">
-        <input type="checkbox" className="h-4 w-4" {...form.register('respectGitignore')} />
+      <label className="flex items-center gap-2 text-sm text-muted-foreground">
+        <input type="checkbox" className="h-4 w-4 accent-primary" {...form.register('respectGitignore')} />
         Respeitar .gitignore ao buscar arquivos
       </label>
 
-      <label className="flex items-center gap-2 text-sm text-[#425048]">
-        <input type="checkbox" className="h-4 w-4" {...form.register('enableAiContext')} />
+      <label className="flex items-center gap-2 text-sm text-muted-foreground">
+        <input type="checkbox" className="h-4 w-4 accent-primary" {...form.register('enableAiContext')} />
         Injetar README.md, CLAUDE.md e AGENT.md no contexto da IA
       </label>
 

@@ -66,16 +66,16 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
 
   return (
     <section className="grid gap-4">
-      <div className="flex flex-col gap-3 rounded-lg border border-[#d9dfd5] bg-white p-4 lg:flex-row lg:items-end">
-        <label className="grid flex-1 gap-1.5 text-sm font-medium text-[#253035]">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 lg:flex-row lg:items-end">
+        <label className="grid flex-1 gap-1.5 text-sm font-medium text-foreground">
           Buscar
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#66746b]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input className="pl-9" value={q} onChange={(event) => setQ(event.target.value)} />
           </div>
         </label>
 
-        <label className="grid gap-1.5 text-sm font-medium text-[#253035] lg:w-40">
+        <label className="grid gap-1.5 text-sm font-medium text-foreground lg:w-40">
           Status
           <Select value={status} onChange={(event) => setStatus(event.target.value as PromptStatus | '')}>
             <option value="">Todos</option>
@@ -87,7 +87,7 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
           </Select>
         </label>
 
-        <label className="grid gap-1.5 text-sm font-medium text-[#253035] lg:w-40">
+        <label className="grid gap-1.5 text-sm font-medium text-foreground lg:w-40">
           Agente
           <Select value={agent} onChange={(event) => setAgent(event.target.value as TargetAgent | '')}>
             <option value="">Todos</option>
@@ -99,7 +99,7 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
           </Select>
         </label>
 
-        <label className="grid gap-1.5 text-sm font-medium text-[#253035] lg:w-40">
+        <label className="grid gap-1.5 text-sm font-medium text-foreground lg:w-40">
           Tipo
           <Select value={kind} onChange={(event) => setKind(event.target.value as PromptKind | '')}>
             <option value="">Todos</option>
@@ -120,14 +120,14 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
       </div>
 
       {promptsQuery.isLoading ? (
-        <div className="flex items-center gap-2 rounded-lg border border-[#d9dfd5] bg-white p-4 text-sm text-[#66746b]">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Carregando prompts
         </div>
       ) : null}
 
       {!promptsQuery.isLoading && !promptsQuery.data?.length ? (
-        <div className="rounded-lg border border-dashed border-[#cbd5c8] bg-white p-6 text-sm text-[#66746b]">
+        <div className="rounded-lg border border-dashed border-input bg-card p-6 text-sm text-muted-foreground">
           Nenhum prompt encontrado.
         </div>
       ) : null}
@@ -140,21 +140,21 @@ export function PromptList({ workingDirectoryId }: PromptListProps) {
               key={prompt.id}
               to="/workspaces/$workspaceId/prompts/$promptId"
               params={{ workspaceId: workingDirectoryId, promptId: prompt.id }}
-              className="rounded-lg border border-[#d9dfd5] bg-white p-4 transition-colors hover:border-[#8aa083] hover:bg-[#fbfcfa]"
+              className="rounded-lg border border-border bg-card p-4 transition-colors hover:border-ring hover:bg-card"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-[#172126]">
-                    <FileText className="h-4 w-4 shrink-0 text-[#5e7461]" />
+                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <FileText className="h-4 w-4 shrink-0 text-ring" />
                     <span className="truncate">{prompt.title}</span>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-sm text-[#66746b]">{prompt.content}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{prompt.content}</p>
                   {taskSummary ? (
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">
                       {taskSummary.currentPhaseName ? (
                         <PhaseBadge name={taskSummary.currentPhaseName} color={taskSummary.currentPhaseColor} />
                       ) : (
-                        <span className="rounded-md bg-[#eef2eb] px-2 py-1 text-xs font-medium text-[#66746b]">
+                        <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                           Fluxo não iniciado
                         </span>
                       )}

@@ -95,28 +95,27 @@ export function AiAssistantPanel({
 
       {/* Drawer */}
       <div
-        className={`fixed right-0 top-0 z-50 flex h-screen w-full flex-col bg-white shadow-2xl transition-transform duration-200 sm:w-[820px] lg:w-[960px] ${
+        className={`fixed right-0 top-0 z-50 flex h-screen w-full flex-col border-l border-secondary bg-card shadow-2xl transition-transform duration-200 sm:w-[820px] lg:w-[960px] ${
           visible ? 'translate-x-0' : 'translate-x-full'
         }`}
-        style={{ borderLeft: '1px solid #e8ede5' }}
         role="dialog"
         aria-modal="true"
         aria-label="Assistente IA"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#e8ede5] bg-white px-5 py-4">
+        <div className="flex items-center justify-between border-b border-secondary bg-card px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eef2eb]">
-              <Bot className="h-5 w-5 text-[#254632]" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+              <Bot className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#172126]">Assistente IA</p>
-              <p className="text-xs text-[#9aaf9e]">Engenharia de Prompts</p>
+              <p className="text-sm font-semibold text-foreground">Assistente IA</p>
+              <p className="text-xs text-subtle-foreground">Engenharia de Prompts</p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="rounded-lg p-2 text-[#66746b] transition-colors hover:bg-[#f7f8f6] hover:text-[#172126]"
+            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />
@@ -124,7 +123,7 @@ export function AiAssistantPanel({
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-[#e8ede5] px-5 pt-3 pb-0">
+        <div className="border-b border-secondary px-5 pt-3 pb-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="gap-1">
               <TabsTrigger value="chat">
@@ -169,8 +168,8 @@ export function AiAssistantPanel({
           ) : (
             <div className="flex-1 overflow-y-auto p-5">
               <div className="mb-5">
-                <h3 className="mb-1 text-sm font-semibold text-[#172126]">Modelo e parametros</h3>
-                <p className="mb-4 text-xs text-[#66746b]">
+                <h3 className="mb-1 text-sm font-semibold text-foreground">Modelo e parametros</h3>
+                <p className="mb-4 text-xs text-muted-foreground">
                   Configuracoes usadas nas proximas sessoes de chat. Sessoes existentes
                   mantem os parametros com que foram criadas.
                 </p>

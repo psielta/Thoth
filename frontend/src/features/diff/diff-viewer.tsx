@@ -20,9 +20,9 @@ const rowBg: Record<DiffRowType, string> = {
 }
 
 const rowText: Record<DiffRowType, string> = {
-  removed: 'text-red-700',
-  added: 'text-green-700',
-  unchanged: 'text-[#172126]',
+  removed: 'text-red-700 dark:text-red-300',
+  added: 'text-green-700 dark:text-green-300',
+  unchanged: 'text-foreground',
 }
 
 const rowSign: Record<DiffRowType, string> = {
@@ -33,7 +33,7 @@ const rowSign: Record<DiffRowType, string> = {
 
 function LineNum({ n }: { n: number | null }) {
   return (
-    <span className="w-10 shrink-0 select-none px-1 text-right text-[#9ba89f]">
+    <span className="w-10 shrink-0 select-none px-1 text-right text-subtle-foreground">
       {n ?? ''}
     </span>
   )
@@ -76,7 +76,7 @@ function UnifiedRowView({ row }: { row: UnifiedRow }) {
 
 function SplitCellView({ cell }: { cell: SplitCell | null }) {
   if (!cell) {
-    return <div className="min-h-[1.25rem] flex-1 bg-[#f7f8f6]" />
+    return <div className="min-h-[1.25rem] flex-1 bg-background" />
   }
   return (
     <div className={cn('flex min-w-0 flex-1', rowBg[cell.type])}>
@@ -95,7 +95,7 @@ function SplitCellView({ cell }: { cell: SplitCell | null }) {
 
 function SplitRowView({ row }: { row: SplitRow }) {
   return (
-    <div className="flex divide-x divide-[#d9dfd5]">
+    <div className="flex divide-x divide-border">
       <SplitCellView cell={row.left} />
       <SplitCellView cell={row.right} />
     </div>
@@ -107,7 +107,7 @@ export function DiffViewer({ oldContent, newContent, oldLabel, newLabel, viewMod
 
   if (!model.hasChanges) {
     return (
-      <div className="flex items-center justify-center p-8 text-sm text-[#66746b]">
+      <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
         As versoes selecionadas sao identicas.
       </div>
     )
@@ -117,7 +117,7 @@ export function DiffViewer({ oldContent, newContent, oldLabel, newLabel, viewMod
     <div className="overflow-auto font-mono text-xs leading-relaxed">
       {viewMode === 'unified' ? (
         <>
-          <div className="flex border-b border-[#d9dfd5] bg-[#f7f8f6] text-[11px] text-[#66746b]">
+          <div className="flex border-b border-border bg-background text-[11px] text-muted-foreground">
             <span className="w-10 shrink-0 px-1 py-1 text-right">ant.</span>
             <span className="w-10 shrink-0 px-1 py-1 text-right">nov.</span>
             <span className="w-5 shrink-0" />
@@ -133,7 +133,7 @@ export function DiffViewer({ oldContent, newContent, oldLabel, newLabel, viewMod
         </>
       ) : (
         <>
-          <div className="flex divide-x divide-[#d9dfd5] border-b border-[#d9dfd5] bg-[#f7f8f6] text-[11px] text-[#66746b]">
+          <div className="flex divide-x divide-border border-b border-border bg-background text-[11px] text-muted-foreground">
             <span className="flex-1 px-2 py-1">{oldLabel}</span>
             <span className="flex-1 px-2 py-1">{newLabel}</span>
           </div>

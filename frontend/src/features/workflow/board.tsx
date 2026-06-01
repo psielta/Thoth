@@ -220,12 +220,12 @@ export function Board() {
       }}
       onDrop={(event) => handleDrop(column, event)}
       className={`gap-3 rounded-lg p-2 transition-colors ${
-        layout === 'kanban' ? 'flex w-72 shrink-0 flex-col' : 'grid border border-[#d9dfd5] bg-white'
-      } ${dragOverColumnId === column.id ? 'bg-[#e7ece6]' : ''}`}
+        layout === 'kanban' ? 'flex w-72 shrink-0 flex-col' : 'grid border border-border bg-card'
+      } ${dragOverColumnId === column.id ? 'bg-accent' : ''}`}
     >
-      <div className="flex items-center justify-between rounded-md bg-[#eef2eb] px-3 py-2">
-        <span className="text-sm font-semibold text-[#2c3a31]">{column.title}</span>
-        <span className="rounded-full bg-white px-2 py-0.5 text-xs text-[#66746b]">{column.tasks.length}</span>
+      <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2">
+        <span className="text-sm font-semibold text-foreground">{column.title}</span>
+        <span className="rounded-full bg-card px-2 py-0.5 text-xs text-muted-foreground">{column.tasks.length}</span>
       </div>
       <div className={layout === 'kanban' ? 'grid gap-2' : 'grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'}>
         {column.tasks.map((task) => (
@@ -244,7 +244,7 @@ export function Board() {
         {column.tasks.length === 0 ? (
           <p
             className={`rounded-md border border-dashed px-3 py-4 text-center text-xs ${
-              column.droppable && draggedPromptId ? 'border-[#b9c7b4] text-[#66746b]' : 'border-[#d9dfd5] text-[#8a958c]'
+              column.droppable && draggedPromptId ? 'border-border text-muted-foreground' : 'border-border text-subtle-foreground'
             }`}
           >
             {column.droppable && draggedPromptId ? 'Solte aqui' : 'Vazio'}
@@ -262,11 +262,11 @@ export function Board() {
             <SlidersHorizontal className="h-4 w-4" />
             Filtros
             {activeFiltersCount > 0 ? (
-              <span className="rounded-full bg-[#254632] px-1.5 py-0.5 text-[10px] font-semibold text-white">{activeFiltersCount}</span>
+              <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">{activeFiltersCount}</span>
             ) : null}
           </Button>
-          <span className="truncate text-xs text-[#66746b]">{total} tarefas</span>
-          <div className="flex rounded-md border border-[#d9dfd5] bg-white p-0.5">
+          <span className="truncate text-xs text-muted-foreground">{total} tarefas</span>
+          <div className="flex rounded-md border border-border bg-card p-0.5">
             <Button
               type="button"
               variant={viewMode === 'kanban' ? 'default' : 'ghost'}
@@ -331,15 +331,15 @@ export function Board() {
       </div>
 
       {filtersOpen ? (
-        <div className="flex flex-col gap-2 rounded-lg border border-[#d9dfd5] bg-white p-3 lg:flex-row lg:items-end">
-          <label className="grid flex-1 gap-1 text-xs font-medium text-[#253035]">
+        <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 lg:flex-row lg:items-end">
+          <label className="grid flex-1 gap-1 text-xs font-medium text-foreground">
             Buscar
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#66746b]" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input className="pl-9" value={q} onChange={(event) => setQ(event.target.value)} placeholder="Título ou conteúdo" />
             </div>
           </label>
-          <label className="grid gap-1 text-xs font-medium text-[#253035] lg:w-48">
+          <label className="grid gap-1 text-xs font-medium text-foreground lg:w-48">
             Diretório
             <Select value={workingDirectoryId} onChange={(event) => setWorkingDirectoryId(event.target.value)}>
               <option value="">Todos</option>
@@ -350,7 +350,7 @@ export function Board() {
               ))}
             </Select>
           </label>
-          <label className="grid gap-1 text-xs font-medium text-[#253035] lg:w-40">
+          <label className="grid gap-1 text-xs font-medium text-foreground lg:w-40">
             Fluxo
             <Select value={workflowStatus} onChange={(event) => setWorkflowStatus(event.target.value as PromptWorkflowStatus | '')}>
               <option value="">Todos</option>
@@ -358,7 +358,7 @@ export function Board() {
               <option value="Done">Concluídas</option>
             </Select>
           </label>
-          <label className="grid gap-1 text-xs font-medium text-[#253035] lg:w-40">
+          <label className="grid gap-1 text-xs font-medium text-foreground lg:w-40">
             Prompts
             <Select value={promptStatus} onChange={(event) => setPromptStatus(event.target.value as PromptStatus | '')}>
               {PROMPT_STATUS_OPTIONS.map((option) => (
@@ -372,12 +372,12 @@ export function Board() {
       ) : null}
 
       {boardQuery.isLoading ? (
-        <div className="flex items-center gap-2 rounded-lg border border-[#d9dfd5] bg-white p-4 text-sm text-[#66746b]">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Carregando tarefas
         </div>
       ) : total === 0 ? (
-        <div className="rounded-lg border border-dashed border-[#cbd5c8] bg-white p-6 text-sm text-[#66746b]">
+        <div className="rounded-lg border border-dashed border-input bg-card p-6 text-sm text-muted-foreground">
           Nenhuma tarefa encontrada. Crie um prompt em um diretório para começar.
         </div>
       ) : viewMode === 'kanban' ? (
@@ -394,7 +394,7 @@ export function Board() {
               scrollBoard(1)
             }
           }}
-          className="max-h-[calc(100vh-9rem)] overflow-auto rounded-lg pb-2 pr-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5e7461]"
+          className="max-h-[calc(100vh-9rem)] overflow-auto rounded-lg pb-2 pr-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <div className="flex min-w-max gap-4 pb-2">
             {columns.map((column) => renderColumn(column, 'kanban'))}

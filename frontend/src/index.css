@@ -1,10 +1,146 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode: `.dark` on <html> flips every token below. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ----------------------------------------------------------------------------
+ * Design tokens. Light values preserve the original look; `.dark` overrides
+ * provide a cohesive deep sage-charcoal theme. Components reference these via
+ * Tailwind utilities (bg-background, text-foreground, ...) generated below.
+ * ------------------------------------------------------------------------- */
 :root {
-  font-family:
-    Inter, ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
-  color: #172126;
-  background: #f7f8f6;
+  color-scheme: light;
+
+  /* surfaces & neutrals */
+  --background: #f7f8f6;
+  --foreground: #172126;
+  --card: #ffffff;
+  --muted: #eef2eb;
+  --muted-foreground: #66746b;
+  --subtle-foreground: #9aaf9e;
+  --accent: #e7ece6;
+  --secondary: #e8ede5;
+  --border: #d9dfd5;
+  --input: #cbd5c8;
+  --ring: #5e7461;
+
+  /* brand */
+  --primary: #254632;
+  --primary-hover: #1c3727;
+  --primary-foreground: #ffffff;
+
+  /* destructive (solid red) */
+  --destructive: #b42318;
+  --destructive-hover: #971d14;
+  --destructive-foreground: #ffffff;
+
+  /* soft status: red / green / amber / blue */
+  --danger-soft: #ffe4df;
+  --danger-soft-foreground: #8a241b;
+  --danger-border: #f8b4aa;
+  --success-soft: #e1f2e1;
+  --success-foreground: #215631;
+  --warning-soft: #fff0c2;
+  --warning-foreground: #6b4d00;
+  --warning-solid: #c88712;
+  --info-soft: #e0eefb;
+  --info-foreground: #234c71;
+
+  /* code surfaces (kept dark in both themes) */
+  --code: #0d1117;
+  --code-foreground: #e6edf3;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #0f1411;
+  --foreground: #e7ece5;
+  --card: #171d18;
+  --muted: #1e251f;
+  --muted-foreground: #9aa79d;
+  --subtle-foreground: #7e8c80;
+  --accent: #242c25;
+  --secondary: #212a23;
+  --border: #2a322b;
+  --input: #313a32;
+  --ring: #7e977f;
+
+  --primary: #4d8160;
+  --primary-hover: #3f6c4d;
+  --primary-foreground: #ffffff;
+
+  --destructive: #c8453a;
+  --destructive-hover: #b53b2f;
+  --destructive-foreground: #ffffff;
+
+  --danger-soft: #3a1b17;
+  --danger-soft-foreground: #f4a99f;
+  --danger-border: #5f2a22;
+  --success-soft: #15281a;
+  --success-foreground: #8ed79f;
+  --warning-soft: #392d0e;
+  --warning-foreground: #e8c168;
+  --warning-solid: #d99a23;
+  --info-soft: #142639;
+  --info-foreground: #9ec5e7;
+
+  --code: #0d1117;
+  --code-foreground: #e6edf3;
+}
+
+/* Programming-oriented monospace stack (bundled JetBrains Mono + fallbacks).
+ * Drives the `font-mono` utility and every code/path surface below. */
+@theme {
+  --font-sans:
+    "Geist Variable", ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial,
+    sans-serif;
+  --font-mono:
+    "JetBrains Mono Variable", ui-monospace, "Cascadia Code", "SF Mono",
+    "Fira Code", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+/* Expose tokens as Tailwind color utilities (inline = responsive to .dark). */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-accent: var(--accent);
+  --color-secondary: var(--secondary);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-foreground: var(--danger-soft-foreground);
+  --color-danger-border: var(--danger-border);
+  --color-success-soft: var(--success-soft);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-solid: var(--warning-solid);
+  --color-info-soft: var(--info-soft);
+  --color-info-foreground: var(--info-foreground);
+
+  --color-code: var(--code);
+  --color-code-foreground: var(--code-foreground);
+}
+
+:root {
+  font-family: var(--font-sans);
+  color: var(--foreground);
+  background: var(--background);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -19,17 +155,50 @@ body {
   min-width: 320px;
   min-height: 100svh;
   margin: 0;
+  background: var(--background);
+  color: var(--foreground);
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
+/* Form controls inherit the app font — but in @layer base so Tailwind's
+ * text-*/font-* utilities (which carry the intended sizes) still win.
+ * Unlayered, this `font: inherit` would override every utility on buttons. */
+@layer base {
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
 }
 
 #root {
   min-height: 100svh;
+}
+
+/* Brand logo: gradient "app badge" + blinking terminal caret */
+.logo-badge {
+  background-image: linear-gradient(140deg, var(--primary), var(--primary-hover));
+}
+
+@keyframes caret-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.logo-caret {
+  animation: caret-blink 1.1s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-caret {
+    animation: none;
+  }
 }
 
 .tiptap {
@@ -69,15 +238,17 @@ select {
 .tiptap pre {
   overflow-x: auto;
   border-radius: 0.5rem;
-  background: #152024;
-  color: #f6f8f5;
+  background: var(--code);
+  color: var(--code-foreground);
+  font-family: var(--font-mono);
   padding: 0.85rem 1rem;
 }
 
 .tiptap code {
   border-radius: 0.25rem;
-  background: #e7ece6;
-  color: #253035;
+  background: var(--accent);
+  color: var(--foreground);
+  font-family: var(--font-mono);
   padding: 0.1rem 0.3rem;
 }
 
@@ -88,15 +259,16 @@ select {
 }
 
 .tiptap blockquote {
-  border-left: 3px solid #5e7461;
-  color: #425048;
+  border-left: 3px solid var(--ring);
+  color: var(--muted-foreground);
   padding-left: 0.85rem;
 }
 
 .file-mention {
   border-radius: 0.375rem;
-  background: #e6f0e5;
-  color: #21482e;
+  background: var(--success-soft);
+  color: var(--success-foreground);
+  font-family: var(--font-mono);
   font-weight: 600;
   padding: 0.1rem 0.32rem;
 }
@@ -107,12 +279,12 @@ select {
   width: min(29rem, calc(100vw - 1rem));
   max-height: 14rem;
   overflow: auto;
-  border: 1px solid #cbd5c8;
+  border: 1px solid var(--input);
   border-radius: 0.5rem;
-  background: #ffffff;
+  background: var(--card);
   box-shadow:
-    0 16px 40px rgba(19, 26, 23, 0.16),
-    0 4px 14px rgba(19, 26, 23, 0.08);
+    0 16px 40px rgba(0, 0, 0, 0.18),
+    0 4px 14px rgba(0, 0, 0, 0.12);
   padding: 0.25rem;
 }
 
@@ -125,7 +297,7 @@ select {
   border: 0;
   border-radius: 0.375rem;
   background: transparent;
-  color: #172126;
+  color: var(--foreground);
   cursor: pointer;
   padding: 0.42rem 0.5rem;
   text-align: left;
@@ -133,7 +305,7 @@ select {
 
 .mention-suggestion button[data-selected="true"],
 .mention-suggestion button:hover {
-  background: #eef2eb;
+  background: var(--muted);
 }
 
 .mention-suggestion-type {
@@ -148,13 +320,13 @@ select {
 }
 
 .mention-suggestion-type[data-kind="directory"] {
-  background: #e0eefb;
-  color: #234c71;
+  background: var(--info-soft);
+  color: var(--info-foreground);
 }
 
 .mention-suggestion-type[data-kind="file"] {
-  background: #e6f0e5;
-  color: #21482e;
+  background: var(--success-soft);
+  color: var(--success-foreground);
 }
 
 .mention-suggestion-content,
@@ -170,7 +342,7 @@ select {
 
 .mention-suggestion-name {
   overflow: hidden;
-  color: #172126;
+  color: var(--foreground);
   font-weight: 650;
   font-size: 0.84rem;
   line-height: 1.05rem;
@@ -182,7 +354,8 @@ select {
   display: block;
   min-width: 0;
   overflow: hidden;
-  color: #66746b;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
   font-size: 0.68rem;
   line-height: 0.9rem;
   text-overflow: ellipsis;
@@ -191,7 +364,7 @@ select {
 
 .linked-markdown {
   min-width: 0;
-  color: #172126;
+  color: var(--foreground);
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
@@ -207,7 +380,7 @@ select {
 }
 
 .linked-markdown h2 {
-  border-bottom: 1px solid #d9dfd5;
+  border-bottom: 1px solid var(--border);
   font-size: 1.2rem;
   font-weight: 720;
   line-height: 1.25;
@@ -238,22 +411,23 @@ select {
 }
 
 .linked-markdown a {
-  color: #245f8f;
+  color: var(--info-foreground);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 0.18rem;
 }
 
 .linked-markdown blockquote {
-  border-left: 3px solid #5e7461;
-  color: #425048;
+  border-left: 3px solid var(--ring);
+  color: var(--muted-foreground);
   padding-left: 0.85rem;
 }
 
 .linked-markdown code {
   border-radius: 0.25rem;
-  background: #e7ece6;
-  color: #253035;
+  background: var(--accent);
+  color: var(--foreground);
+  font-family: var(--font-mono);
   font-size: 0.88em;
   padding: 0.1rem 0.3rem;
 }
@@ -262,8 +436,9 @@ select {
   max-width: 100%;
   overflow-x: auto;
   border-radius: 0.5rem;
-  background: #152024;
-  color: #f6f8f5;
+  background: var(--code);
+  color: var(--code-foreground);
+  font-family: var(--font-mono);
   padding: 0.85rem 1rem;
 }
 
@@ -284,12 +459,12 @@ select {
 
 .linked-markdown th,
 .linked-markdown td {
-  border: 1px solid #d9dfd5;
+  border: 1px solid var(--border);
   padding: 0.45rem 0.6rem;
   text-align: left;
 }
 
 .linked-markdown th {
-  background: #eef2eb;
+  background: var(--muted);
   font-weight: 700;
 }

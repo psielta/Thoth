@@ -13,7 +13,7 @@ export function FormField({ label, htmlFor, error, children }: FormFieldProps) {
     <div className="grid gap-1.5">
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
-      {error ? <p className="text-xs font-medium text-[#b42318]">{error}</p> : null}
+      {error ? <p className="text-xs font-medium text-destructive">{error}</p> : null}
     </div>
   )
 }

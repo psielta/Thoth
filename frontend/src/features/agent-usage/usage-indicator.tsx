@@ -18,7 +18,7 @@ export function UsageIndicator() {
   const content = query.data ? (
     <UsagePopover claude={query.data.claude} codex={query.data.codex} capturedAtUtc={query.data.capturedAtUtc} />
   ) : (
-    <div className="text-sm text-[#66746b]">
+    <div className="text-sm text-muted-foreground">
       {query.isError ? 'Limites indisponiveis.' : 'Carregando limites...'}
     </div>
   )
@@ -26,11 +26,11 @@ export function UsageIndicator() {
   return (
     <Popover
       ariaLabel="Ver limites de uso dos agentes"
-      triggerClassName="rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#254632]"
+      triggerClassName="rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       trigger={
-        <div className="flex items-center gap-2 rounded-md border border-[#d9dfd5] bg-white px-2.5 py-1.5">
+        <div className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5">
           <AgentPill label="Claude" icon="claude" info={query.data?.claude ?? null} loading={query.isLoading} />
-          <span className="h-5 w-px bg-[#d9dfd5]" />
+          <span className="h-5 w-px bg-border" />
           <AgentPill label="Codex" icon="codex" info={query.data?.codex ?? null} loading={query.isLoading} />
         </div>
       }
@@ -58,16 +58,16 @@ function AgentPill({
 
   return (
     <span className="grid min-w-[4.8rem] gap-0.5">
-      <span className="flex items-center justify-between gap-1 text-[0.68rem] font-semibold text-[#253035]">
+      <span className="flex items-center justify-between gap-1 text-[0.68rem] font-semibold text-foreground">
         <span className="inline-flex min-w-0 items-center gap-1">
-          <Icon className="h-3.5 w-3.5 shrink-0 text-[#254632]" />
+          <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />
           <span className="truncate">{label}</span>
         </span>
         <span>{loading ? '--' : formatPercent(value)}</span>
       </span>
       <Progress value={value ?? 0} variant={getUsageVariant(value, status)} />
       {info && info.status !== 'Ok' ? (
-        <span className="truncate text-[0.62rem] text-[#8a5a00]">{statusLabels[info.status]}</span>
+        <span className="truncate text-[0.62rem] text-warning-foreground">{statusLabels[info.status]}</span>
       ) : null}
     </span>
   )

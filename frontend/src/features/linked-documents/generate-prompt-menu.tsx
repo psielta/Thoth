@@ -103,11 +103,11 @@ export function GeneratePromptMenu({ linkedDocumentId, disabled }: GeneratePromp
             <div
               ref={menuRef}
               role="menu"
-              className="fixed z-50 grid w-64 gap-1 rounded-md border border-[#d9dfd5] bg-white p-1 shadow-xl"
+              className="fixed z-50 grid w-64 gap-1 rounded-md border border-border bg-card p-1 shadow-xl"
               style={{ left: menuPosition.left, top: menuPosition.top }}
             >
               {templatesQuery.error ? (
-                <div className="p-2 text-xs text-[#8a241b]">{getErrorMessage(templatesQuery.error)}</div>
+                <div className="p-2 text-xs text-danger-soft-foreground">{getErrorMessage(templatesQuery.error)}</div>
               ) : null}
 
               {templatesQuery.data?.map((template) => (
@@ -115,14 +115,14 @@ export function GeneratePromptMenu({ linkedDocumentId, disabled }: GeneratePromp
                   key={template.key}
                   type="button"
                   role="menuitem"
-                  className="grid min-w-0 gap-0.5 rounded-md px-2 py-1.5 text-left text-sm text-[#172126] hover:bg-[#eef2eb] focus:bg-[#eef2eb] focus:outline-none"
+                  className="grid min-w-0 gap-0.5 rounded-md px-2 py-1.5 text-left text-sm text-foreground hover:bg-muted focus:bg-muted focus:outline-none"
                   onClick={() => {
                     setOpen(false)
                     setSelectedTemplate(template)
                   }}
                 >
                   <span className="truncate font-medium">{template.displayName}</span>
-                  <span className="truncate text-xs text-[#66746b]">{template.description}</span>
+                  <span className="truncate text-xs text-muted-foreground">{template.description}</span>
                 </button>
               ))}
             </div>,

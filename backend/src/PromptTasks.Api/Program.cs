@@ -4,9 +4,15 @@ using PromptTasks.Api.Hubs;
 using PromptTasks.Application;
 using PromptTasks.Infrastructure;
 using PromptTasks.Infrastructure.Persistence;
+using Serilog;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSerilog((services, loggerConfiguration) => loggerConfiguration
+    .ReadFrom.Configuration(builder.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
 
 builder.WebHost.UseUrls("http://localhost:5080");
 
@@ -18,6 +24,7 @@ builder.Services
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseSerilogRequestLogging();
 app.UseCors("spa");
 
 app.MapControllers();

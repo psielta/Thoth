@@ -4,6 +4,8 @@ obj/
 *.user
 *.suo
 TestResults/
+logs/
+*.log
 
 # Node
 node_modules/

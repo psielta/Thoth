@@ -1,4 +1,4 @@
-import { Link, Outlet, createFileRoute } from '@tanstack/react-router'
+import { Link, Outlet, createFileRoute, useLocation } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Loader2, Radio, Sparkles } from 'lucide-react'
 import { useEffect } from 'react'
@@ -16,6 +16,10 @@ export const Route = createFileRoute('/workspaces/$workspaceId')({
 
 function WorkspaceLayout() {
   const { workspaceId } = Route.useParams()
+  const location = useLocation()
+  // On the workspace page itself, "back" goes to the directories list; inside a
+  // prompt (detail/new) it goes back to the open workspace.
+  const isWorkspaceRoot = location.pathname.replace(/\/$/, '') === `/workspaces/${workspaceId}`
   const queryClient = useQueryClient()
   const hub = usePromptHub()
   const { joinWorkingDirectory, leaveWorkingDirectory } = hub
@@ -54,12 +58,21 @@ function WorkspaceLayout() {
     <div className="grid gap-5">
       <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <Link to="/workspaces">
-            <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2">
-              <ArrowLeft className="h-4 w-4" />
-              Diretorios
-            </Button>
-          </Link>
+          {isWorkspaceRoot ? (
+            <Link to="/workspaces">
+              <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2">
+                <ArrowLeft className="h-4 w-4" />
+                Diretorios
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/workspaces/$workspaceId" params={{ workspaceId }}>
+              <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2 max-w-[16rem]">
+                <ArrowLeft className="h-4 w-4 shrink-0" />
+                <span className="truncate">{workspaceQuery.data?.name ?? 'Voltar'}</span>
+              </Button>
+            </Link>
+          )}
           {workspaceQuery.isLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />

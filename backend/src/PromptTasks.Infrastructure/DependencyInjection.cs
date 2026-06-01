@@ -101,7 +101,10 @@ public static class DependencyInjection
             if (!baseUrl.EndsWith('/'))
                 baseUrl += "/";
             client.BaseAddress = new Uri(baseUrl);
-            client.Timeout = TimeSpan.FromSeconds(Math.Max(geminiOptions.StreamTimeoutSeconds, 60));
+            var httpTimeoutSeconds = Math.Max(
+                Math.Max(geminiOptions.StreamTimeoutSeconds, geminiOptions.RequestTimeoutSeconds),
+                60);
+            client.Timeout = TimeSpan.FromSeconds(httpTimeoutSeconds);
         });
     }
 

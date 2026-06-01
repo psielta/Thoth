@@ -5,7 +5,7 @@ public sealed class GeminiOptions
     public string ApiKey { get; set; } = "";
     public string BaseUrl { get; set; } = "https://generativelanguage.googleapis.com/v1beta/";
     public string DefaultModel { get; set; } = "gemini-2.5-flash";
-    public int RequestTimeoutSeconds { get; set; } = 60;
+    public int RequestTimeoutSeconds { get; set; } = 180;
     public int StreamTimeoutSeconds { get; set; } = 300;
     public int SystemCacheTtlSeconds { get; set; } = 3600;
     public int SessionCacheTtlSeconds { get; set; } = 1800;

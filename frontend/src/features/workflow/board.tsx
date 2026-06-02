@@ -198,7 +198,6 @@ export function Board() {
 
     scroller.scrollBy({
       left: direction * Math.max(320, scroller.clientWidth * 0.8),
-      behavior: 'smooth',
     })
   }
 
@@ -221,7 +220,7 @@ export function Board() {
       onDrop={(event) => handleDrop(column, event)}
       className={`gap-3 rounded-lg p-2 transition-colors ${
         layout === 'kanban'
-          ? 'flex w-[calc(100vw-2rem)] shrink-0 snap-start flex-col sm:w-[calc((100vw-3rem)/2)] lg:w-[calc((100vw-4rem)/3)] xl:w-[18.75rem]'
+          ? 'flex w-[calc(100vw-2rem)] shrink-0 flex-col sm:w-[calc((100vw-3rem)/2)] lg:w-[calc((100vw-4rem)/3)] xl:w-[18.75rem]'
           : 'grid border border-border bg-card'
       } ${dragOverColumnId === column.id ? 'bg-accent' : ''}`}
     >
@@ -396,7 +395,7 @@ export function Board() {
               scrollBoard(1)
             }
           }}
-          className="h-[calc(100vh-10rem)] min-h-[24rem] min-w-0 snap-x snap-mandatory overflow-auto rounded-lg pb-2 pr-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="h-[calc(100vh-10rem)] min-h-[24rem] min-w-0 overflow-auto rounded-lg pb-2 pr-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <div className="flex min-w-max gap-4 pb-2">
             {columns.map((column) => renderColumn(column, 'kanban'))}

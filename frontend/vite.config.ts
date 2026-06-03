@@ -18,6 +18,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    port: 5190,
+    strictPort: true,
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],

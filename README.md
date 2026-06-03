@@ -63,8 +63,8 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 
 - Docker Compose com PostgreSQL 18.
 - Migrations do EF Core aplicadas automaticamente em ambiente `Development`.
-- API em `http://localhost:5080`.
-- Frontend em `http://localhost:5173`.
+- API em `http://localhost:5191`.
+- Frontend em `http://localhost:5190`.
 
 ## Arquitetura
 
@@ -152,9 +152,9 @@ dotnet run --project backend/src/PromptTasks.Api/PromptTasks.Api.csproj
 
 Servicos expostos:
 
-- API REST: `http://localhost:5080/api`
-- SignalR hub: `http://localhost:5080/hubs/prompts`
-- Scalar/OpenAPI: `http://localhost:5080/scalar`
+- API REST: `http://localhost:5191/api`
+- SignalR hub: `http://localhost:5191/hubs/prompts`
+- Scalar/OpenAPI: `http://localhost:5191/scalar`
 
 ### 4. Executar o frontend
 
@@ -167,13 +167,13 @@ npm run dev
 Frontend:
 
 ```text
-http://localhost:5173
+http://localhost:5190
 ```
 
 Para apontar o frontend para outra API, defina:
 
 ```powershell
-$env:VITE_API_BASE_URL = "http://localhost:5080/api"
+$env:VITE_API_BASE_URL = "http://localhost:5191/api"
 ```
 
 ## Validacao

@@ -45,7 +45,7 @@ public static class DependencyInjection
         services.AddExceptionHandler<GlobalExceptionHandler>();
 
         var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? new[] { "http://localhost:5173" };
+            ?? new[] { "http://localhost:5190" };
 
         services.AddCors(options =>
         {

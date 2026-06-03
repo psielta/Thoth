@@ -85,7 +85,7 @@ npm run lint
 npm run build
 ```
 
-Para mudancas visuais ou de fluxo, valide tambem no navegador. O frontend roda em `http://localhost:5173` e a API em `http://localhost:5080`.
+Para mudancas visuais ou de fluxo, valide tambem no navegador. O frontend roda em `http://localhost:5190` e a API em `http://localhost:5191`.
 
 ## Observacoes de Ambiente
 

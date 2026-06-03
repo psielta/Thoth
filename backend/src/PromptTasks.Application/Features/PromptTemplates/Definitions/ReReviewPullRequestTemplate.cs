@@ -11,11 +11,11 @@ public sealed class ReReviewPullRequestTemplate : IPromptTemplateDefinition
         "#123 ou URL da PR",
         "Informe o numero ou link da PR revisada apos as correcoes.");
 
-    private static readonly PromptTemplateInputDefinition ReviewNotesInput = new(
-        "reviewNotes",
-        "Pontos da revisao anterior",
-        "Cole os pontos apontados na revisao anterior",
-        "Informe os pontos da revisao anterior que foram enviados ao Codex para correcao.",
+    private static readonly PromptTemplateInputDefinition CodexResponseInput = new(
+        "codexResponse",
+        "Resposta do Codex",
+        "Cole a resposta do Codex apos corrigir os pontos da primeira revisao",
+        "Informe a resposta do Codex depois que ele corrigiu os pontos apontados na primeira revisao.",
         Multiline: true);
 
     public PromptTemplateKey Key => PromptTemplateKey.ReReviewPullRequest;
@@ -26,31 +26,31 @@ public sealed class ReReviewPullRequestTemplate : IPromptTemplateDefinition
     public WorkflowPhaseRole? TargetPhaseRole => WorkflowPhaseRole.CodeReview;
     public bool IsReReview => true;
     public PromptTemplateInputDefinition? Input => PullRequestInput;
-    public IReadOnlyList<PromptTemplateInputDefinition> Inputs => new[] { PullRequestInput, ReviewNotesInput };
+    public IReadOnlyList<PromptTemplateInputDefinition> Inputs => new[] { PullRequestInput, CodexResponseInput };
 
     public Task<RenderedPromptTemplate> RenderAsync(
         PromptTemplateContext context,
         CancellationToken cancellationToken)
     {
         var pullRequestReference = PullRequestTemplateHelpers.FormatPullRequestReference(context.PullRequestReference);
-        var reviewNotes = context.GetInputValue("reviewNotes")?.Trim() ?? string.Empty;
+        var codexResponse = context.GetInputValue("codexResponse")?.Trim() ?? string.Empty;
 
         return Task.FromResult(new RenderedPromptTemplate(
             $"Re-review {pullRequestReference}: {context.DisplayName}",
             $"""
             /review
 
-            Re-review the {pullRequestReference} after fixes were made for the previous review findings.
+            Re-review the {pullRequestReference} after Codex made fixes for the previous review findings.
 
-            The PR implements the plan `{context.AbsolutePath}`. Use the plan as the source of truth and verify that the previous review points were actually addressed without introducing regressions.
+            The PR implements the plan `{context.AbsolutePath}`. Use the plan as the source of truth, use the current Claude Code session context for the first review when available, and verify that the fixes were actually applied without introducing regressions.
 
-            Previous review points passed to Codex:
+            Codex response after applying fixes:
 
             ```md
-            {reviewNotes}
+            {codexResponse}
             ```
 
-            Prioritize unresolved bugs, behavioral risks, regressions, and missing tests. Report findings with severity and concrete file/line references when possible. If the PR is now acceptable, say that clearly.
+            Treat the Codex response as a handoff, not proof. Prioritize unresolved bugs, behavioral risks, regressions, and missing tests. Report findings with severity and concrete file/line references when possible. If the PR is now acceptable, say that clearly.
             """));
     }
 }

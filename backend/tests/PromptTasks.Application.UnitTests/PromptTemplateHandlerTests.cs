@@ -240,7 +240,7 @@ public sealed class PromptTemplateHandlerTests
     }
 
     [Fact]
-    public async Task GeneratePromptDraft_re_review_pull_request_uses_pr_reference_and_review_notes()
+    public async Task GeneratePromptDraft_re_review_pull_request_uses_pr_reference_and_codex_response()
     {
         var context = new FakeApplicationDbContext();
         var prompt = SeedPrompt(context, User.SystemUserId);
@@ -254,16 +254,18 @@ public sealed class PromptTemplateHandlerTests
                 Inputs: new Dictionary<string, string>
                 {
                     ["pullRequest"] = "123",
-                    ["reviewNotes"] = "High: missing regression test."
+                    ["codexResponse"] = "Codex fixed the missing regression test."
                 }),
             CancellationToken.None);
 
         result.TemplateKey.Should().Be(PromptTemplateKey.ReReviewPullRequest);
         result.Title.Should().Be("Re-review PR #123: pr-plan.md");
         result.Content.Should().StartWith("/review");
-        result.Content.Should().Contain("Re-review the PR #123 after fixes were made for the previous review findings.");
+        result.Content.Should().Contain("Re-review the PR #123 after Codex made fixes for the previous review findings.");
         result.Content.Should().Contain("The PR implements the plan `C:/plans/pr-plan.md`.");
-        result.Content.Should().Contain("High: missing regression test.");
+        result.Content.Should().Contain("Codex response after applying fixes:");
+        result.Content.Should().Contain("Codex fixed the missing regression test.");
+        result.Content.Should().Contain("Treat the Codex response as a handoff, not proof.");
         result.Content.Should().Contain("If the PR is now acceptable, say that clearly.");
         result.TargetAgent.Should().Be(TargetAgent.Codex);
         result.Kind.Should().Be(PromptKind.General);
@@ -355,7 +357,7 @@ public sealed class PromptTemplateHandlerTests
     }
 
     [Fact]
-    public async Task GeneratePromptDraft_validation_requires_review_notes_for_re_review_pull_request_template()
+    public async Task GeneratePromptDraft_validation_requires_codex_response_for_re_review_pull_request_template()
     {
         var behavior = new ValidationBehavior<GeneratePromptDraftCommand, GeneratedPromptDraftDto>(
             new[] { new GeneratePromptDraftValidator() });

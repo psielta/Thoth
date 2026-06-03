@@ -247,7 +247,7 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
             template.Input != null &&
             template.Input.Key == "pullRequest" &&
             template.Inputs.Count == 2 &&
-            template.Inputs.Any(input => input.Key == "reviewNotes" && input.Multiline));
+            template.Inputs.Any(input => input.Key == "codexResponse" && input.Multiline));
         templates.Should().Contain(template =>
             template.Key == PromptTemplateKey.MergePullRequest &&
             template.DefaultTargetAgent == TargetAgent.Codex &&
@@ -321,7 +321,7 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
                 inputs = new Dictionary<string, string>
                 {
                     ["pullRequest"] = "42",
-                    ["reviewNotes"] = "High: missing integration test."
+                    ["codexResponse"] = "Codex fixed the missing integration test."
                 }
             },
             JsonOptions);
@@ -330,7 +330,8 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
         reReviewDraft!.Title.Should().Be("Re-review PR #42: review-plan.md");
         reReviewDraft.Content.Should().StartWith("/review");
         reReviewDraft.Content.Should().Contain($"The PR implements the plan `{planPath}`.");
-        reReviewDraft.Content.Should().Contain("High: missing integration test.");
+        reReviewDraft.Content.Should().Contain("Codex response after applying fixes:");
+        reReviewDraft.Content.Should().Contain("Codex fixed the missing integration test.");
 
         var mergeDraftResponse = await client.PostAsJsonAsync(
             $"/api/linked-documents/{linked.Id}/prompt-drafts",
@@ -393,7 +394,7 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
             JsonOptions);
         missingPrResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        var missingReReviewNotesResponse = await client.PostAsJsonAsync(
+        var missingReReviewCodexResponse = await client.PostAsJsonAsync(
             $"/api/linked-documents/{linked.Id}/prompt-drafts",
             new
             {
@@ -401,7 +402,7 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
                 inputs = new Dictionary<string, string> { ["pullRequest"] = "42" }
             },
             JsonOptions);
-        missingReReviewNotesResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        missingReReviewCodexResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         var missingMergePrResponse = await client.PostAsJsonAsync(
             $"/api/linked-documents/{linked.Id}/prompt-drafts",

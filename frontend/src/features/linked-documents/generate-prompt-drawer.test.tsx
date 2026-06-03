@@ -75,10 +75,10 @@ const reReviewPrTemplate: PromptTemplate = {
       multiline: false,
     },
     {
-      key: 'reviewNotes',
-      label: 'Pontos da revisao anterior',
-      placeholder: 'Cole os pontos apontados na revisao anterior',
-      helpText: 'Informe os pontos da revisao anterior.',
+      key: 'codexResponse',
+      label: 'Resposta do Codex',
+      placeholder: 'Cole a resposta do Codex apos corrigir os pontos da primeira revisao',
+      helpText: 'Informe a resposta do Codex depois que ele corrigiu os pontos apontados na primeira revisao.',
       required: true,
       multiline: true,
     },
@@ -175,6 +175,12 @@ describe('GeneratePromptDrawer', () => {
     expect(screen.getByRole('button', { name: /^Criar e copiar$/ })).toBeInTheDocument()
   })
 
+  it('keeps the drawer body scrollable when generated fields overflow', async () => {
+    renderDrawer(reReviewPrTemplate)
+
+    expect(screen.getByTestId('generate-prompt-drawer-body')).toHaveClass('overflow-y-auto')
+  })
+
   it('asks for the PR before rendering a pull request review draft', async () => {
     const user = userEvent.setup()
     renderDrawer(prTemplate)
@@ -192,13 +198,13 @@ describe('GeneratePromptDrawer', () => {
     })
   })
 
-  it('asks for the PR and previous review notes before rendering a pull request re-review draft', async () => {
+  it('asks for the PR and Codex response before rendering a pull request re-review draft', async () => {
     const user = userEvent.setup()
     renderDrawer(reReviewPrTemplate)
 
     expect(renderPromptDraft).not.toHaveBeenCalled()
     await user.type(screen.getByLabelText('PR'), '42')
-    await user.type(screen.getByLabelText('Pontos da revisao anterior'), 'High: missing regression test.')
+    await user.type(screen.getByLabelText('Resposta do Codex'), 'Codex fixed the missing regression test.')
     await user.click(screen.getByRole('button', { name: /^Gerar$/ }))
 
     await waitFor(() => {
@@ -209,7 +215,7 @@ describe('GeneratePromptDrawer', () => {
           pullRequest: '42',
           inputs: {
             pullRequest: '42',
-            reviewNotes: 'High: missing regression test.',
+            codexResponse: 'Codex fixed the missing regression test.',
           },
         },
       )

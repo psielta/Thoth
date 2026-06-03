@@ -221,7 +221,7 @@ export function GeneratePromptDrawer({
           </Button>
         </div>
 
-        <div className="min-h-0 overflow-hidden p-4">
+        <div data-testid="generate-prompt-drawer-body" className="min-h-0 overflow-y-auto p-4">
           {templateInputs.length > 0 ? (
             <div className="mb-4 grid gap-2 rounded-md border border-border bg-background p-3">
               {templateInputs.map((templateInput) => {

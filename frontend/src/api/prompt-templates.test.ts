@@ -197,7 +197,7 @@ describe('prompt template api', () => {
       pullRequest: '42',
       inputs: {
         pullRequest: '42',
-        reviewNotes: 'High: missing regression test.',
+        codexResponse: 'Codex fixed the missing regression test.',
       },
     })
 
@@ -209,7 +209,7 @@ describe('prompt template api', () => {
           pullRequest: '42',
           inputs: {
             pullRequest: '42',
-            reviewNotes: 'High: missing regression test.',
+            codexResponse: 'Codex fixed the missing regression test.',
           },
         },
       },

@@ -24,7 +24,7 @@ public sealed class GeneratePromptDraftValidator : AbstractValidator<GeneratePro
             command => command.TemplateKey is PromptTemplateKey.ReReviewPullRequest,
             () =>
             {
-                RuleFor(command => GetInputValue(command, "reviewNotes"))
+                RuleFor(command => GetInputValue(command, "codexResponse"))
                     .NotEmpty()
                     .MaximumLength(20_000);
             });

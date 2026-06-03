@@ -186,6 +186,7 @@ public sealed class PromptTemplateHandlerTests
 
         result.TemplateKey.Should().Be(PromptTemplateKey.ReviewPullRequest);
         result.Title.Should().Be("Review PR #123: pr-plan.md");
+        result.Content.Should().StartWith("/review");
         result.Content.Should().Contain("Review the PR #123 that implements the plan `C:/plans/pr-plan.md`.");
         result.Content.Should().Contain("Prioritize bugs, behavioral risks, and missing tests.");
         result.TargetAgent.Should().Be(TargetAgent.Codex);

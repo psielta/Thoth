@@ -24,6 +24,8 @@ public sealed class ReviewPullRequestTemplate : IPromptTemplateDefinition
         return Task.FromResult(new RenderedPromptTemplate(
             $"Review {pullRequestReference}: {context.DisplayName}",
             $"""
+            /review
+
             Review the {pullRequestReference} that implements the plan `{context.AbsolutePath}`.
 
             Use the plan as the source of truth. Verify that the PR implements the plan completely, preserves the existing architecture, does not introduce regressions, and that the required validations were performed.

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight, Columns3, Loader2, Rows3, Search, Settings2, SlidersHorizontal, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Columns3, Loader2, Plus, Rows3, Search, Settings2, SlidersHorizontal, X } from 'lucide-react'
 import type { DragEvent } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -16,6 +16,7 @@ import { usePromptHub } from '@/realtime/prompt-hub'
 import { buildColumns, type BoardColumn } from './board-columns'
 import { TaskCard } from './task-card'
 import { PromptDetailDrawer } from './prompt-detail-drawer'
+import { NewPromptDrawer } from './new-prompt-drawer'
 
 const PROMPT_STATUS_OPTIONS: Array<{ value: PromptStatus | ''; label: string }> = [
   { value: '', label: 'Não arquivadas' },
@@ -40,6 +41,7 @@ export function Board() {
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null)
   const boardScrollerRef = useRef<HTMLDivElement>(null)
   const [openedTask, setOpenedTask] = useState<{ promptId: string; workspaceId: string; title: string } | null>(null)
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     joinTasks()
@@ -271,6 +273,10 @@ export function Board() {
               <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">{activeFiltersCount}</span>
             ) : null}
           </Button>
+          <Button type="button" variant="default" size="sm" onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" />
+            Novo prompt
+          </Button>
           <span className="truncate text-xs text-muted-foreground">{total} tarefas</span>
           <div className="flex rounded-md border border-border bg-card p-0.5">
             <Button
@@ -385,6 +391,12 @@ export function Board() {
       ) : total === 0 ? (
         <div className="rounded-lg border border-dashed border-input bg-card p-6 text-sm text-muted-foreground">
           Nenhuma tarefa encontrada. Crie um prompt em um diretório para começar.
+          <div className="mt-3">
+            <Button type="button" variant="default" size="sm" onClick={() => setCreating(true)}>
+              <Plus className="h-4 w-4" />
+              Novo prompt
+            </Button>
+          </div>
         </div>
       ) : viewMode === 'kanban' ? (
         <div
@@ -419,6 +431,15 @@ export function Board() {
           promptId={openedTask.promptId}
           title={openedTask.title}
           onClose={() => setOpenedTask(null)}
+        />
+      ) : null}
+
+      {creating ? (
+        <NewPromptDrawer
+          defaultWorkingDirectoryId={workingDirectoryId || undefined}
+          workspaces={workspacesQuery.data ?? []}
+          onClose={() => setCreating(false)}
+          onCreated={() => setCreating(false)}
         />
       ) : null}
     </section>

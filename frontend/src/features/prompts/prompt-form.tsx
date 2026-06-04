@@ -29,9 +29,10 @@ type PromptFormProps = {
   workingDirectoryId: string
   promptId?: string
   onDeleted?: () => void
+  onCreated?: (prompt: Prompt) => void
 }
 
-export function PromptForm({ workingDirectoryId, promptId, onDeleted }: PromptFormProps) {
+export function PromptForm({ workingDirectoryId, promptId, onDeleted, onCreated }: PromptFormProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [editorMentions, setEditorMentions] = useState<{
@@ -88,6 +89,10 @@ export function PromptForm({ workingDirectoryId, promptId, onDeleted }: PromptFo
     onSuccess: async (prompt) => {
       await afterSave(prompt)
       toast.success('Prompt criado.')
+      if (onCreated) {
+        onCreated(prompt)
+        return
+      }
       if (prompt.taskNumber) {
         await navigate({
           to: '/workspaces/$workspaceId/tasks/$taskNumber',

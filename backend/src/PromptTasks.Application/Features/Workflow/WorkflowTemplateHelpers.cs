@@ -31,6 +31,12 @@ internal static class WorkflowTemplateHelpers
             .Where(phase => phase.WorkflowTemplateId == template.Id)
             .OrderBy(phase => phase.OrderIndex)
             .ToList();
+
+        foreach (var phase in phases.Where(phase => !phase.Role.HasValue))
+        {
+            phase.Role = WorkflowDefaults.ResolveRoleByName(phase.Name);
+        }
+
         return (template, phases, false);
     }
 }

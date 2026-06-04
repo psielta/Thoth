@@ -20,6 +20,19 @@ public static class WorkflowDefaults
         new("Commit/Merge", WorkflowActor.Codex, "#16a34a", WorkflowPhaseRole.Merge)
     ];
 
+    public static WorkflowPhaseRole? ResolveRoleByName(string phaseName)
+    {
+        foreach (var phase in Phases)
+        {
+            if (string.Equals(phase.Name, phaseName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return phase.Role;
+            }
+        }
+
+        return null;
+    }
+
     public static WorkflowTemplate BuildTemplate(Guid ownerId)
     {
         var template = new WorkflowTemplate

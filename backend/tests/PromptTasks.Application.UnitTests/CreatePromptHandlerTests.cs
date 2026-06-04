@@ -311,6 +311,10 @@ public sealed class CreatePromptHandlerTests
         var parentWorkflow = context.PromptWorkflowItems.Single(workflow => workflow.PromptId == parent.Id);
         parentWorkflow.CurrentPhaseName.Should().Be("Engenharia de prompt");
         parentWorkflow.CurrentPhaseIteration.Should().Be(1);
+        foreach (var phase in context.PromptWorkflowPhaseItems.Where(phase => phase.PromptWorkflowId == parentWorkflow.Id))
+        {
+            phase.Role = null;
+        }
 
         await handler.Handle(
             new CreatePromptCommand(
@@ -336,6 +340,7 @@ public sealed class CreatePromptHandlerTests
         var reviewPhase = context.PromptWorkflowPhaseItems.Single(phase =>
             phase.PromptWorkflowId == parentWorkflow.Id &&
             phase.Name == parentWorkflow.CurrentPhaseName);
+        reviewPhase.Role.Should().Be(WorkflowPhaseRole.PlanReview);
         context.PromptWorkflowEventItems.Add(new PromptWorkflowEvent
         {
             PromptWorkflowId = parentWorkflow.Id,

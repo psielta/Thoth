@@ -167,12 +167,17 @@ public sealed class CreatePromptHandler(
             return null;
         }
 
-        var target = WorkflowMutationHelpers.LoadPhases(context, workflow.Id)
-            .FirstOrDefault(phase => phase.Role == targetRole);
+        var phases = WorkflowMutationHelpers.LoadPhases(context, workflow.Id);
+        var target = phases.FirstOrDefault(phase => phase.Role == targetRole);
+        target ??= phases.FirstOrDefault(phase =>
+            !phase.Role.HasValue &&
+            WorkflowDefaults.ResolveRoleByName(phase.Name) == targetRole);
         if (target is null)
         {
             return null;
         }
+
+        target.Role ??= targetRole;
 
         var priorEntries = context.PromptWorkflowEvents.Count(@event =>
             @event.PromptWorkflowId == workflow.Id &&

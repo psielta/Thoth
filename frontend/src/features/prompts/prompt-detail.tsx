@@ -16,9 +16,10 @@ type PromptDetailViewProps = {
   promptId: string
   activeTab: DetailTab
   onTabChange: (tab: DetailTab) => void
+  onDeleted?: () => void
 }
 
-export function PromptDetailView({ workspaceId, promptId, activeTab, onTabChange }: PromptDetailViewProps) {
+export function PromptDetailView({ workspaceId, promptId, activeTab, onTabChange, onDeleted }: PromptDetailViewProps) {
   const promptQuery = useQuery({
     queryKey: queryKeys.prompts.detail(promptId),
     queryFn: () => getPrompt(promptId),
@@ -78,7 +79,7 @@ export function PromptDetailView({ workspaceId, promptId, activeTab, onTabChange
 
       {activeTab === 'prompt' ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-          <PromptForm workingDirectoryId={workspaceId} promptId={promptId} />
+          <PromptForm workingDirectoryId={workspaceId} promptId={promptId} onDeleted={onDeleted} />
           <PromptVersions promptId={promptId} />
         </div>
       ) : null}

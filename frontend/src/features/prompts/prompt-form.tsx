@@ -28,9 +28,10 @@ import { TranslateDialog } from './ai/translate-dialog'
 type PromptFormProps = {
   workingDirectoryId: string
   promptId?: string
+  onDeleted?: () => void
 }
 
-export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
+export function PromptForm({ workingDirectoryId, promptId, onDeleted }: PromptFormProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [editorMentions, setEditorMentions] = useState<{
@@ -123,10 +124,14 @@ export function PromptForm({ workingDirectoryId, promptId }: PromptFormProps) {
       await queryClient.invalidateQueries({ queryKey: queryKeys.prompts.all })
       await queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
       toast.success('Prompt removido.')
-      await navigate({
-        to: '/workspaces/$workspaceId',
-        params: { workspaceId: workingDirectoryId },
-      })
+      if (onDeleted) {
+        onDeleted()
+      } else {
+        await navigate({
+          to: '/workspaces/$workspaceId',
+          params: { workspaceId: workingDirectoryId },
+        })
+      }
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   })

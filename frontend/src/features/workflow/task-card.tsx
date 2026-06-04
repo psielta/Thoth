@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { Archive, ArrowRight, CheckCircle2, FolderGit2, Loader2, PlayCircle } from 'lucide-react'
+import { Archive, ArrowRight, CheckCircle2, FolderGit2, Loader2, Maximize2, PlayCircle } from 'lucide-react'
 import type { DragEvent } from 'react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
@@ -19,6 +19,7 @@ type TaskCardProps = {
   moveDisabled?: boolean
   onDragStart?: (task: TaskSummary, event: DragEvent<HTMLDivElement>) => void
   onDragEnd?: () => void
+  onOpen?: (task: TaskSummary) => void
 }
 
 const WORKSPACE_NAME_MAX_LENGTH = 36
@@ -32,7 +33,7 @@ function formatWorkspaceName(name: string) {
   return `${normalizedName.slice(0, WORKSPACE_NAME_MAX_LENGTH - 3).trimEnd()}...`
 }
 
-export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd }: TaskCardProps) {
+export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd, onOpen }: TaskCardProps) {
   const queryClient = useQueryClient()
 
   const invalidate = () => {
@@ -182,6 +183,17 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd 
               {isLastPhase ? 'Concluir' : 'Avançar'}
             </Button>
           ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground"
+            onClick={() => onOpen?.(task)}
+            title="Abrir detalhes"
+            aria-label="Abrir detalhes do prompt"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
           <Button
             type="button"
             variant="ghost"

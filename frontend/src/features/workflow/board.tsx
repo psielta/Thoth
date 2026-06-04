@@ -15,6 +15,7 @@ import { Select } from '@/components/ui/select'
 import { usePromptHub } from '@/realtime/prompt-hub'
 import { buildColumns, type BoardColumn } from './board-columns'
 import { TaskCard } from './task-card'
+import { PromptDetailDrawer } from './prompt-detail-drawer'
 
 const PROMPT_STATUS_OPTIONS: Array<{ value: PromptStatus | ''; label: string }> = [
   { value: '', label: 'Não arquivadas' },
@@ -38,6 +39,7 @@ export function Board() {
   const [draggedPromptId, setDraggedPromptId] = useState<string | null>(null)
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null)
   const boardScrollerRef = useRef<HTMLDivElement>(null)
+  const [openedTask, setOpenedTask] = useState<{ promptId: string; workspaceId: string; title: string } | null>(null)
 
   useEffect(() => {
     joinTasks()
@@ -240,6 +242,9 @@ export function Board() {
               setDraggedPromptId(null)
               setDragOverColumnId(null)
             }}
+            onOpen={(task) =>
+              setOpenedTask({ promptId: task.promptId, workspaceId: task.workingDirectoryId, title: task.title })
+            }
           />
         ))}
         {column.tasks.length === 0 ? (
@@ -406,6 +411,16 @@ export function Board() {
           {columns.map((column) => renderColumn(column, 'vertical'))}
         </div>
       )}
+
+      {openedTask ? (
+        <PromptDetailDrawer
+          key={openedTask.promptId}
+          workspaceId={openedTask.workspaceId}
+          promptId={openedTask.promptId}
+          title={openedTask.title}
+          onClose={() => setOpenedTask(null)}
+        />
+      ) : null}
     </section>
   )
 }

@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: prompttasks
       POSTGRES_PASSWORD: prompttasks
     ports:
-      - "5432:5432"
+      - "5459:5432"
     volumes:
       - prompttasks-postgres-data:/var/lib/postgresql
     healthcheck:

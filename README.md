@@ -140,7 +140,7 @@ O banco local usa as credenciais definidas em `docker-compose.yml`:
 
 ```text
 Host=localhost
-Port=5432
+Port=5459
 Database=prompttasks
 Username=prompttasks
 Password=prompttasks

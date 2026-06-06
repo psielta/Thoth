@@ -87,7 +87,8 @@ export function GeneratePromptMenu({ linkedDocumentId, disabled }: GeneratePromp
         type="button"
         variant="secondary"
         size="sm"
-        className="min-w-[9rem]"
+        className="min-w-[9rem] border-warning-solid bg-warning-soft font-semibold text-warning-foreground ring-2 ring-warning-solid/25 hover:bg-warning-soft/80 data-[state=open]:ring-warning-solid/40"
+        data-state={open ? 'open' : 'closed'}
         onClick={() => setOpen((current) => !current)}
         disabled={isDisabled}
         aria-haspopup="menu"
@@ -95,7 +96,7 @@ export function GeneratePromptMenu({ linkedDocumentId, disabled }: GeneratePromp
       >
         {templatesQuery.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
         Gerar prompt filho
-        <ChevronDown className="h-3.5 w-3.5" />
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
       </Button>
 
       {open

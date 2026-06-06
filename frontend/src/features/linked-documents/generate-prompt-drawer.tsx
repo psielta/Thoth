@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Copy, Loader2, Save, X } from 'lucide-react'
+import { AlertTriangle, Copy, Loader2, Save, Sparkles, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -206,15 +206,20 @@ export function GeneratePromptDrawer({
         }
       }}
     >
-      <div className="grid h-full w-full max-w-xl grid-rows-[auto_minmax(0,1fr)_auto] border-l border-border bg-card shadow-2xl">
-        <div className="flex min-w-0 items-start justify-between gap-3 border-b border-border p-4">
-          <div className="min-w-0">
-            <h2 id="generate-prompt-title" className="text-base font-semibold text-foreground">
-              Gerar prompt filho
-            </h2>
-            <p className="mt-1 truncate text-sm text-muted-foreground" title={template.description}>
-              {template.displayName}
-            </p>
+      <div className="grid h-full w-full max-w-xl grid-rows-[auto_minmax(0,1fr)_auto] border-l-4 border-l-warning-solid bg-card shadow-2xl">
+        <div className="flex min-w-0 items-start justify-between gap-3 border-b border-warning-solid/20 bg-warning-soft p-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card ring-2 ring-warning-solid/25">
+              <Sparkles className="h-4 w-4 text-warning-solid" />
+            </div>
+            <div className="min-w-0">
+              <h2 id="generate-prompt-title" className="text-base font-semibold text-warning-foreground">
+                Gerar prompt filho
+              </h2>
+              <p className="mt-1 truncate text-sm text-muted-foreground" title={template.description}>
+                {template.displayName}
+              </p>
+            </div>
           </div>
           <Button type="button" variant="ghost" size="icon" onClick={requestClose} disabled={isBusy} aria-label="Fechar">
             <X className="h-4 w-4" />

@@ -58,6 +58,19 @@ public static class DependencyInjection
             provider.GetRequiredService<LinkedDocumentWatcherService>());
         services.AddSingleton<IHostedService>(provider =>
             provider.GetRequiredService<LinkedDocumentWatcherService>());
+        services.Configure<WorkspaceFileWatchOptions>(options =>
+        {
+            var section = configuration.GetSection("WorkspaceFiles");
+            if (int.TryParse(section["DebounceMilliseconds"], out var debounceMilliseconds))
+            {
+                options.DebounceMilliseconds = debounceMilliseconds;
+            }
+        });
+        services.AddSingleton<WorkspaceFileWatchService>();
+        services.AddSingleton<IWorkspaceFileWatchCoordinator>(provider =>
+            provider.GetRequiredService<WorkspaceFileWatchService>());
+        services.AddSingleton<IHostedService>(provider =>
+            provider.GetRequiredService<WorkspaceFileWatchService>());
 
         ConfigureGemini(services, configuration, environment);
 

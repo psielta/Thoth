@@ -27,6 +27,7 @@ public static class DependencyInjection
             });
         services.AddScoped<IPromptNotifier, SignalRPromptNotifier>();
         services.AddScoped<ILinkedDocumentNotifier, SignalRLinkedDocumentNotifier>();
+        services.AddScoped<IWorkspaceFileNotifier, SignalRWorkspaceFileNotifier>();
         services.AddScoped<IWorkflowNotifier, SignalRWorkflowNotifier>();
         services.AddScoped<IAgentUsageNotifier, SignalRAgentUsageNotifier>();
 

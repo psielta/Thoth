@@ -26,6 +26,60 @@ public sealed class WorkspaceFileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task BrowseDirectory_returns_one_level_with_folders_first_and_ignores_node_modules()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, "docs"));
+        File.WriteAllText(Path.Combine(_root, "README.md"), "readme");
+        File.WriteAllText(Path.Combine(_root, "docs", "guide.md"), "guide");
+
+        var rootEntries = await _service.BrowseDirectoryAsync(_root, string.Empty, false, CancellationToken.None);
+
+        rootEntries.Should().Contain(item => item.RelativePath == "src" && item.IsDirectory);
+        rootEntries.Should().Contain(item => item.RelativePath == "docs" && item.IsDirectory);
+        rootEntries.Should().Contain(item => item.RelativePath == "README.md" && !item.IsDirectory);
+        rootEntries.Should().NotContain(item => item.RelativePath.StartsWith("node_modules/", StringComparison.OrdinalIgnoreCase));
+        rootEntries.Should().NotContain(item => item.RelativePath == "docs/guide.md");
+        rootEntries.Select(item => item.IsDirectory).Should().StartWith(true, "directories should be listed before files");
+    }
+
+    [Fact]
+    public async Task BrowseDirectory_supports_nested_relative_path()
+    {
+        var entries = await _service.BrowseDirectoryAsync(_root, "src", false, CancellationToken.None);
+
+        entries.Should().ContainSingle(item => item.RelativePath == "src/main.go" && !item.IsDirectory);
+    }
+
+    [Fact]
+    public async Task ReadFile_returns_text_without_trimming_and_marks_binary_files()
+    {
+        File.WriteAllText(Path.Combine(_root, "src", "notes.txt"), "  spaced content  \n");
+        await File.WriteAllBytesAsync(Path.Combine(_root, "src", "binary.dat"), new byte[] { 0x00, 0x01, 0x02 });
+
+        var text = await _service.ReadFileAsync(_root, "src/notes.txt", CancellationToken.None);
+        text.Content.Should().Be("  spaced content  \n");
+        text.IsBinary.Should().BeFalse();
+        text.Truncated.Should().BeFalse();
+
+        var binary = await _service.ReadFileAsync(_root, "src/binary.dat", CancellationToken.None);
+        binary.IsBinary.Should().BeTrue();
+        binary.Content.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ReadFile_marks_truncated_content_when_file_exceeds_editor_limit()
+    {
+        var largePath = Path.Combine(_root, "src", "large.txt");
+        await File.WriteAllTextAsync(largePath, new string('x', (1024 * 1024) + 10));
+
+        var result = await _service.ReadFileAsync(_root, "src/large.txt", CancellationToken.None);
+
+        result.Truncated.Should().BeTrue();
+        result.SizeBytes.Should().BeGreaterThan(1024 * 1024);
+        result.Content.Length.Should().Be(1024 * 1024);
+    }
+
+    [Fact]
     public async Task Search_returns_ranked_internal_paths_and_prunes_ignored_directories()
     {
         var result = await _service.SearchAsync(Guid.NewGuid(), _root, "main", 50, false, CancellationToken.None);

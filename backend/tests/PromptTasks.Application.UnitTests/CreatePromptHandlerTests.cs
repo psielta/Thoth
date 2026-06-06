@@ -579,6 +579,19 @@ public sealed class CreatePromptHandlerTests
             string relativePath,
             CancellationToken cancellationToken) =>
             Task.FromResult(new FileReferenceResolution(relativePath, true, DateTimeOffset.UtcNow));
+
+        public Task<IReadOnlyList<DirectoryEntryDto>> BrowseDirectoryAsync(
+            string rootAbsolutePath,
+            string relativeDirectoryPath,
+            bool respectGitignore,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<DirectoryEntryDto>>(Array.Empty<DirectoryEntryDto>());
+
+        public Task<FileContentDto> ReadFileAsync(
+            string rootAbsolutePath,
+            string relativePath,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(new FileContentDto(relativePath, string.Empty, 0, false, false));
     }
 
     private sealed class FakePromptNotifier : IPromptNotifier

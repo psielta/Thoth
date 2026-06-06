@@ -17,6 +17,8 @@ public sealed class WorkspaceFileService(
 
     private static readonly string[] ContextFileNames = ["README.md", "CLAUDE.md", "AGENT.md"];
     private const long MaxContextFileBytes = 64 * 1024;
+    private const long MaxEditorFileBytes = 1024 * 1024;
+    private const int BinarySniffBytes = 8 * 1024;
     private const int MaxTotalContextChars = 48_000;
 
     private static readonly HashSet<string> IgnoredDirectoryNames = new(StringComparer.OrdinalIgnoreCase)
@@ -68,7 +70,7 @@ public sealed class WorkspaceFileService(
                 return Task.FromResult(ValidatedPathResult.Invalid("Path must point to an existing directory."));
             }
 
-            var canonical = CanonicalizeExistingPath(absolutePath);
+            var canonical = WorkspaceFilePath.CanonicalizeExistingPath(absolutePath);
             if (!Directory.Exists(canonical))
             {
                 return Task.FromResult(ValidatedPathResult.Invalid("Path must point to a directory."));
@@ -87,7 +89,7 @@ public sealed class WorkspaceFileService(
         string rootCanonical;
         try
         {
-            rootCanonical = CanonicalizeExistingPath(rootAbsolutePath);
+            rootCanonical = WorkspaceFilePath.CanonicalizeExistingPath(rootAbsolutePath);
         }
         catch (Exception exception) when (exception is IOException
                                              or UnauthorizedAccessException
@@ -114,8 +116,8 @@ public sealed class WorkspaceFileService(
                     continue;
                 }
 
-                var candidateCanonical = CanonicalizeExistingPath(candidateLogical);
-                EnsureContained(rootCanonical, candidateCanonical);
+                var candidateCanonical = WorkspaceFilePath.CanonicalizeExistingPath(candidateLogical);
+                WorkspaceFilePath.EnsureContained(rootCanonical, candidateCanonical);
 
                 var info = new FileInfo(candidateCanonical);
                 if (info.Length == 0 || info.Length > MaxContextFileBytes)
@@ -167,7 +169,7 @@ public sealed class WorkspaceFileService(
         string rootCanonical;
         try
         {
-            rootCanonical = CanonicalizeExistingPath(rootAbsolutePath);
+            rootCanonical = WorkspaceFilePath.CanonicalizeExistingPath(rootAbsolutePath);
         }
         catch (Exception exception) when (exception is IOException
                                              or UnauthorizedAccessException
@@ -187,7 +189,7 @@ public sealed class WorkspaceFileService(
             cancellationToken.ThrowIfCancellationRequested();
 
             var relativePath = rawPath?.Trim().TrimStart('@') ?? string.Empty;
-            if (relativePath.Length == 0 || Path.IsPathRooted(relativePath) || HasParentTraversal(relativePath))
+            if (relativePath.Length == 0 || Path.IsPathRooted(relativePath) || WorkspaceFilePath.HasParentTraversal(relativePath))
             {
                 continue;
             }
@@ -196,20 +198,20 @@ public sealed class WorkspaceFileService(
             string normalizedDisplayPath;
             try
             {
-                var candidateLogical = Path.GetFullPath(Path.Combine(rootCanonical, NormalizeInputRelativePath(relativePath)));
+                var candidateLogical = Path.GetFullPath(Path.Combine(rootCanonical, WorkspaceFilePath.NormalizeInputRelativePath(relativePath)));
                 if (!File.Exists(candidateLogical))
                 {
                     continue;
                 }
 
-                var candidateCanonical = CanonicalizeExistingPath(candidateLogical);
-                EnsureContained(rootCanonical, candidateCanonical);
+                var candidateCanonical = WorkspaceFilePath.CanonicalizeExistingPath(candidateLogical);
+                WorkspaceFilePath.EnsureContained(rootCanonical, candidateCanonical);
                 if (!seenCanonicalPaths.Add(candidateCanonical))
                 {
                     continue;
                 }
 
-                normalizedDisplayPath = NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateCanonical));
+                normalizedDisplayPath = WorkspaceFilePath.NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateCanonical));
 
                 var info = new FileInfo(candidateCanonical);
                 if (info.Length == 0)
@@ -282,7 +284,7 @@ public sealed class WorkspaceFileService(
     {
         RejectSuspiciousClientQuery(query);
 
-        var rootCanonical = CanonicalizeExistingPath(rootAbsolutePath);
+        var rootCanonical = WorkspaceFilePath.CanonicalizeExistingPath(rootAbsolutePath);
         var boundedLimit = Math.Clamp(limit, 1, 200);
         var normalizedQuery = NormalizeSearchQuery(query);
         var cacheKey = $"file-index:{workingDirectoryId}:{rootCanonical}:{respectGitignore}";
@@ -304,7 +306,7 @@ public sealed class WorkspaceFileService(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var rootCanonical = CanonicalizeExistingPath(rootAbsolutePath);
+        var rootCanonical = WorkspaceFilePath.CanonicalizeExistingPath(rootAbsolutePath);
         var results = relativePaths
             .Select(path => ValidateRelativePath(rootCanonical, path, cancellationToken))
             .ToList();
@@ -319,19 +321,176 @@ public sealed class WorkspaceFileService(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (string.IsNullOrWhiteSpace(relativePath) || Path.IsPathRooted(relativePath) || HasParentTraversal(relativePath))
+        if (string.IsNullOrWhiteSpace(relativePath) || Path.IsPathRooted(relativePath) || WorkspaceFilePath.HasParentTraversal(relativePath))
         {
             throw new PathTraversalException("Only relative paths inside the working directory are allowed.");
         }
 
-        var rootCanonical = CanonicalizeExistingPath(rootAbsolutePath);
-        var candidateLogical = Path.GetFullPath(Path.Combine(rootCanonical, NormalizeInputRelativePath(relativePath)));
+        var rootCanonical = WorkspaceFilePath.CanonicalizeExistingPath(rootAbsolutePath);
+        var candidateLogical = Path.GetFullPath(Path.Combine(rootCanonical, WorkspaceFilePath.NormalizeInputRelativePath(relativePath)));
         var exists = File.Exists(candidateLogical) || Directory.Exists(candidateLogical);
-        var candidateCanonical = exists ? CanonicalizeExistingPath(candidateLogical) : TrimEndingDirectorySeparator(candidateLogical);
-        EnsureContained(rootCanonical, candidateCanonical);
+        var candidateCanonical = exists
+            ? WorkspaceFilePath.CanonicalizeExistingPath(candidateLogical)
+            : WorkspaceFilePath.TrimEndingDirectorySeparator(candidateLogical);
+        WorkspaceFilePath.EnsureContained(rootCanonical, candidateCanonical);
 
-        var normalized = NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateLogical));
+        var normalized = WorkspaceFilePath.NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateLogical));
         return Task.FromResult(new FileReferenceResolution(normalized, exists, dateTimeProvider.UtcNow));
+    }
+
+    public Task<IReadOnlyList<DirectoryEntryDto>> BrowseDirectoryAsync(
+        string rootAbsolutePath,
+        string relativeDirectoryPath,
+        bool respectGitignore,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var rootCanonical = WorkspaceFilePath.CanonicalizeExistingPath(rootAbsolutePath);
+        var relativeDirectory = relativeDirectoryPath?.Trim().TrimStart('@') ?? string.Empty;
+        if (relativeDirectory.Length > 0 &&
+            (Path.IsPathRooted(relativeDirectory) || WorkspaceFilePath.HasParentTraversal(relativeDirectory)))
+        {
+            throw new PathTraversalException("Only relative paths inside the working directory are allowed.");
+        }
+
+        var directoryLogical = relativeDirectory.Length == 0
+            ? rootCanonical
+            : Path.GetFullPath(Path.Combine(rootCanonical, WorkspaceFilePath.NormalizeInputRelativePath(relativeDirectory)));
+
+        if (!Directory.Exists(directoryLogical))
+        {
+            throw new FileNotFoundException("Directory was not found.", relativeDirectory);
+        }
+
+        var directoryCanonical = WorkspaceFilePath.CanonicalizeExistingPath(directoryLogical);
+        WorkspaceFilePath.EnsureContained(rootCanonical, directoryCanonical);
+
+        var matcher = respectGitignore ? BuildGitignoreMatcher(rootCanonical) : null;
+        var entries = new List<DirectoryEntryDto>();
+
+        IEnumerable<string> fileSystemEntries;
+        try
+        {
+            fileSystemEntries = Directory.EnumerateFileSystemEntries(directoryCanonical);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            throw new FileNotFoundException("Directory was not found.", relativeDirectory);
+        }
+
+        foreach (var entry in fileSystemEntries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            FileAttributes attributes;
+            try
+            {
+                attributes = File.GetAttributes(entry);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                continue;
+            }
+
+            if ((attributes & FileAttributes.System) != 0 || (attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                continue;
+            }
+
+            var isDirectory = (attributes & FileAttributes.Directory) != 0;
+            var name = Path.GetFileName(entry);
+            if (isDirectory && IgnoredDirectoryNames.Contains(name))
+            {
+                continue;
+            }
+
+            var candidateCanonical = WorkspaceFilePath.TrimEndingDirectorySeparator(Path.GetFullPath(entry));
+            WorkspaceFilePath.EnsureContained(rootCanonical, candidateCanonical);
+            var relativePath = WorkspaceFilePath.NormalizeRelativePath(Path.GetRelativePath(rootCanonical, entry));
+
+            if (matcher is not null && !matcher.Match(relativePath).HasMatches)
+            {
+                continue;
+            }
+
+            entries.Add(new DirectoryEntryDto(relativePath, name, isDirectory));
+        }
+
+        return Task.FromResult<IReadOnlyList<DirectoryEntryDto>>(
+            entries
+                .OrderByDescending(entry => entry.IsDirectory)
+                .ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList());
+    }
+
+    public async Task<FileContentDto> ReadFileAsync(
+        string rootAbsolutePath,
+        string relativePath,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var normalizedInput = relativePath?.Trim().TrimStart('@') ?? string.Empty;
+        if (normalizedInput.Length == 0 ||
+            Path.IsPathRooted(normalizedInput) ||
+            WorkspaceFilePath.HasParentTraversal(normalizedInput))
+        {
+            throw new PathTraversalException("Only relative paths inside the working directory are allowed.");
+        }
+
+        var rootCanonical = WorkspaceFilePath.CanonicalizeExistingPath(rootAbsolutePath);
+        var candidateLogical = Path.GetFullPath(Path.Combine(rootCanonical, WorkspaceFilePath.NormalizeInputRelativePath(normalizedInput)));
+
+        if (!File.Exists(candidateLogical) || Directory.Exists(candidateLogical))
+        {
+            throw new FileNotFoundException("File was not found.", normalizedInput);
+        }
+
+        var candidateCanonical = WorkspaceFilePath.CanonicalizeExistingPath(candidateLogical);
+        WorkspaceFilePath.EnsureContained(rootCanonical, candidateCanonical);
+
+        var normalizedRelativePath = WorkspaceFilePath.NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateCanonical));
+        var info = new FileInfo(candidateCanonical);
+        var truncated = info.Length > MaxEditorFileBytes;
+        var bytesToRead = (int)Math.Min(info.Length, MaxEditorFileBytes);
+
+        await using var stream = new FileStream(
+            candidateCanonical,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete);
+
+        var sniffLength = (int)Math.Min(info.Length, BinarySniffBytes);
+        var sniffBuffer = new byte[sniffLength];
+        var readSniff = await stream.ReadAsync(sniffBuffer.AsMemory(0, sniffLength), cancellationToken);
+        var isBinary = sniffBuffer.AsSpan(0, readSniff).Contains((byte)0);
+
+        if (isBinary)
+        {
+            return new FileContentDto(normalizedRelativePath, string.Empty, info.Length, truncated, true);
+        }
+
+        var contentBuffer = new byte[bytesToRead];
+        if (readSniff > 0)
+        {
+            sniffBuffer.AsSpan(0, readSniff).CopyTo(contentBuffer);
+        }
+
+        var totalRead = readSniff;
+        while (totalRead < bytesToRead)
+        {
+            var read = await stream.ReadAsync(contentBuffer.AsMemory(totalRead, bytesToRead - totalRead), cancellationToken);
+            if (read == 0)
+            {
+                break;
+            }
+
+            totalRead += read;
+        }
+
+        var content = Encoding.UTF8.GetString(contentBuffer, 0, totalRead);
+        return new FileContentDto(normalizedRelativePath, content, info.Length, truncated, false);
     }
 
     private static FileReferenceValidationDto ValidateRelativePath(
@@ -349,7 +508,7 @@ public sealed class WorkspaceFileService(
 
         try
         {
-            if (Path.IsPathRooted(relativePath) || HasParentTraversal(relativePath))
+            if (Path.IsPathRooted(relativePath) || WorkspaceFilePath.HasParentTraversal(relativePath))
             {
                 return new FileReferenceValidationDto(
                     rawPath,
@@ -359,19 +518,19 @@ public sealed class WorkspaceFileService(
                     "Only relative paths inside the working directory are allowed.");
             }
 
-            var candidateLogical = Path.GetFullPath(Path.Combine(rootCanonical, NormalizeInputRelativePath(relativePath)));
+            var candidateLogical = Path.GetFullPath(Path.Combine(rootCanonical, WorkspaceFilePath.NormalizeInputRelativePath(relativePath)));
             var exists = File.Exists(candidateLogical) || Directory.Exists(candidateLogical);
             var candidateCanonical = exists
-                ? CanonicalizeExistingPath(candidateLogical)
-                : TrimEndingDirectorySeparator(candidateLogical);
+                ? WorkspaceFilePath.CanonicalizeExistingPath(candidateLogical)
+                : WorkspaceFilePath.TrimEndingDirectorySeparator(candidateLogical);
 
-            EnsureContained(rootCanonical, candidateCanonical);
+            WorkspaceFilePath.EnsureContained(rootCanonical, candidateCanonical);
 
             if (!exists)
             {
                 return new FileReferenceValidationDto(
                     rawPath,
-                    NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateLogical)),
+                    WorkspaceFilePath.NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateLogical)),
                     false,
                     false,
                     "File or directory was not found.");
@@ -380,7 +539,7 @@ public sealed class WorkspaceFileService(
             var isDirectory = Directory.Exists(candidateCanonical);
             return new FileReferenceValidationDto(
                 rawPath,
-                NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateCanonical)),
+                WorkspaceFilePath.NormalizeRelativePath(Path.GetRelativePath(rootCanonical, candidateCanonical)),
                 true,
                 isDirectory,
                 null);
@@ -446,9 +605,9 @@ public sealed class WorkspaceFileService(
                     continue;
                 }
 
-                var candidateCanonical = TrimEndingDirectorySeparator(Path.GetFullPath(entry));
-                EnsureContained(rootCanonical, candidateCanonical);
-                var relativePath = NormalizeRelativePath(Path.GetRelativePath(rootCanonical, entry));
+                var candidateCanonical = WorkspaceFilePath.TrimEndingDirectorySeparator(Path.GetFullPath(entry));
+                WorkspaceFilePath.EnsureContained(rootCanonical, candidateCanonical);
+                var relativePath = WorkspaceFilePath.NormalizeRelativePath(Path.GetRelativePath(rootCanonical, entry));
 
                 if (matcher is not null && !matcher.Match(relativePath).HasMatches)
                 {
@@ -600,59 +759,10 @@ public sealed class WorkspaceFileService(
         return matcher;
     }
 
-    private static string CanonicalizeExistingPath(string path)
-    {
-        var fullPath = Path.GetFullPath(path);
-        var root = Path.GetPathRoot(fullPath)
-            ?? throw new PathTraversalException("Path root could not be resolved.");
-        var current = root;
-        var remaining = fullPath[root.Length..]
-            .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-
-        foreach (var segment in remaining)
-        {
-            current = Path.Combine(current, segment);
-
-            if (!File.Exists(current) && !Directory.Exists(current))
-            {
-                continue;
-            }
-
-            FileSystemInfo info = Directory.Exists(current)
-                ? new DirectoryInfo(current)
-                : new FileInfo(current);
-
-            var target = info.ResolveLinkTarget(returnFinalTarget: true);
-            if (target is not null)
-            {
-                current = Path.GetFullPath(target.FullName);
-            }
-        }
-
-        return TrimEndingDirectorySeparator(Path.GetFullPath(current));
-    }
-
-    private static void EnsureContained(string rootCanonical, string candidateCanonical)
-    {
-        var relative = Path.GetRelativePath(rootCanonical, candidateCanonical);
-        if (relative == ".")
-        {
-            return;
-        }
-
-        if (relative == ".." ||
-            relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-            relative.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal) ||
-            Path.IsPathRooted(relative))
-        {
-            throw new PathTraversalException("Path escapes the working directory.");
-        }
-    }
-
     private static void RejectSuspiciousClientQuery(string query)
     {
         var normalizedQuery = NormalizeSearchQuery(query);
-        if (Path.IsPathRooted(normalizedQuery) || HasParentTraversal(normalizedQuery))
+        if (Path.IsPathRooted(normalizedQuery) || WorkspaceFilePath.HasParentTraversal(normalizedQuery))
         {
             throw new PathTraversalException("Search query cannot be an absolute or parent-relative path.");
         }
@@ -660,17 +770,4 @@ public sealed class WorkspaceFileService(
 
     private static string NormalizeSearchQuery(string query) =>
         query.Trim().TrimStart('@');
-
-    private static bool HasParentTraversal(string path) =>
-        path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-            .Any(segment => segment == "..");
-
-    private static string NormalizeInputRelativePath(string relativePath) =>
-        relativePath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-
-    private static string NormalizeRelativePath(string relativePath) =>
-        relativePath.Replace('\\', '/');
-
-    private static string TrimEndingDirectorySeparator(string path) =>
-        Path.TrimEndingDirectorySeparator(path);
 }

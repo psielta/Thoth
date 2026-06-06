@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using PromptTasks.Application.Common.Models;
+using PromptTasks.Application.Features.Files.Queries.BrowseDirectory;
+using PromptTasks.Application.Features.Files.Queries.ReadFileContent;
 using PromptTasks.Application.Features.Files.Queries.SearchFiles;
 using PromptTasks.Application.Features.Files.Queries.ValidateFileReferences;
 
@@ -10,6 +12,20 @@ namespace PromptTasks.Api.Controllers;
 [Route("api/files")]
 public sealed class FilesController(ISender sender) : ControllerBase
 {
+    [HttpGet("tree")]
+    public async Task<ActionResult<IReadOnlyList<DirectoryEntryDto>>> BrowseTree(
+        [FromQuery] Guid workingDirectoryId,
+        [FromQuery] string relativePath = "",
+        CancellationToken cancellationToken = default) =>
+        Ok(await sender.Send(new BrowseDirectoryQuery(workingDirectoryId, relativePath), cancellationToken));
+
+    [HttpGet("content")]
+    public async Task<ActionResult<FileContentDto>> GetContent(
+        [FromQuery] Guid workingDirectoryId,
+        [FromQuery] string relativePath,
+        CancellationToken cancellationToken = default) =>
+        Ok(await sender.Send(new ReadFileContentQuery(workingDirectoryId, relativePath), cancellationToken));
+
     [HttpGet("search")]
     public async Task<ActionResult<IReadOnlyList<FileSearchResultDto>>> Search(
         [FromQuery] Guid workingDirectoryId,

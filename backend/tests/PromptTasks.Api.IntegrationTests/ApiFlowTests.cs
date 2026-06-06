@@ -122,6 +122,58 @@ public sealed class ApiFlowTests(PromptTasksApiFactory factory) : IClassFixture<
     }
 
     [Fact]
+    public async Task File_browser_flow_lists_tree_reads_content_and_updates_over_signalr()
+    {
+        Directory.CreateDirectory(Path.Combine(_tempRoot, "src"));
+        await File.WriteAllTextAsync(Path.Combine(_tempRoot, "src", "main.go"), "package main");
+
+        var client = factory.CreateClient();
+        var wdResponse = await client.PostAsJsonAsync(
+            "/api/working-directories",
+            new { name = "repo", absolutePath = _tempRoot, respectGitignore = true },
+            JsonOptions);
+        wdResponse.EnsureSuccessStatusCode();
+        var wd = await wdResponse.Content.ReadFromJsonAsync<WorkingDirectoryDto>(JsonOptions);
+
+        var tree = await client.GetFromJsonAsync<DirectoryEntryDto[]>(
+            $"/api/files/tree?workingDirectoryId={wd!.Id}",
+            JsonOptions);
+        tree.Should().Contain(item => item.RelativePath == "src" && item.IsDirectory);
+        tree.Should().NotContain(item => item.RelativePath == "src/main.go");
+
+        var srcTree = await client.GetFromJsonAsync<DirectoryEntryDto[]>(
+            $"/api/files/tree?workingDirectoryId={wd.Id}&relativePath=src",
+            JsonOptions);
+        srcTree.Should().ContainSingle(item => item.RelativePath == "src/main.go" && !item.IsDirectory);
+
+        var content = await client.GetFromJsonAsync<FileContentDto>(
+            $"/api/files/content?workingDirectoryId={wd.Id}&relativePath=src/main.go",
+            JsonOptions);
+        content!.Content.Should().Be("package main");
+        content.IsBinary.Should().BeFalse();
+        content.Truncated.Should().BeFalse();
+
+        await using var hub = CreateHubConnection();
+        var changedTcs = new TaskCompletionSource<(Guid WorkingDirectoryId, string RelativePath)>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        hub.On<Guid, string>("WorkspaceFileChanged", (workingDirectoryId, relativePath) =>
+            changedTcs.TrySetResult((workingDirectoryId, relativePath)));
+
+        await hub.StartAsync();
+        await hub.InvokeAsync("JoinFile", wd.Id, "src/main.go");
+
+        await File.WriteAllTextAsync(Path.Combine(_tempRoot, "src", "main.go"), "package main // updated");
+        var changed = await changedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        changed.WorkingDirectoryId.Should().Be(wd.Id);
+        changed.RelativePath.Should().Be("src/main.go");
+
+        var updatedContent = await client.GetFromJsonAsync<FileContentDto>(
+            $"/api/files/content?workingDirectoryId={wd.Id}&relativePath=src/main.go",
+            JsonOptions);
+        updatedContent!.Content.Should().Be("package main // updated");
+    }
+
+    [Fact]
     public async Task Linked_document_flow_versions_markdown_and_updates_over_signalr()
     {
         Directory.CreateDirectory(Path.Combine(_tempRoot, "repo"));

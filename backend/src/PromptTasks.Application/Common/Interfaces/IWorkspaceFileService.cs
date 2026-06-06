@@ -30,4 +30,15 @@ public interface IWorkspaceFileService
         string rootAbsolutePath,
         string relativePath,
         CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<DirectoryEntryDto>> BrowseDirectoryAsync(
+        string rootAbsolutePath,
+        string relativeDirectoryPath,
+        bool respectGitignore,
+        CancellationToken cancellationToken);
+
+    Task<FileContentDto> ReadFileAsync(
+        string rootAbsolutePath,
+        string relativePath,
+        CancellationToken cancellationToken);
 }

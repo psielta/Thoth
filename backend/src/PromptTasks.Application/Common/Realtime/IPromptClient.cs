@@ -12,4 +12,5 @@ public interface IPromptClient
     Task LinkedDocumentRemoved(Guid linkedDocumentId, Guid promptId, Guid workingDirectoryId);
     Task TaskWorkflowChanged(TaskSummaryDto summary);
     Task AgentUsageUpdated(AgentUsageDto usage);
+    Task WorkspaceFileChanged(Guid workingDirectoryId, string relativePath);
 }

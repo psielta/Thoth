@@ -153,8 +153,8 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       queryClient.setQueryData(queryKeys.agentUsage.current(), usage)
     })
 
-    connection.on('WorkspaceFileChanged', (workingDirectoryId: string, changedKey: string) => {
-      const subscription = joinedFilesRef.current.get(`${workingDirectoryId}::${changedKey}`)
+    connection.on('WorkspaceFileChanged', (workingDirectoryId: string, changedPath: string) => {
+      const subscription = joinedFilesRef.current.get(fileSubscriptionKey(workingDirectoryId, changedPath))
       if (!subscription) {
         return
       }

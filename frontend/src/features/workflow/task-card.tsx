@@ -1,17 +1,18 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArrowRight, CheckCircle2, FolderGit2, Link2, Loader2, MessageSquarePlus, PlayCircle } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Archive, ArrowRight, CheckCircle2, FastForward, FolderGit2, Link2, Loader2, MessageSquarePlus, PlayCircle, RefreshCw } from 'lucide-react'
 import { useState, type DragEvent } from 'react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
 import { getPrompt, updatePromptStatus } from '@/api/prompts'
+import { listPromptTemplates } from '@/api/prompt-templates'
 import { queryKeys } from '@/api/query-keys'
-import type { PromptTemplate, TaskSummary } from '@/api/schemas'
-import { advancePhase, completeWorkflow, getWorkflow, startWorkflow } from '@/api/workflow'
+import type { PromptTemplate, TaskSummary, WorkflowPhaseRole } from '@/api/schemas'
+import { advancePhase, completeWorkflow, getWorkflow, setPhase, startWorkflow } from '@/api/workflow'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { GeneratePromptMenu } from '@/features/linked-documents/generate-prompt-menu'
 import { ActorBadge, PhaseBadge } from './badges'
-import { formatRelativeTime, isReviewPhaseRole } from './constants'
+import { APPROVE_ADVANCE_BY_ROLE, findPhaseByRole, formatRelativeTime, isReviewPhaseRole, RE_REVIEW_TEMPLATE_BY_ROLE } from './constants'
 import { ReviewVerdictDialog } from './review-verdict-dialog'
 
 type TaskCardProps = {
@@ -40,11 +41,24 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
   const queryClient = useQueryClient()
   const [showVerdict, setShowVerdict] = useState(false)
 
+  const currentPhase = task.phases.find((phase) => phase.id === task.currentPhaseId)
+  const currentRole = currentPhase?.role ?? null
+  const reReviewKey = currentRole ? RE_REVIEW_TEMPLATE_BY_ROLE[currentRole] : undefined
+  const approveTarget = currentRole ? APPROVE_ADVANCE_BY_ROLE[currentRole] : undefined
+
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
     void queryClient.invalidateQueries({ queryKey: queryKeys.workflow.detail(task.promptId) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.prompts.all })
   }
+
+  // Mesma queryKey do GeneratePromptMenu: o React Query deduplica, sem requisição extra.
+  const templatesQuery = useQuery({
+    queryKey: queryKeys.promptTemplates.all,
+    queryFn: listPromptTemplates,
+    enabled: Boolean(reReviewKey && task.linkedDocumentId),
+  })
+  const reReviewTemplate = reReviewKey ? templatesQuery.data?.find((template) => template.key === reReviewKey) : undefined
 
   const advanceOrComplete = useMutation({
     mutationFn: async () => {
@@ -95,13 +109,34 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
     onError: (error) => toast.error(getErrorMessage(error)),
   })
 
+  // Salto direto para a fase aprovada (Implementation/PracticalTest), sem cair na fase de correção.
+  const approveAdvance = useMutation({
+    mutationFn: async (targetRole: WorkflowPhaseRole) => {
+      const workflow = await getWorkflow(task.promptId)
+      if (!workflow || workflow.status !== 'Active') {
+        throw new Error('Recarregue o quadro antes de avançar esta tarefa.')
+      }
+
+      const target = findPhaseByRole(workflow.phases, targetRole)
+      if (!target) {
+        throw new Error('Esta tarefa não possui a fase de destino.')
+      }
+
+      if (workflow.currentPhaseId === target.id) {
+        return workflow
+      }
+
+      return setPhase(task.promptId, target.id, workflow.rowVersion)
+    },
+    onSuccess: invalidate,
+    onError: (error) => toast.error(getErrorMessage(error)),
+  })
+
   const isHumanTurn = task.currentActor === 'Human'
-  const currentPhase = task.phases.find((phase) => phase.id === task.currentPhaseId)
-  const currentRole = currentPhase?.role ?? null
   const isLastPhase = task.workflowStatus === 'Active' && currentPhase
     ? currentPhase.orderIndex === Math.max(...task.phases.map((phase) => phase.orderIndex))
     : false
-  const isBusy = start.isPending || advanceOrComplete.isPending || archive.isPending
+  const isBusy = start.isPending || advanceOrComplete.isPending || archive.isPending || approveAdvance.isPending
   const workspaceName = formatWorkspaceName(task.workingDirectoryName)
   const linkContent = (
     <>
@@ -180,6 +215,30 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
           <Button type="button" size="sm" onClick={() => setShowVerdict(true)} disabled={isBusy}>
             <MessageSquarePlus className="h-4 w-4" />
             Adicionar nota de revisão
+          </Button>
+        </div>
+      ) : null}
+
+      {task.workflowStatus === 'Active' && task.linkedDocumentId && reReviewTemplate ? (
+        <div className="flex">
+          <Button type="button" size="sm" onClick={() => onGenerate?.(task, reReviewTemplate)} disabled={isBusy}>
+            <RefreshCw className="h-4 w-4" />
+            {reReviewTemplate.displayName}
+          </Button>
+        </div>
+      ) : null}
+
+      {task.workflowStatus === 'Active' && approveTarget && findPhaseByRole(task.phases, approveTarget.targetRole) ? (
+        <div className="flex">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => approveAdvance.mutate(approveTarget.targetRole)}
+            disabled={isBusy}
+          >
+            <FastForward className="h-4 w-4" />
+            {approveTarget.label}
           </Button>
         </div>
       ) : null}

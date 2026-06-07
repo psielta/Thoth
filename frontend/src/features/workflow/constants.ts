@@ -1,4 +1,5 @@
 import type {
+  PromptTemplateKey,
   PromptWorkflowStatus,
   WorkflowActor,
   WorkflowEventType,
@@ -53,6 +54,29 @@ export function currentPhaseRole(
   }
 
   return phases.find((phase) => phase.id === currentPhaseId)?.role ?? null
+}
+
+// Primeira fase (por orderIndex) com a role pedida; usada para saltar direto a uma fase por papel.
+export function findPhaseByRole(
+  phases: WorkflowPhase[],
+  role: WorkflowPhaseRole,
+): WorkflowPhase | undefined {
+  return [...phases].sort((a, b) => a.orderIndex - b.orderIndex).find((phase) => phase.role === role)
+}
+
+// Fases de correção -> template de re-review a apontar no drawer de prompt filho.
+// Anotação explícita (em vez de `satisfies`) para permitir indexar com qualquer WorkflowPhaseRole.
+export const RE_REVIEW_TEMPLATE_BY_ROLE: Partial<Record<WorkflowPhaseRole, PromptTemplateKey>> = {
+  PlanCorrection: 'ReReviewPlan',
+  ReviewCorrection: 'ReReviewPullRequest',
+}
+
+// Fases de revisão -> avanço direto quando a revisão aprova (sem passar pela fase de correção).
+export const APPROVE_ADVANCE_BY_ROLE: Partial<
+  Record<WorkflowPhaseRole, { targetRole: WorkflowPhaseRole; label: string }>
+> = {
+  PlanReview: { targetRole: 'Implementation', label: 'Avançar para implementação' },
+  CodeReview: { targetRole: 'PracticalTest', label: 'Avançar para teste prático' },
 }
 
 export const PHASE_COLOR_PALETTE = [

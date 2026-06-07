@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { TaskSummary } from '@/api/schemas'
 import { buildColumns } from './board-columns'
+import { shouldShowDropPlaceholder } from './drop-placeholder-state'
 
 const templatePhases = [
   { name: 'Planejamento', orderIndex: 0 },
@@ -81,5 +82,57 @@ describe('buildColumns', () => {
     const columns = buildColumns([makeTask({ currentPhaseName: 'Planejamento' })], templatePhases)
     expect(columns.map((column) => column.title)).not.toContain('Sem fluxo')
     expect(columns.map((column) => column.title)).toContain('Concluídas')
+  })
+})
+
+describe('shouldShowDropPlaceholder', () => {
+  it('shows only for the active droppable target column while dragging', () => {
+    expect(
+      shouldShowDropPlaceholder({
+        columnId: 'phase-1',
+        droppable: true,
+        draggedPromptId: 'prompt-1',
+        dragOverColumnId: 'phase-1',
+      }),
+    ).toBe(true)
+
+    expect(
+      shouldShowDropPlaceholder({
+        columnId: 'phase-1',
+        droppable: true,
+        draggedPromptId: 'prompt-1',
+        dragOverColumnId: 'phase-2',
+      }),
+    ).toBe(false)
+
+    expect(
+      shouldShowDropPlaceholder({
+        columnId: 'no-workflow',
+        droppable: false,
+        draggedPromptId: 'prompt-1',
+        dragOverColumnId: 'no-workflow',
+      }),
+    ).toBe(false)
+
+    expect(
+      shouldShowDropPlaceholder({
+        columnId: 'phase-1',
+        droppable: true,
+        draggedPromptId: null,
+        dragOverColumnId: 'phase-1',
+      }),
+    ).toBe(false)
+  })
+
+  it('hides while a move mutation is pending', () => {
+    expect(
+      shouldShowDropPlaceholder({
+        columnId: 'phase-1',
+        droppable: true,
+        draggedPromptId: 'prompt-1',
+        dragOverColumnId: 'phase-1',
+        isMoving: true,
+      }),
+    ).toBe(false)
   })
 })

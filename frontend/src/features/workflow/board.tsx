@@ -22,12 +22,15 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { GeneratePromptDrawer } from '@/features/linked-documents/generate-prompt-drawer'
+import { cn } from '@/lib/utils'
 import { usePromptHub } from '@/realtime/prompt-hub'
 import { buildColumns, type BoardColumn } from './board-columns'
+import { DropPlaceholder } from './drop-placeholder'
+import { shouldShowDropPlaceholder } from './drop-placeholder-state'
 import { TaskCard } from './task-card'
 import { PromptDetailDrawer } from './prompt-detail-drawer'
 import { NewPromptDrawer } from './new-prompt-drawer'
-import { GeneratePromptDrawer } from '@/features/linked-documents/generate-prompt-drawer'
 import { LinkPlanDialog } from './link-plan-dialog'
 
 const PROMPT_STATUS_OPTIONS: Array<{ value: PromptStatus | ''; label: string }> = [
@@ -282,64 +285,80 @@ export function Board() {
     })
   }
 
-  const renderColumn = (column: BoardColumn, layout: BoardViewMode) => (
-    <div
-      key={column.id}
-      onDragOver={(event) => {
-        if (!column.droppable || moveTask.isPending) {
-          return
-        }
-        event.preventDefault()
-        event.dataTransfer.dropEffect = 'move'
-        setDragOverColumnId(column.id)
-      }}
-      onDragLeave={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          setDragOverColumnId((current) => (current === column.id ? null : current))
-        }
-      }}
-      onDrop={(event) => handleDrop(column, event)}
-      className={`gap-3 rounded-lg p-2 transition-colors ${
-        layout === 'kanban'
-          ? 'flex w-[calc(100vw-2rem)] shrink-0 flex-col sm:w-[calc((100vw-3rem)/2)] lg:w-[calc((100vw-4rem)/3)] xl:w-[18.75rem]'
-          : 'grid border border-border bg-card'
-      } ${dragOverColumnId === column.id ? 'bg-accent' : ''}`}
-    >
-      <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2">
-        <span className="text-sm font-semibold text-foreground">{column.title}</span>
-        <span className="rounded-full bg-card px-2 py-0.5 text-xs text-muted-foreground">{column.tasks.length}</span>
+  const renderColumn = (column: BoardColumn, layout: BoardViewMode) => {
+    const showDropPlaceholder = shouldShowDropPlaceholder({
+      columnId: column.id,
+      droppable: column.droppable,
+      draggedPromptId,
+      dragOverColumnId,
+      isMoving: moveTask.isPending,
+    })
+
+    return (
+      <div
+        key={column.id}
+        onDragOver={(event) => {
+          if (!column.droppable || moveTask.isPending) {
+            return
+          }
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'move'
+          setDragOverColumnId(column.id)
+        }}
+        onDragLeave={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect()
+          const isStillInside =
+            event.clientX >= rect.left &&
+            event.clientX <= rect.right &&
+            event.clientY >= rect.top &&
+            event.clientY <= rect.bottom
+          if (!isStillInside) {
+            setDragOverColumnId((current) => (current === column.id ? null : current))
+          }
+        }}
+        onDrop={(event) => handleDrop(column, event)}
+        className={cn(
+          'gap-3 rounded-lg p-2 transition-colors',
+          layout === 'kanban'
+            ? 'flex w-[calc(100vw-2rem)] shrink-0 flex-col sm:w-[calc((100vw-3rem)/2)] lg:w-[calc((100vw-4rem)/3)] xl:w-[18.75rem]'
+            : 'grid border border-border',
+          layout === 'vertical' && !showDropPlaceholder ? 'bg-card' : null,
+          showDropPlaceholder ? 'bg-accent' : null,
+        )}
+      >
+        <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2">
+          <span className="text-sm font-semibold text-foreground">{column.title}</span>
+          <span className="rounded-full bg-card px-2 py-0.5 text-xs text-muted-foreground">{column.tasks.length}</span>
+        </div>
+        <div className={layout === 'kanban' ? 'grid gap-2' : 'grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'}>
+          {column.tasks.map((task) => (
+            <TaskCard
+              key={task.promptId}
+              task={task}
+              dragging={draggedPromptId === task.promptId}
+              moveDisabled={moveTask.isPending}
+              onDragStart={handleDragStart}
+              onDragEnd={() => {
+                setDraggedPromptId(null)
+                setDragOverColumnId(null)
+              }}
+              onOpen={(task) =>
+                setOpenedTask({ promptId: task.promptId, workspaceId: task.workingDirectoryId, title: task.title })
+              }
+              onGenerate={(task, template) => setGenerating({ task, template })}
+              onLinkPlan={(task) => setLinkingTask(task)}
+            />
+          ))}
+          {showDropPlaceholder ? <DropPlaceholder layout={layout} /> : null}
+          {column.tasks.length === 0 && !showDropPlaceholder ? (
+            <p className="rounded-md border border-dashed border-border px-3 py-4 text-center text-xs text-subtle-foreground">
+              Vazio
+            </p>
+          ) : null}
+        </div>
       </div>
-      <div className={layout === 'kanban' ? 'grid gap-2' : 'grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'}>
-        {column.tasks.map((task) => (
-          <TaskCard
-            key={task.promptId}
-            task={task}
-            dragging={draggedPromptId === task.promptId}
-            moveDisabled={moveTask.isPending}
-            onDragStart={handleDragStart}
-            onDragEnd={() => {
-              setDraggedPromptId(null)
-              setDragOverColumnId(null)
-            }}
-            onOpen={(task) =>
-              setOpenedTask({ promptId: task.promptId, workspaceId: task.workingDirectoryId, title: task.title })
-            }
-            onGenerate={(task, template) => setGenerating({ task, template })}
-            onLinkPlan={(task) => setLinkingTask(task)}
-          />
-        ))}
-        {column.tasks.length === 0 ? (
-          <p
-            className={`rounded-md border border-dashed px-3 py-4 text-center text-xs ${
-              column.droppable && draggedPromptId ? 'border-border text-muted-foreground' : 'border-border text-subtle-foreground'
-            }`}
-          >
-            {column.droppable && draggedPromptId ? 'Solte aqui' : 'Vazio'}
-          </p>
-        ) : null}
-      </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <section className="grid min-w-0 gap-2">

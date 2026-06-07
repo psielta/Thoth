@@ -18,6 +18,7 @@ import { TaskCard } from './task-card'
 import { PromptDetailDrawer } from './prompt-detail-drawer'
 import { NewPromptDrawer } from './new-prompt-drawer'
 import { GeneratePromptDrawer } from '@/features/linked-documents/generate-prompt-drawer'
+import { LinkPlanDialog } from './link-plan-dialog'
 
 const PROMPT_STATUS_OPTIONS: Array<{ value: PromptStatus | ''; label: string }> = [
   { value: '', label: 'Não arquivadas' },
@@ -43,6 +44,7 @@ export function Board() {
   const boardScrollerRef = useRef<HTMLDivElement>(null)
   const [openedTask, setOpenedTask] = useState<{ promptId: string; workspaceId: string; title: string } | null>(null)
   const [generating, setGenerating] = useState<{ task: TaskSummary; template: PromptTemplate } | null>(null)
+  const [linkingTask, setLinkingTask] = useState<TaskSummary | null>(null)
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
@@ -250,6 +252,7 @@ export function Board() {
               setOpenedTask({ promptId: task.promptId, workspaceId: task.workingDirectoryId, title: task.title })
             }
             onGenerate={(task, template) => setGenerating({ task, template })}
+            onLinkPlan={(task) => setLinkingTask(task)}
           />
         ))}
         {column.tasks.length === 0 ? (
@@ -444,6 +447,15 @@ export function Board() {
           template={generating.template}
           initialPullRequestReference={generating.task.pullRequestReference}
           onClose={() => setGenerating(null)}
+        />
+      ) : null}
+
+      {linkingTask ? (
+        <LinkPlanDialog
+          key={linkingTask.promptId}
+          promptId={linkingTask.promptId}
+          promptTitle={linkingTask.title}
+          onClose={() => setLinkingTask(null)}
         />
       ) : null}
 

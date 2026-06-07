@@ -124,4 +124,17 @@ describe('TaskCard', () => {
 
     expect(screen.queryByRole('button', { name: /gerar prompt filho/i })).not.toBeInTheDocument()
   })
+
+  it('shows a link-plan button and calls onLinkPlan when there is no linked plan', () => {
+    const onLinkPlan = vi.fn()
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <TaskCard task={makeTask(null)} onLinkPlan={onLinkPlan} />
+      </QueryClientProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /vincular plano/i }))
+    expect(onLinkPlan).toHaveBeenCalledTimes(1)
+  })
 })

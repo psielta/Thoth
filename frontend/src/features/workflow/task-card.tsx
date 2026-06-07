@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArrowRight, CheckCircle2, FolderGit2, Loader2, PlayCircle } from 'lucide-react'
+import { Archive, ArrowRight, CheckCircle2, FolderGit2, Link2, Loader2, PlayCircle } from 'lucide-react'
 import type { DragEvent } from 'react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
@@ -21,6 +21,7 @@ type TaskCardProps = {
   onDragEnd?: () => void
   onOpen?: (task: TaskSummary) => void
   onGenerate?: (task: TaskSummary, template: PromptTemplate) => void
+  onLinkPlan?: (task: TaskSummary) => void
 }
 
 const WORKSPACE_NAME_MAX_LENGTH = 36
@@ -34,7 +35,7 @@ function formatWorkspaceName(name: string) {
   return `${normalizedName.slice(0, WORKSPACE_NAME_MAX_LENGTH - 3).trimEnd()}...`
 }
 
-export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd, onOpen, onGenerate }: TaskCardProps) {
+export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd, onOpen, onGenerate, onLinkPlan }: TaskCardProps) {
   const queryClient = useQueryClient()
 
   const invalidate = () => {
@@ -157,7 +158,14 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
             onSelectTemplate={(template) => onGenerate?.(task, template)}
           />
         </div>
-      ) : null}
+      ) : (
+        <div className="flex">
+          <Button type="button" variant="secondary" size="sm" onClick={() => onLinkPlan?.(task)}>
+            <Link2 className="h-4 w-4" />
+            Vincular plano
+          </Button>
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0 text-xs text-subtle-foreground">

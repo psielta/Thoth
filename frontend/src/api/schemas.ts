@@ -439,3 +439,30 @@ export type TranslatePromptRequest = z.infer<typeof translatePromptRequestSchema
 export type ChatChunk = z.infer<typeof chatChunkSchema>
 export const geminiModelListSchema = z.array(geminiModelSchema)
 export const aiChatSessionListSchema = z.array(aiChatSessionSchema)
+
+export const notebookSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  description: z.string().nullable(),
+  workingDirectoryId: z.string().uuid().nullable(),
+  workingDirectoryName: z.string().nullable(),
+  isArchived: z.boolean(),
+  noteCount: z.number(),
+  createdAtUtc: z.string(),
+  updatedAtUtc: z.string(),
+})
+export type Notebook = z.infer<typeof notebookSchema>
+export const notebookListSchema = z.array(notebookSchema)
+
+export const noteSchema = z.object({
+  id: z.string().uuid(),
+  notebookId: z.string().uuid(),
+  title: z.string(),
+  contentMarkdown: z.string(),
+  isPinned: z.boolean(),
+  isArchived: z.boolean(),
+  createdAtUtc: z.string(),
+  updatedAtUtc: z.string(),
+})
+export type Note = z.infer<typeof noteSchema>
+export const noteListSchema = z.array(noteSchema)

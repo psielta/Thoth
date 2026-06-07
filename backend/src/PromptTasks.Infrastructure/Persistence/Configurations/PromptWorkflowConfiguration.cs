@@ -16,6 +16,7 @@ public sealed class PromptWorkflowConfiguration : IEntityTypeConfiguration<Promp
         builder.Property(workflow => workflow.CurrentPhaseColor).HasMaxLength(32);
         builder.Property(workflow => workflow.CurrentActor).HasConversion<int>();
         builder.Property(workflow => workflow.CurrentPhaseIteration).IsRequired().HasDefaultValue(1);
+        builder.Property(workflow => workflow.ReviewVerdictSourcePhaseName).HasMaxLength(200);
         builder.Property(workflow => workflow.StartedAtUtc).IsRequired();
         builder.Property(workflow => workflow.CreatedAtUtc).IsRequired();
         builder.Property(workflow => workflow.UpdatedAtUtc).IsRequired();

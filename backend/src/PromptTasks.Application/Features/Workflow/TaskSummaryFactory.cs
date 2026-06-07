@@ -50,6 +50,7 @@ internal static class TaskSummaryFactory
             workflow?.CurrentActor,
             workflow?.EnteredCurrentPhaseAtUtc,
             workflow?.CurrentPhaseIteration ?? 1,
+            workflow?.ReviewVerdictSourcePhaseName,
             updatedAtUtc,
             hasChildPrompts,
             linkedDocument is not null,

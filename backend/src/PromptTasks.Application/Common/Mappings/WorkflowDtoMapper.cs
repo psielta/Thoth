@@ -7,10 +7,22 @@ namespace PromptTasks.Application.Common.Mappings;
 public static class WorkflowDtoMapper
 {
     public static WorkflowPhaseDto ToDto(this PromptWorkflowPhase phase) =>
-        new(phase.Id, phase.Name, phase.DefaultActor, phase.OrderIndex, phase.Color);
+        new(
+            phase.Id,
+            phase.Name,
+            phase.DefaultActor,
+            phase.OrderIndex,
+            phase.Color,
+            phase.Role ?? WorkflowDefaults.ResolveRoleByName(phase.Name));
 
     public static WorkflowPhaseDto ToDto(this WorkflowTemplatePhase phase) =>
-        new(phase.Id, phase.Name, phase.DefaultActor, phase.OrderIndex, phase.Color);
+        new(
+            phase.Id,
+            phase.Name,
+            phase.DefaultActor,
+            phase.OrderIndex,
+            phase.Color,
+            phase.Role ?? WorkflowDefaults.ResolveRoleByName(phase.Name));
 
     public static WorkflowEventDto ToDto(this PromptWorkflowEvent @event) =>
         new(
@@ -37,6 +49,7 @@ public static class WorkflowDtoMapper
             workflow.StartedAtUtc,
             workflow.EnteredCurrentPhaseAtUtc,
             workflow.CurrentPhaseIteration,
+            workflow.ReviewVerdictSourcePhaseName,
             workflow.UpdatedAtUtc,
             workflow.RowVersion.ToString(CultureInfo.InvariantCulture),
             phases.OrderBy(phase => phase.OrderIndex).Select(phase => phase.ToDto()).ToList(),

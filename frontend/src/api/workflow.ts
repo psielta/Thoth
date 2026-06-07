@@ -90,6 +90,13 @@ export async function addWorkflowNote(promptId: string, note: string): Promise<W
   return workflowSchema.parse(data)
 }
 
+export async function addReviewVerdict(promptId: string, verdict: string, rowVersion: string): Promise<Workflow> {
+  const data = await api
+    .post(`prompts/${promptId}/workflow/review-verdict`, { json: { verdict, rowVersion } })
+    .json<unknown>()
+  return workflowSchema.parse(data)
+}
+
 export async function completeWorkflow(promptId: string, rowVersion: string, note?: string): Promise<Workflow> {
   const data = await api
     .post(`prompts/${promptId}/workflow/complete`, { json: { note: note ?? null, rowVersion } })

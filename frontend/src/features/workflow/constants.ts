@@ -1,4 +1,10 @@
-import type { PromptWorkflowStatus, WorkflowActor, WorkflowEventType } from '@/api/schemas'
+import type {
+  PromptWorkflowStatus,
+  WorkflowActor,
+  WorkflowEventType,
+  WorkflowPhase,
+  WorkflowPhaseRole,
+} from '@/api/schemas'
 
 export const ACTOR_LABELS: Record<WorkflowActor, string> = {
   ClaudeCode: 'Claude',
@@ -25,6 +31,28 @@ export const EVENT_TYPE_LABELS: Record<WorkflowEventType, string> = {
   Completed: 'Concluída',
   Reopened: 'Reaberta',
   PhasesEdited: 'Fases editadas',
+}
+
+// Fases de revisão onde o botão "Adicionar nota de revisão" aparece, e a fase de correção
+// correspondente (apenas para o texto do diálogo; o backend é a fonte da verdade do destino).
+export const REVIEW_TARGET_LABEL = {
+  PlanReview: 'Correção do plano',
+  CodeReview: 'Correção da revisão',
+} satisfies Partial<Record<WorkflowPhaseRole, string>>
+
+export function isReviewPhaseRole(role: WorkflowPhaseRole | null | undefined): role is 'PlanReview' | 'CodeReview' {
+  return role === 'PlanReview' || role === 'CodeReview'
+}
+
+export function currentPhaseRole(
+  phases: WorkflowPhase[],
+  currentPhaseId: string | null | undefined,
+): WorkflowPhaseRole | null {
+  if (!currentPhaseId) {
+    return null
+  }
+
+  return phases.find((phase) => phase.id === currentPhaseId)?.role ?? null
 }
 
 export const PHASE_COLOR_PALETTE = [

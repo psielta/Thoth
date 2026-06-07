@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using PromptTasks.Application.Common.Models;
+using PromptTasks.Application.Features.Workflow.Commands.AddReviewVerdict;
 using PromptTasks.Application.Features.Workflow.Commands.AddWorkflowNote;
 using PromptTasks.Application.Features.Workflow.Commands.AdvancePhase;
 using PromptTasks.Application.Features.Workflow.Commands.ChangeActor;
@@ -84,6 +85,15 @@ public sealed class WorkflowController(ISender sender) : ControllerBase
         CancellationToken cancellationToken) =>
         Ok(await sender.Send(new AddWorkflowNoteCommand(promptId, request.Note), cancellationToken));
 
+    [HttpPost("prompts/{promptId:guid}/workflow/review-verdict")]
+    public async Task<ActionResult<WorkflowDto>> AddReviewVerdict(
+        Guid promptId,
+        AddReviewVerdictRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await sender.Send(
+            new AddReviewVerdictCommand(promptId, request.Verdict, request.RowVersion),
+            cancellationToken));
+
     [HttpPost("prompts/{promptId:guid}/workflow/complete")]
     public async Task<ActionResult<WorkflowDto>> Complete(
         Guid promptId,
@@ -110,6 +120,7 @@ public sealed class WorkflowController(ISender sender) : ControllerBase
     public sealed record SetPhaseRequest(Guid PhaseId, WorkflowActor? Actor, string? Note, string RowVersion);
     public sealed record ChangeActorRequest(WorkflowActor Actor, string? Note, string RowVersion);
     public sealed record AddNoteRequest(string Note);
+    public sealed record AddReviewVerdictRequest(string Verdict, string RowVersion);
     public sealed record CompleteRequest(string? Note, string RowVersion);
     public sealed record ReopenRequest(Guid? PhaseId, string RowVersion);
     public sealed record UpdatePhasesRequest(IReadOnlyList<WorkflowPhaseInput> Phases, string RowVersion);

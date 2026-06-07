@@ -13,6 +13,7 @@ public sealed record WorkflowDto(
     DateTimeOffset StartedAtUtc,
     DateTimeOffset? EnteredCurrentPhaseAtUtc,
     int CurrentPhaseIteration,
+    string? ReviewVerdictSourcePhaseName,
     DateTimeOffset UpdatedAtUtc,
     string RowVersion,
     IReadOnlyList<WorkflowPhaseDto> Phases,

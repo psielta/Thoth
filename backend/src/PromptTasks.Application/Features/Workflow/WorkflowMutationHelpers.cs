@@ -88,6 +88,9 @@ internal static class WorkflowMutationHelpers
         workflow.CurrentPhaseColor = phase.Color;
         workflow.CurrentActor = actor ?? phase.DefaultActor;
         workflow.CurrentPhaseIteration = iteration;
+        // O contexto de veredito vale apenas para a fase em que foi lancado; qualquer transicao o limpa.
+        // O AddReviewVerdictHandler redefine este campo logo apos entrar na fase de correcao.
+        workflow.ReviewVerdictSourcePhaseName = null;
         workflow.EnteredCurrentPhaseAtUtc = now;
         workflow.UpdatedAtUtc = now;
     }

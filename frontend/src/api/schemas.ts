@@ -202,10 +202,23 @@ export const workflowEventTypeSchema = z.enum([
   'Reopened',
   'PhasesEdited',
 ])
+export const workflowPhaseRoleSchema = z.enum([
+  'PromptEngineering',
+  'Planning',
+  'PlanReview',
+  'PlanCorrection',
+  'Implementation',
+  'CodeReview',
+  'ReviewCorrection',
+  'PracticalTest',
+  'Rebase',
+  'Merge',
+])
 
 export type WorkflowActor = z.infer<typeof workflowActorSchema>
 export type PromptWorkflowStatus = z.infer<typeof promptWorkflowStatusSchema>
 export type WorkflowEventType = z.infer<typeof workflowEventTypeSchema>
+export type WorkflowPhaseRole = z.infer<typeof workflowPhaseRoleSchema>
 
 export const agentUsageStatusSchema = z.enum([
   'Ok',
@@ -257,6 +270,7 @@ export const workflowPhaseSchema = z.object({
   defaultActor: workflowActorSchema,
   orderIndex: z.number(),
   color: z.string(),
+  role: workflowPhaseRoleSchema.nullable(),
 })
 
 export const workflowEventSchema = z.object({
@@ -280,6 +294,7 @@ export const workflowSchema = z.object({
   startedAtUtc: z.string(),
   enteredCurrentPhaseAtUtc: z.string().nullable(),
   currentPhaseIteration: z.number(),
+  reviewVerdictSourcePhaseName: z.string().nullable(),
   updatedAtUtc: z.string(),
   rowVersion: z.string(),
   phases: z.array(workflowPhaseSchema),
@@ -300,6 +315,7 @@ export const taskSummarySchema = z.object({
   currentActor: workflowActorSchema.nullable(),
   enteredCurrentPhaseAtUtc: z.string().nullable(),
   currentPhaseIteration: z.number(),
+  reviewVerdictSourcePhaseName: z.string().nullable(),
   updatedAtUtc: z.string(),
   hasChildPrompts: z.boolean(),
   hasLinkedPlan: z.boolean(),

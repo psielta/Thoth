@@ -109,6 +109,7 @@ public sealed class GetWorkflowBoardHandler(IApplicationDbContext context, ICurr
                 workflow?.CurrentActor,
                 workflow?.EnteredCurrentPhaseAtUtc,
                 workflow?.CurrentPhaseIteration ?? 1,
+                workflow?.ReviewVerdictSourcePhaseName,
                 updatedAtUtc,
                 promptsWithChildren.Contains(prompt.Id),
                 linkedDocument is not null,

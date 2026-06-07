@@ -2,6 +2,7 @@ using FluentAssertions;
 using PromptTasks.Application.Common.Exceptions;
 using PromptTasks.Application.Common.Interfaces;
 using PromptTasks.Application.Common.Models;
+using PromptTasks.Application.Features.Workflow.Commands.AddReviewVerdict;
 using PromptTasks.Application.Features.Workflow.Commands.AddWorkflowNote;
 using PromptTasks.Application.Features.Workflow.Commands.AdvancePhase;
 using PromptTasks.Application.Features.Workflow.Commands.ChangeActor;
@@ -232,6 +233,93 @@ public sealed class WorkflowHandlerTests
         updated.Phases.Should().Contain(phase => phase.Name == "Deploy");
     }
 
+    [Fact]
+    public async Task AddReviewVerdict_in_plan_review_records_note_and_moves_to_plan_correction()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+        var planning = await fixture.AdvanceAsync(started.RowVersion);
+        var review = await fixture.AdvanceAsync(planning.RowVersion);
+        review.CurrentPhaseName.Should().Be("Revisão do plano");
+        review.CurrentActor.Should().Be(WorkflowActor.Codex);
+
+        var corrected = await fixture.AddReviewVerdictAsync("3 pontos a corrigir", review.RowVersion);
+
+        corrected.CurrentPhaseName.Should().Be("Correção do plano");
+        corrected.CurrentActor.Should().Be(WorkflowActor.ClaudeCode);
+        corrected.ReviewVerdictSourcePhaseName.Should().Be("Revisão do plano");
+        corrected.Events.Should().ContainSingle(@event =>
+            @event.Type == WorkflowEventType.Note &&
+            @event.Note == "3 pontos a corrigir" &&
+            @event.Actor == WorkflowActor.Codex &&
+            @event.PhaseName == "Revisão do plano");
+        corrected.Events.Last().Type.Should().Be(WorkflowEventType.PhaseChanged);
+        corrected.Events.Last().Note.Should().Contain("Revisão do plano");
+    }
+
+    [Fact]
+    public async Task AddReviewVerdict_in_code_review_moves_to_review_correction()
+    {
+        var fixture = new Fixture();
+        var workflow = await fixture.StartAsync();
+        while (workflow.CurrentPhaseName != "Revisão de código")
+        {
+            workflow = await fixture.AdvanceAsync(workflow.RowVersion);
+        }
+
+        workflow.CurrentActor.Should().Be(WorkflowActor.ClaudeCode);
+
+        var corrected = await fixture.AddReviewVerdictAsync("PR tem regressões", workflow.RowVersion);
+
+        corrected.CurrentPhaseName.Should().Be("Correção da revisão");
+        corrected.CurrentActor.Should().Be(WorkflowActor.Codex);
+        corrected.ReviewVerdictSourcePhaseName.Should().Be("Revisão de código");
+        corrected.Events.Should().ContainSingle(@event =>
+            @event.Type == WorkflowEventType.Note &&
+            @event.Note == "PR tem regressões" &&
+            @event.Actor == WorkflowActor.ClaudeCode);
+    }
+
+    [Fact]
+    public async Task AddReviewVerdict_outside_a_review_phase_conflicts()
+    {
+        var fixture = new Fixture();
+        await fixture.StartAsync();
+
+        var act = () => fixture.AddReviewVerdictAsync("qualquer", "0");
+
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task AddReviewVerdict_with_stale_row_version_conflicts()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+        var planning = await fixture.AdvanceAsync(started.RowVersion);
+        await fixture.AdvanceAsync(planning.RowVersion);
+
+        var act = () => fixture.AddReviewVerdictAsync("x", "999");
+
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task AddReviewVerdict_source_is_cleared_on_the_next_transition()
+    {
+        var fixture = new Fixture();
+        var started = await fixture.StartAsync();
+        var planning = await fixture.AdvanceAsync(started.RowVersion);
+        var review = await fixture.AdvanceAsync(planning.RowVersion);
+        var corrected = await fixture.AddReviewVerdictAsync("ajustar", review.RowVersion);
+        corrected.ReviewVerdictSourcePhaseName.Should().Be("Revisão do plano");
+
+        var advanced = await fixture.AdvanceAsync(corrected.RowVersion);
+
+        advanced.CurrentPhaseName.Should().Be("Implementação");
+        advanced.ReviewVerdictSourcePhaseName.Should().BeNull();
+    }
+
     private sealed class Fixture
     {
         private readonly FakeWorkflowDbContext _context = new();
@@ -281,6 +369,10 @@ public sealed class WorkflowHandlerTests
         public Task<WorkflowDto> AddNoteAsync(string note) =>
             new AddWorkflowNoteHandler(_context, Notifier, _user, _clock)
                 .Handle(new AddWorkflowNoteCommand(Prompt.Id, note), CancellationToken.None);
+
+        public Task<WorkflowDto> AddReviewVerdictAsync(string verdict, string rowVersion) =>
+            new AddReviewVerdictHandler(_context, Notifier, _user, _clock)
+                .Handle(new AddReviewVerdictCommand(Prompt.Id, verdict, rowVersion), CancellationToken.None);
 
         public Task<WorkflowDto> CompleteAsync(string rowVersion) =>
             new CompleteWorkflowHandler(_context, Notifier, _user, _clock)

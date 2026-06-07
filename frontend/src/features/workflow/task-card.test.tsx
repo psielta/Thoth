@@ -45,6 +45,7 @@ function makeTask(taskNumber: string | null, currentPhaseIteration = 1): TaskSum
     currentActor: 'ClaudeCode',
     enteredCurrentPhaseAtUtc: '2026-06-01T12:00:00Z',
     currentPhaseIteration,
+    reviewVerdictSourcePhaseName: null,
     updatedAtUtc: '2026-06-01T12:00:00Z',
     hasChildPrompts: false,
     hasLinkedPlan: false,
@@ -52,8 +53,8 @@ function makeTask(taskNumber: string | null, currentPhaseIteration = 1): TaskSum
     pullRequestReference: null,
     promptRowVersion: '0',
     phases: [
-      { id: 'phase-1', name: 'Planejamento', defaultActor: 'ClaudeCode', orderIndex: 0, color: '#2563eb' },
-      { id: 'phase-2', name: 'Implementacao', defaultActor: 'Codex', orderIndex: 1, color: '#0d9488' },
+      { id: 'phase-1', name: 'Planejamento', defaultActor: 'ClaudeCode', orderIndex: 0, color: '#2563eb', role: 'Planning' },
+      { id: 'phase-2', name: 'Implementacao', defaultActor: 'Codex', orderIndex: 1, color: '#0d9488', role: 'Implementation' },
     ],
     rowVersion: '0',
   }
@@ -136,5 +137,44 @@ describe('TaskCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /vincular plano/i }))
     expect(onLinkPlan).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows the review-verdict button only when the current phase is a review phase', () => {
+    renderCard(null)
+    expect(screen.queryByRole('button', { name: /adicionar nota de revisão/i })).not.toBeInTheDocument()
+
+    cleanup()
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    const reviewTask: TaskSummary = {
+      ...makeTask(null),
+      currentPhaseId: 'phase-review',
+      currentPhaseName: 'Revisão do plano',
+      phases: [
+        { id: 'phase-review', name: 'Revisão do plano', defaultActor: 'Codex', orderIndex: 0, color: '#7c3aed', role: 'PlanReview' },
+      ],
+    }
+    render(
+      <QueryClientProvider client={client}>
+        <TaskCard task={reviewTask} />
+      </QueryClientProvider>,
+    )
+    expect(screen.getByRole('button', { name: /adicionar nota de revisão/i })).toBeInTheDocument()
+  })
+
+  it('shows the verdict source badge and hides the review button outside review phases', () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    const task: TaskSummary = {
+      ...makeTask(null),
+      reviewVerdictSourcePhaseName: 'Revisão de código',
+    }
+    render(
+      <QueryClientProvider client={client}>
+        <TaskCard task={task} />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByText(/Revisão de código/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /adicionar nota de revisão/i })).not.toBeInTheDocument()
   })
 })

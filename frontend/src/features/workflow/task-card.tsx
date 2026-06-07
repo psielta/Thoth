@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArrowRight, CheckCircle2, FolderGit2, Link2, Loader2, PlayCircle } from 'lucide-react'
-import type { DragEvent } from 'react'
+import { Archive, ArrowRight, CheckCircle2, FolderGit2, Link2, Loader2, MessageSquarePlus, PlayCircle } from 'lucide-react'
+import { useState, type DragEvent } from 'react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
 import { getPrompt, updatePromptStatus } from '@/api/prompts'
@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { GeneratePromptMenu } from '@/features/linked-documents/generate-prompt-menu'
 import { ActorBadge, PhaseBadge } from './badges'
-import { formatRelativeTime } from './constants'
+import { formatRelativeTime, isReviewPhaseRole } from './constants'
+import { ReviewVerdictDialog } from './review-verdict-dialog'
 
 type TaskCardProps = {
   task: TaskSummary
@@ -37,6 +38,7 @@ function formatWorkspaceName(name: string) {
 
 export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd, onOpen, onGenerate, onLinkPlan }: TaskCardProps) {
   const queryClient = useQueryClient()
+  const [showVerdict, setShowVerdict] = useState(false)
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
@@ -95,6 +97,7 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
 
   const isHumanTurn = task.currentActor === 'Human'
   const currentPhase = task.phases.find((phase) => phase.id === task.currentPhaseId)
+  const currentRole = currentPhase?.role ?? null
   const isLastPhase = task.workflowStatus === 'Active' && currentPhase
     ? currentPhase.orderIndex === Math.max(...task.phases.map((phase) => phase.orderIndex))
     : false
@@ -147,6 +150,11 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
         {task.currentPhaseIteration > 1 ? (
           <Badge variant="blue">re-review #{task.currentPhaseIteration}</Badge>
         ) : null}
+        {task.reviewVerdictSourcePhaseName ? (
+          <Badge variant="amber" title={`Trabalhando no veredito de ${task.reviewVerdictSourcePhaseName}`}>
+            ⮌ {task.reviewVerdictSourcePhaseName}
+          </Badge>
+        ) : null}
         {task.currentActor ? <ActorBadge actor={task.currentActor} highlight /> : null}
       </div>
 
@@ -166,6 +174,15 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
           </Button>
         </div>
       )}
+
+      {task.workflowStatus === 'Active' && isReviewPhaseRole(currentRole) ? (
+        <div className="flex">
+          <Button type="button" size="sm" onClick={() => setShowVerdict(true)} disabled={isBusy}>
+            <MessageSquarePlus className="h-4 w-4" />
+            Adicionar nota de revisão
+          </Button>
+        </div>
+      ) : null}
 
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0 text-xs text-subtle-foreground">
@@ -205,6 +222,10 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
           </Button>
         </div>
       </div>
+
+      {showVerdict ? (
+        <ReviewVerdictDialog promptId={task.promptId} onClose={() => setShowVerdict(false)} />
+      ) : null}
     </div>
   )
 }

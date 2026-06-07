@@ -1,10 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
-import { Clock, FileText, GitBranch, MessageSquareText } from 'lucide-react'
+import { Clock, FileText, GitBranch, MessageSquarePlus, MessageSquareText } from 'lucide-react'
+import { useState } from 'react'
 import { getPrompt } from '@/api/prompts'
 import { queryKeys } from '@/api/query-keys'
+import { getWorkflow } from '@/api/workflow'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LinkedDocumentsPanel } from '@/features/linked-documents/linked-documents-panel'
+import { currentPhaseRole, isReviewPhaseRole } from '@/features/workflow/constants'
+import { ReviewVerdictDialog } from '@/features/workflow/review-verdict-dialog'
 import { WorkflowPanel } from '@/features/workflow/workflow-panel'
 import type { DetailTab } from './prompt-detail-search'
 import { PromptChildrenPanel } from './prompt-children-panel'
@@ -25,12 +29,39 @@ export function PromptDetailView({ workspaceId, promptId, activeTab, onTabChange
     queryFn: () => getPrompt(promptId),
   })
 
+  const workflowQuery = useQuery({
+    queryKey: queryKeys.workflow.detail(promptId),
+    queryFn: () => getWorkflow(promptId),
+  })
+  const workflow = workflowQuery.data ?? null
+  const reviewRole = workflow ? currentPhaseRole(workflow.phases, workflow.currentPhaseId) : null
+  const canAddVerdict = workflow?.status === 'Active' && isReviewPhaseRole(reviewRole)
+
+  const [showVerdict, setShowVerdict] = useState(false)
+
   return (
     <div className="grid gap-4">
-      {promptQuery.data?.taskNumber ? (
-        <div className="flex items-center gap-2">
-          <Badge variant="blue">{promptQuery.data.taskNumber}</Badge>
-          <span className="truncate text-sm text-muted-foreground">{promptQuery.data.title}</span>
+      {promptQuery.data?.taskNumber || canAddVerdict || workflow?.reviewVerdictSourcePhaseName ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            {promptQuery.data?.taskNumber ? (
+              <>
+                <Badge variant="blue">{promptQuery.data.taskNumber}</Badge>
+                <span className="truncate text-sm text-muted-foreground">{promptQuery.data.title}</span>
+              </>
+            ) : null}
+            {workflow?.reviewVerdictSourcePhaseName ? (
+              <Badge variant="amber" title={`Trabalhando no veredito de ${workflow.reviewVerdictSourcePhaseName}`}>
+                ⮌ {workflow.reviewVerdictSourcePhaseName}
+              </Badge>
+            ) : null}
+          </div>
+          {canAddVerdict ? (
+            <Button type="button" size="sm" onClick={() => setShowVerdict(true)}>
+              <MessageSquarePlus className="h-4 w-4" />
+              Adicionar nota de revisão
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
@@ -90,6 +121,10 @@ export function PromptDetailView({ workspaceId, promptId, activeTab, onTabChange
 
       {activeTab === 'children' ? (
         <PromptChildrenPanel workingDirectoryId={workspaceId} parentPromptId={promptId} />
+      ) : null}
+
+      {showVerdict ? (
+        <ReviewVerdictDialog promptId={promptId} onClose={() => setShowVerdict(false)} />
       ) : null}
     </div>
   )

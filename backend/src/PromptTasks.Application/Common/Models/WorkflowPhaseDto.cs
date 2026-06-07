@@ -7,4 +7,5 @@ public sealed record WorkflowPhaseDto(
     string Name,
     WorkflowActor DefaultActor,
     int OrderIndex,
-    string Color);
+    string Color,
+    WorkflowPhaseRole? Role);

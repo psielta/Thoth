@@ -18,11 +18,12 @@ const workflow: Workflow = {
   startedAtUtc: '2026-06-01T12:00:00Z',
   enteredCurrentPhaseAtUtc: '2026-06-01T12:00:00Z',
   currentPhaseIteration: 1,
+  reviewVerdictSourcePhaseName: null,
   updatedAtUtc: '2026-06-01T12:00:00Z',
   rowVersion: '0',
   phases: [
-    { id: 'ph1', name: 'Planejamento', defaultActor: 'ClaudeCode', orderIndex: 0, color: '#2563eb' },
-    { id: 'ph2', name: 'Revisão do plano', defaultActor: 'Codex', orderIndex: 1, color: '#7c3aed' },
+    { id: 'ph1', name: 'Planejamento', defaultActor: 'ClaudeCode', orderIndex: 0, color: '#2563eb', role: 'Planning' },
+    { id: 'ph2', name: 'Revisão do plano', defaultActor: 'Codex', orderIndex: 1, color: '#7c3aed', role: 'PlanReview' },
   ],
   events: [
     {

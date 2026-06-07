@@ -17,6 +17,7 @@ public sealed record TaskSummaryDto(
     WorkflowActor? CurrentActor,
     DateTimeOffset? EnteredCurrentPhaseAtUtc,
     int CurrentPhaseIteration,
+    string? ReviewVerdictSourcePhaseName,
     DateTimeOffset UpdatedAtUtc,
     bool HasChildPrompts,
     bool HasLinkedPlan,

@@ -99,3 +99,9 @@ npm run build
 - Use componentes e padroes visuais ja existentes.
 - Nao adicione dependencias sem necessidade clara.
 - Nao altere arquivos gerados ou configuracoes globais sem justificar no plano.
+
+## Commits
+
+- Sempre que fizer commit, use Conventional Commits, **sem** a linha `Co-Authored-By`.
+- Crie commits separados por mudanca logica; evite um unico commit grande com mudancas nao relacionadas.
+- Conforme terminar cada tarefa, crie o commit correspondente e faca push.

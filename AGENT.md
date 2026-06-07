@@ -101,4 +101,9 @@ Para mudancas visuais ou de fluxo, valide tambem no navegador. O frontend roda e
 - Mantenha as alteracoes pequenas e coerentes com o pedido.
 - Nao reverta trabalho existente que nao faz parte da sua mudanca.
 - Atualize testes quando alterar comportamento.
-- Use Conventional Commits quando criar commits.
+
+## Commits
+
+- Use sempre Conventional Commits, **sem** a linha `Co-Authored-By`.
+- Faca commits separados por mudanca logica; evite um unico commit grande com mudancas nao relacionadas.
+- Conforme terminar cada tarefa, crie o commit correspondente e faca push.

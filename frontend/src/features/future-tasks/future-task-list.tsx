@@ -19,7 +19,7 @@ import {
   TYPE_LABELS,
   TYPE_OPTIONS,
 } from './constants'
-import { FutureTaskFormDialog } from './future-task-form-dialog'
+import { FutureTaskFormDrawer } from './future-task-form-drawer'
 
 type FutureTaskListProps = {
   workspaceId: string
@@ -215,7 +215,7 @@ export function FutureTaskList({ workspaceId }: FutureTaskListProps) {
       )}
 
       {dialog ? (
-        <FutureTaskFormDialog
+        <FutureTaskFormDrawer
           workspaceId={workspaceId}
           task={dialog.mode === 'edit' ? dialog.task : undefined}
           onClose={() => setDialog(null)}

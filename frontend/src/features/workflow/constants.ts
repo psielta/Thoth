@@ -71,11 +71,17 @@ export const RE_REVIEW_TEMPLATE_BY_ROLE: Partial<Record<WorkflowPhaseRole, Promp
   ReviewCorrection: 'ReReviewPullRequest',
 }
 
-// Fases de revisão -> avanço direto quando a revisão aprova (sem passar pela fase de correção).
+export const IMPLEMENTATION_TEMPLATE_KEYS = ['ImplementPlan', 'ImplementPlanInWorktree'] as const
+
+export const PLAN_REVIEW_IMPLEMENTATION_ACTION = {
+  targetRole: 'Implementation',
+  label: 'Avançar para implementação',
+} satisfies { targetRole: WorkflowPhaseRole; label: string }
+
+// Fases de revisão -> avanço direto quando a revisão aprova e não há prompt filho específico a criar.
 export const APPROVE_ADVANCE_BY_ROLE: Partial<
   Record<WorkflowPhaseRole, { targetRole: WorkflowPhaseRole; label: string }>
 > = {
-  PlanReview: { targetRole: 'Implementation', label: 'Avançar para implementação' },
   CodeReview: { targetRole: 'PracticalTest', label: 'Avançar para teste prático' },
 }
 

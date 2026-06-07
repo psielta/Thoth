@@ -300,20 +300,55 @@ describe('TaskCard', () => {
     expect(screen.queryByRole('button', { name: /re-review do plano/i })).not.toBeInTheDocument()
   })
 
-  it('jumps PlanReview straight to the Implementation phase (not the correction phase)', async () => {
-    const workflow = makeWorkflow(PLAN_REVIEW_PHASES, 'phase-review')
-    vi.mocked(workflowApi.getWorkflow).mockResolvedValue(workflow)
-    vi.mocked(workflowApi.setPhase).mockResolvedValue({ ...workflow, currentPhaseId: 'phase-impl' })
+  it('asks for the implementation template before advancing from PlanReview', async () => {
+    vi.mocked(listPromptTemplates).mockResolvedValue([
+      makeTemplate('ImplementPlan', 'Implementar plano'),
+      makeTemplate('ImplementPlanInWorktree', 'Implementar em worktree'),
+    ])
     renderTask({
       ...makeTask(null),
+      linkedDocumentId: 'doc-1',
+      hasLinkedPlan: true,
       currentPhaseId: 'phase-review',
       currentPhaseName: 'Revisão do plano',
       phases: PLAN_REVIEW_PHASES,
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /avançar para implementação/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /implementa/i })).not.toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: /implementa/i }))
+    expect(screen.getByRole('dialog', { name: /escolher implementa/i })).toBeInTheDocument()
+    expect(vi.mocked(workflowApi.setPhase)).not.toHaveBeenCalled()
+    expect(vi.mocked(workflowApi.advancePhase)).not.toHaveBeenCalled()
+  })
 
-    await waitFor(() => expect(vi.mocked(workflowApi.setPhase)).toHaveBeenCalledWith('prompt-1', 'phase-impl', '7'))
+  it('opens the selected implementation child-prompt template from PlanReview', async () => {
+    vi.mocked(listPromptTemplates).mockResolvedValue([
+      makeTemplate('ImplementPlan', 'Basic implementation'),
+      makeTemplate('ImplementPlanInWorktree', 'Worktree implementation'),
+    ])
+    const onGenerate = vi.fn()
+    renderTask(
+      {
+        ...makeTask(null),
+        linkedDocumentId: 'doc-1',
+        hasLinkedPlan: true,
+        currentPhaseId: 'phase-review',
+        currentPhaseName: 'Plan review',
+        phases: PLAN_REVIEW_PHASES,
+      },
+      onGenerate,
+    )
+
+    const advanceButton = screen.getByRole('button', { name: /implementa/i })
+    await waitFor(() => expect(advanceButton).not.toBeDisabled())
+    fireEvent.click(advanceButton)
+    fireEvent.click(screen.getByRole('button', { name: /worktree implementation/i }))
+
+    expect(onGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({ promptId: 'prompt-1' }),
+      expect.objectContaining({ key: 'ImplementPlanInWorktree' }),
+    )
+    expect(vi.mocked(workflowApi.setPhase)).not.toHaveBeenCalled()
     expect(vi.mocked(workflowApi.advancePhase)).not.toHaveBeenCalled()
   })
 
@@ -337,6 +372,8 @@ describe('TaskCard', () => {
   it('hides the approval-advance button when the target role phase is absent', () => {
     renderTask({
       ...makeTask(null),
+      linkedDocumentId: 'doc-1',
+      hasLinkedPlan: true,
       currentPhaseId: 'phase-review',
       currentPhaseName: 'Revisão do plano',
       phases: [
@@ -352,6 +389,8 @@ describe('TaskCard', () => {
     renderTask({
       ...makeTask(null),
       workflowStatus: 'Done',
+      linkedDocumentId: 'doc-1',
+      hasLinkedPlan: true,
       currentPhaseId: 'phase-review',
       currentPhaseName: 'Revisão do plano',
       phases: PLAN_REVIEW_PHASES,

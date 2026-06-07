@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArrowRight, CheckCircle2, FastForward, FolderGit2, Link2, Loader2, MessageSquarePlus, PlayCircle, RefreshCw } from 'lucide-react'
+import { Archive, ArrowRight, CheckCircle2, FastForward, FolderGit2, Link2, Loader2, MessageSquarePlus, PlayCircle, RefreshCw, X } from 'lucide-react'
 import { useState, type DragEvent } from 'react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
@@ -12,7 +12,15 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { GeneratePromptMenu } from '@/features/linked-documents/generate-prompt-menu'
 import { ActorBadge, PhaseBadge } from './badges'
-import { APPROVE_ADVANCE_BY_ROLE, findPhaseByRole, formatRelativeTime, isReviewPhaseRole, RE_REVIEW_TEMPLATE_BY_ROLE } from './constants'
+import {
+  APPROVE_ADVANCE_BY_ROLE,
+  IMPLEMENTATION_TEMPLATE_KEYS,
+  PLAN_REVIEW_IMPLEMENTATION_ACTION,
+  findPhaseByRole,
+  formatRelativeTime,
+  isReviewPhaseRole,
+  RE_REVIEW_TEMPLATE_BY_ROLE,
+} from './constants'
 import { ReviewVerdictDialog } from './review-verdict-dialog'
 
 type TaskCardProps = {
@@ -40,11 +48,13 @@ function formatWorkspaceName(name: string) {
 export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd, onOpen, onGenerate, onLinkPlan }: TaskCardProps) {
   const queryClient = useQueryClient()
   const [showVerdict, setShowVerdict] = useState(false)
+  const [showImplementationChoice, setShowImplementationChoice] = useState(false)
 
   const currentPhase = task.phases.find((phase) => phase.id === task.currentPhaseId)
   const currentRole = currentPhase?.role ?? null
   const reReviewKey = currentRole ? RE_REVIEW_TEMPLATE_BY_ROLE[currentRole] : undefined
   const approveTarget = currentRole ? APPROVE_ADVANCE_BY_ROLE[currentRole] : undefined
+  const implementationAction = currentRole === 'PlanReview' ? PLAN_REVIEW_IMPLEMENTATION_ACTION : undefined
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
@@ -56,9 +66,13 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
   const templatesQuery = useQuery({
     queryKey: queryKeys.promptTemplates.all,
     queryFn: listPromptTemplates,
-    enabled: Boolean(reReviewKey && task.linkedDocumentId),
+    enabled: Boolean(task.linkedDocumentId && (reReviewKey || implementationAction)),
   })
   const reReviewTemplate = reReviewKey ? templatesQuery.data?.find((template) => template.key === reReviewKey) : undefined
+  const implementationTemplates = IMPLEMENTATION_TEMPLATE_KEYS.map((key) =>
+    templatesQuery.data?.find((template) => template.key === key),
+  )
+  const [basicImplementationTemplate, worktreeImplementationTemplate] = implementationTemplates
 
   const advanceOrComplete = useMutation({
     mutationFn: async () => {
@@ -109,7 +123,7 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
     onError: (error) => toast.error(getErrorMessage(error)),
   })
 
-  // Salto direto para a fase aprovada (Implementation/PracticalTest), sem cair na fase de correção.
+  // Salto direto para fases aprovadas que nao dependem da criacao de prompt filho.
   const approveAdvance = useMutation({
     mutationFn: async (targetRole: WorkflowPhaseRole) => {
       const workflow = await getWorkflow(task.promptId)
@@ -137,6 +151,9 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
     ? currentPhase.orderIndex === Math.max(...task.phases.map((phase) => phase.orderIndex))
     : false
   const isBusy = start.isPending || advanceOrComplete.isPending || archive.isPending || approveAdvance.isPending
+  const hasImplementationTarget = Boolean(
+    implementationAction && findPhaseByRole(task.phases, implementationAction.targetRole),
+  )
   const workspaceName = formatWorkspaceName(task.workingDirectoryName)
   const linkContent = (
     <>
@@ -243,6 +260,28 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
         </div>
       ) : null}
 
+      {task.workflowStatus === 'Active' && task.linkedDocumentId && implementationAction && hasImplementationTarget ? (
+        <div className="flex">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              if (!basicImplementationTemplate || !worktreeImplementationTemplate) {
+                toast.error('Templates de implementação indisponíveis.')
+                return
+              }
+
+              setShowImplementationChoice(true)
+            }}
+            disabled={isBusy || templatesQuery.isLoading}
+          >
+            <FastForward className="h-4 w-4" />
+            {implementationAction.label}
+          </Button>
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0 text-xs text-subtle-foreground">
           {task.enteredCurrentPhaseAtUtc
@@ -284,6 +323,55 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
 
       {showVerdict ? (
         <ReviewVerdictDialog promptId={task.promptId} onClose={() => setShowVerdict(false)} />
+      ) : null}
+
+      {showImplementationChoice && basicImplementationTemplate && worktreeImplementationTemplate ? (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 pt-16"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="implementation-choice-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setShowImplementationChoice(false)
+            }
+          }}
+        >
+          <div className="grid w-full max-w-lg gap-4 rounded-lg border border-border bg-card p-4 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <h2 id="implementation-choice-title" className="text-sm font-semibold text-foreground">
+                Escolher implementação
+              </h2>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-muted-foreground"
+                onClick={() => setShowImplementationChoice(false)}
+                aria-label="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="grid gap-2">
+              {[basicImplementationTemplate, worktreeImplementationTemplate].map((template) => (
+                <button
+                  key={template.key}
+                  type="button"
+                  className="grid min-w-0 gap-1 rounded-md border border-border bg-background px-3 py-2 text-left text-sm transition-colors hover:border-ring hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                  onClick={() => {
+                    setShowImplementationChoice(false)
+                    onGenerate?.(task, template)
+                  }}
+                >
+                  <span className="font-medium text-foreground">{template.displayName}</span>
+                  <span className="text-xs text-muted-foreground">{template.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   )

@@ -1,12 +1,13 @@
 import { Link, Outlet, createFileRoute, useLocation, useRouterState } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Files, Loader2, List, Radio, Sparkles } from 'lucide-react'
-import { useEffect } from 'react'
+import { ArrowLeft, Check, Files, Loader2, List, Pencil, Radio, Sparkles, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { getWorkingDirectory, updateWorkingDirectory } from '@/api/working-directories'
 import { queryKeys } from '@/api/query-keys'
 import { getErrorMessage } from '@/api/client'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { usePromptHub } from '@/realtime/prompt-hub'
 
@@ -46,6 +47,8 @@ function WorkspaceLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const isFilesRoute = pathname.includes(`/workspaces/${workspaceId}/files`)
   const isPromptsRoute = !isFilesRoute
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
 
   const aiContextMutation = useMutation({
     mutationFn: (enableAiContext: boolean) => {
@@ -67,6 +70,50 @@ function WorkspaceLayout() {
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   })
+
+  const renameMutation = useMutation({
+    mutationFn: (name: string) => {
+      if (!workspaceQuery.data) {
+        throw new Error('Diretorio de trabalho ainda nao carregado.')
+      }
+
+      return updateWorkingDirectory(workspaceId, {
+        name,
+        absolutePath: workspaceQuery.data.absolutePath,
+        respectGitignore: workspaceQuery.data.respectGitignore,
+        enableAiContext: workspaceQuery.data.enableAiContext,
+        taskNumberPattern: workspaceQuery.data.taskNumberPattern,
+      })
+    },
+    onSuccess: async (workspace) => {
+      queryClient.setQueryData(queryKeys.workingDirectories.detail(workspaceId), workspace)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.workingDirectories.all })
+      setIsEditingName(false)
+      toast.success('Nome do diretorio atualizado.')
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  })
+
+  const startEditingName = () => {
+    setNameDraft(workspaceQuery.data?.name ?? '')
+    setIsEditingName(true)
+  }
+
+  const cancelEditingName = () => {
+    setIsEditingName(false)
+  }
+
+  const trimmedNameDraft = nameDraft.trim()
+  const canSaveName =
+    trimmedNameDraft.length >= 2 && trimmedNameDraft !== workspaceQuery.data?.name && !renameMutation.isPending
+
+  const submitRename = () => {
+    if (!canSaveName) {
+      return
+    }
+
+    renameMutation.mutate(trimmedNameDraft)
+  }
 
   useEffect(() => {
     joinWorkingDirectory(workspaceId)
@@ -101,9 +148,73 @@ function WorkspaceLayout() {
             </div>
           ) : (
             <>
-              <h1 className="truncate text-2xl font-semibold text-foreground" title={workspaceQuery.data?.name}>
-                {workspaceName}
-              </h1>
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={nameDraft}
+                    onChange={(event) => setNameDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        submitRename()
+                      } else if (event.key === 'Escape') {
+                        event.preventDefault()
+                        cancelEditingName()
+                      }
+                    }}
+                    autoFocus
+                    maxLength={160}
+                    aria-label="Nome do diretorio"
+                    className="h-9 max-w-sm text-lg font-semibold"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    onClick={submitRename}
+                    disabled={!canSaveName}
+                    aria-label="Salvar nome"
+                    title="Salvar"
+                  >
+                    {renameMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    onClick={cancelEditingName}
+                    disabled={renameMutation.isPending}
+                    aria-label="Cancelar edicao"
+                    title="Cancelar"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <h1 className="truncate text-2xl font-semibold text-foreground" title={workspaceQuery.data?.name}>
+                    {workspaceName}
+                  </h1>
+                  {workspaceQuery.data ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground"
+                      onClick={startEditingName}
+                      aria-label="Editar nome"
+                      title="Editar nome"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  ) : null}
+                </div>
+              )}
               <p className="mt-1 truncate text-sm text-muted-foreground">{workspaceQuery.data?.absolutePath}</p>
             </>
           )}

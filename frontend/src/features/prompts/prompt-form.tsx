@@ -236,7 +236,7 @@ export function PromptForm({
           className="hidden min-h-[28rem] xl:grid"
         />
       ) : null}
-      <div className="grid gap-4 rounded-lg border border-border bg-card p-4">
+      <div className="grid content-start gap-4 rounded-lg border border-border bg-card p-4">
         <FormField label="Titulo" htmlFor="prompt-title" error={form.formState.errors.title?.message}>
           <Input id="prompt-title" placeholder="Planejar refatoracao do modulo X" {...form.register('title')} />
         </FormField>

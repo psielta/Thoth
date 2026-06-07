@@ -8,6 +8,7 @@ import { listPromptTemplates } from '@/api/prompt-templates'
 import { queryKeys } from '@/api/query-keys'
 import type { PromptTemplate } from '@/api/schemas'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { GeneratePromptDrawer } from './generate-prompt-drawer'
 
 type GeneratePromptMenuProps = {
@@ -17,6 +18,7 @@ type GeneratePromptMenuProps = {
   // Quando fornecido (ex.: card do quadro), o menu apenas borbulha o template escolhido
   // e nao renderiza o drawer inline — quem renderiza e o componente pai (drawer elevado).
   onSelectTemplate?: (template: PromptTemplate) => void
+  className?: string
 }
 
 export function GeneratePromptMenu({
@@ -24,6 +26,7 @@ export function GeneratePromptMenu({
   disabled,
   pullRequestReference,
   onSelectTemplate,
+  className,
 }: GeneratePromptMenuProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -96,7 +99,10 @@ export function GeneratePromptMenu({
         type="button"
         variant="secondary"
         size="sm"
-        className="min-w-[9rem] border-warning-solid bg-warning-soft font-semibold text-warning-foreground ring-2 ring-warning-solid/25 hover:bg-warning-soft/80 data-[state=open]:ring-warning-solid/40"
+        className={cn(
+          'min-w-[9rem] border-warning-solid bg-warning-soft font-semibold text-warning-foreground ring-2 ring-warning-solid/25 hover:bg-warning-soft/80 data-[state=open]:ring-warning-solid/40',
+          className,
+        )}
         data-state={open ? 'open' : 'closed'}
         onClick={() => setOpen((current) => !current)}
         disabled={isDisabled}

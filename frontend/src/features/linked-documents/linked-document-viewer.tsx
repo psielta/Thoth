@@ -183,13 +183,15 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
 
   return (
     <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]">
-      <div className="grid min-w-0 content-start gap-4 rounded-lg border border-border bg-card">
+      <div className="grid min-w-0 content-start gap-4 overflow-hidden rounded-lg border border-border bg-card">
         <div className="grid min-w-0 content-start gap-3 border-b border-border p-4">
-          <div className="grid min-w-0 content-start gap-3 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-start">
+          <div className="grid min-w-0 content-start gap-4">
             <div className="min-w-0">
-              <div className="flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <FileText className="h-4 w-4 shrink-0 text-ring" />
-                <h2 className="truncate text-base font-semibold text-foreground">{document.displayName}</h2>
+                <h2 className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">
+                  {document.displayName}
+                </h2>
                 <Badge className="shrink-0" variant={statusVariants[document.status]}>
                   {statusLabels[document.status]}
                 </Badge>
@@ -280,18 +282,19 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
               </div>
             </div>
 
-            <div className="flex min-w-0 flex-wrap items-start gap-2 2xl:justify-end">
+            <div className="grid min-w-0 gap-2 sm:grid-cols-2 md:grid-cols-4">
               <GeneratePromptMenu
                 linkedDocumentId={document.id}
                 disabled={isBusy}
                 pullRequestReference={document.pullRequestReference}
+                className="w-full min-w-0 whitespace-nowrap"
               />
 
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                className="min-w-[6.25rem]"
+                className="w-full min-w-0 whitespace-nowrap"
                 onClick={() => refreshMutation.mutate()}
                 disabled={isBusy}
                 title="Atualizar agora"
@@ -309,7 +312,7 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="min-w-[6.25rem]"
+                  className="w-full min-w-0 whitespace-nowrap"
                   onClick={() => pauseMutation.mutate()}
                   disabled={isBusy}
                 >
@@ -321,7 +324,7 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="min-w-[6.25rem]"
+                  className="w-full min-w-0 whitespace-nowrap"
                   onClick={() => resumeMutation.mutate()}
                   disabled={isBusy}
                 >
@@ -334,7 +337,7 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
                 type="button"
                 variant="destructive"
                 size="sm"
-                className="min-w-[6.25rem]"
+                className="w-full min-w-0 whitespace-nowrap"
                 onClick={() => {
                   if (window.confirm('Remover este vinculo de markdown?')) {
                     removeMutation.mutate()
@@ -356,7 +359,7 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
           ) : null}
         </div>
 
-        <div className="min-h-[36rem] min-w-0 p-4">
+        <div className="min-h-[36rem] min-w-0 overflow-x-auto p-4">
           {contentQuery.isLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />

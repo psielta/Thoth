@@ -107,3 +107,4 @@ Para mudancas visuais ou de fluxo, valide tambem no navegador. O frontend roda e
 - Use sempre Conventional Commits, **sem** a linha `Co-Authored-By`.
 - Faca commits separados por mudanca logica; evite um unico commit grande com mudancas nao relacionadas.
 - Conforme terminar cada tarefa, crie o commit correspondente e faca push.
+- Para fechar uma issue automaticamente pelo commit, use palavra-chave do GitHub em **ingles** no corpo da mensagem: `Closes #N`, `Fixes #N` ou `Resolves #N`. Termos em portugues como `Fecha #N` **nao** acionam o auto-close (viram apenas referencia); nesse caso, feche manualmente com `gh issue close N`. O fechamento via commit so vale quando ele chega ao branch padrao (`main`).

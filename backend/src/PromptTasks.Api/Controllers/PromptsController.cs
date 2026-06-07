@@ -26,8 +26,9 @@ public sealed class PromptsController(ISender sender) : ControllerBase
         [FromQuery] TargetAgent? agent,
         [FromQuery] PromptKind? kind,
         [FromQuery] string? q,
+        [FromQuery] Guid? futureTaskId,
         CancellationToken cancellationToken) =>
-        Ok(await sender.Send(new GetPromptsQuery(workingDirectoryId, parentPromptId, rootOnly, status, agent, kind, q), cancellationToken));
+        Ok(await sender.Send(new GetPromptsQuery(workingDirectoryId, parentPromptId, rootOnly, status, agent, kind, q, futureTaskId), cancellationToken));
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<PromptDto>> GetById(Guid id, CancellationToken cancellationToken) =>
@@ -47,6 +48,7 @@ public sealed class PromptsController(ISender sender) : ControllerBase
             new CreatePromptCommand(
                 request.WorkingDirectoryId,
                 request.ParentPromptId,
+                request.FutureTaskId,
                 request.Title,
                 request.Content,
                 request.TargetAgent,
@@ -101,6 +103,7 @@ public sealed class PromptsController(ISender sender) : ControllerBase
     public sealed record CreatePromptRequest(
         Guid WorkingDirectoryId,
         Guid? ParentPromptId,
+        Guid? FutureTaskId,
         string Title,
         string Content,
         TargetAgent TargetAgent,

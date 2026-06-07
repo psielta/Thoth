@@ -1,4 +1,5 @@
 using PromptTasks.Domain.Common;
+using PromptTasks.Domain.FutureTasks;
 using PromptTasks.Domain.Users;
 using PromptTasks.Domain.WorkingDirectories;
 
@@ -8,6 +9,7 @@ public sealed class Prompt : AuditableEntity
 {
     public Guid WorkingDirectoryId { get; set; }
     public Guid? ParentPromptId { get; set; }
+    public Guid? FutureTaskId { get; set; }
     public string? TaskNumber { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
@@ -19,6 +21,7 @@ public sealed class Prompt : AuditableEntity
 
     public WorkingDirectory? WorkingDirectory { get; set; }
     public Prompt? ParentPrompt { get; set; }
+    public FutureTask? FutureTask { get; set; }
     public User? Owner { get; set; }
     public ICollection<Prompt> ChildPrompts { get; } = new List<Prompt>();
     public ICollection<PromptVersion> Versions { get; } = new List<PromptVersion>();

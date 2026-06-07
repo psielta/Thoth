@@ -7,6 +7,7 @@ using PromptTasks.Application.Common.Models;
 using PromptTasks.Application.Features.PromptTemplates;
 using PromptTasks.Application.Features.PromptTemplates.Definitions;
 using PromptTasks.Application.Features.Prompts.Commands.CreatePrompt;
+using PromptTasks.Domain.FutureTasks;
 using PromptTasks.Domain.Prompts;
 using PromptTasks.Domain.Users;
 using PromptTasks.Domain.WorkingDirectories;
@@ -42,6 +43,7 @@ public sealed class CreatePromptHandlerTests
         var command = new CreatePromptCommand(
             context.WorkingDirectoryItems[0].Id,
             null,
+            null,
             "Fix main",
             "Please inspect @src/main.go",
             TargetAgent.Codex,
@@ -64,13 +66,14 @@ public sealed class CreatePromptHandlerTests
     public async Task ValidationBehavior_aggregates_validation_failures()
     {
         var behavior = new ValidationBehavior<CreatePromptCommand, PromptDto>(new[] { new CreatePromptValidator() });
-        var invalid = new CreatePromptCommand(Guid.Empty, null, "", "", (TargetAgent)999, PromptKind.General, PromptStatus.Draft, null, null);
+        var invalid = new CreatePromptCommand(Guid.Empty, null, null, "", "", (TargetAgent)999, PromptKind.General, PromptStatus.Draft, null, null);
 
         var act = () => behavior.Handle(
             invalid,
             _ => Task.FromResult(new PromptDto(
                 Guid.Empty,
                 Guid.Empty,
+                null,
                 null,
                 null,
                 "",
@@ -122,6 +125,7 @@ public sealed class CreatePromptHandlerTests
             new CreatePromptCommand(
                 directory.Id,
                 parent.Id,
+                null,
                 "Review child",
                 "Review the plan",
                 TargetAgent.Codex,
@@ -164,6 +168,7 @@ public sealed class CreatePromptHandlerTests
             new CreatePromptCommand(
                 directory.Id,
                 null,
+                null,
                 "Root task",
                 "Create a plan",
                 TargetAgent.Codex,
@@ -205,6 +210,7 @@ public sealed class CreatePromptHandlerTests
         var result = await handler.Handle(
             new CreatePromptCommand(
                 directory.Id,
+                null,
                 null,
                 "Root task",
                 "Create a plan",
@@ -261,6 +267,7 @@ public sealed class CreatePromptHandlerTests
             new CreatePromptCommand(
                 childDirectory.Id,
                 parent.Id,
+                null,
                 "Review child",
                 "Review the plan",
                 TargetAgent.Codex,
@@ -300,6 +307,7 @@ public sealed class CreatePromptHandlerTests
             new CreatePromptCommand(
                 directory.Id,
                 null,
+                null,
                 "Parent task",
                 "Create a plan",
                 TargetAgent.ClaudeCode,
@@ -320,6 +328,7 @@ public sealed class CreatePromptHandlerTests
             new CreatePromptCommand(
                 directory.Id,
                 parent.Id,
+                null,
                 "Review plan",
                 "Review",
                 TargetAgent.Codex,
@@ -356,6 +365,7 @@ public sealed class CreatePromptHandlerTests
             new CreatePromptCommand(
                 directory.Id,
                 parent.Id,
+                null,
                 "Re-review plan",
                 "Re-review",
                 TargetAgent.Codex,
@@ -383,6 +393,7 @@ public sealed class CreatePromptHandlerTests
             new CreatePromptCommand(
                 directory.Id,
                 parent.Id,
+                null,
                 "Manual child",
                 "Manual",
                 TargetAgent.Codex,
@@ -400,6 +411,7 @@ public sealed class CreatePromptHandlerTests
             new CreatePromptCommand(
                 directory.Id,
                 parent.Id,
+                null,
                 "Merge PR",
                 "Merge",
                 TargetAgent.Codex,
@@ -417,6 +429,149 @@ public sealed class CreatePromptHandlerTests
             @event.Type == WorkflowEventType.PhaseChanged &&
             @event.Note == "Gerado via \"Fazer merge da PR\"");
     }
+
+    [Fact]
+    public async Task Handle_rejects_future_task_from_another_working_directory()
+    {
+        var context = new FakeApplicationDbContext();
+        var promptDirectory = new WorkingDirectory
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "repo",
+            AbsolutePath = "C:/repo",
+            OwnerId = User.SystemUserId
+        };
+        var otherDirectory = new WorkingDirectory
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "other",
+            AbsolutePath = "C:/other",
+            OwnerId = User.SystemUserId
+        };
+        var futureTask = new FutureTask
+        {
+            WorkingDirectoryId = otherDirectory.Id,
+            Title = "Backlog item",
+            Description = "Do something",
+            OwnerId = User.SystemUserId
+        };
+        context.WorkingDirectoryItems.Add(promptDirectory);
+        context.WorkingDirectoryItems.Add(otherDirectory);
+        context.FutureTaskItems.Add(futureTask);
+        var handler = CreateHandler(context);
+
+        var act = () => handler.Handle(
+            new CreatePromptCommand(
+                promptDirectory.Id,
+                null,
+                futureTask.Id,
+                "From backlog",
+                "Work on it",
+                TargetAgent.Codex,
+                PromptKind.General,
+                PromptStatus.Draft,
+                null,
+                Array.Empty<FileMentionDto>()),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task Handle_links_future_task_and_advances_open_status_to_in_progress()
+    {
+        var context = new FakeApplicationDbContext();
+        var directory = new WorkingDirectory
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "repo",
+            AbsolutePath = "C:/repo",
+            OwnerId = User.SystemUserId
+        };
+        var futureTask = new FutureTask
+        {
+            WorkingDirectoryId = directory.Id,
+            Title = "Backlog item",
+            Description = "Do something",
+            Status = FutureTaskStatus.Open,
+            OwnerId = User.SystemUserId
+        };
+        context.WorkingDirectoryItems.Add(directory);
+        context.FutureTaskItems.Add(futureTask);
+        var handler = CreateHandler(context);
+
+        var result = await handler.Handle(
+            new CreatePromptCommand(
+                directory.Id,
+                null,
+                futureTask.Id,
+                "From backlog",
+                "Work on it",
+                TargetAgent.Codex,
+                PromptKind.General,
+                PromptStatus.Draft,
+                null,
+                Array.Empty<FileMentionDto>()),
+            CancellationToken.None);
+
+        result.FutureTaskId.Should().Be(futureTask.Id);
+        context.PromptItems.Should().ContainSingle(prompt => prompt.FutureTaskId == futureTask.Id);
+        futureTask.Status.Should().Be(FutureTaskStatus.InProgress);
+    }
+
+    [Theory]
+    [InlineData(FutureTaskStatus.Done)]
+    [InlineData(FutureTaskStatus.Archived)]
+    public async Task Handle_keeps_future_task_status_when_not_open(FutureTaskStatus status)
+    {
+        var context = new FakeApplicationDbContext();
+        var directory = new WorkingDirectory
+        {
+            Id = Guid.CreateVersion7(),
+            Name = "repo",
+            AbsolutePath = "C:/repo",
+            OwnerId = User.SystemUserId
+        };
+        var futureTask = new FutureTask
+        {
+            WorkingDirectoryId = directory.Id,
+            Title = "Backlog item",
+            Description = "Do something",
+            Status = status,
+            OwnerId = User.SystemUserId
+        };
+        context.WorkingDirectoryItems.Add(directory);
+        context.FutureTaskItems.Add(futureTask);
+        var handler = CreateHandler(context);
+
+        var result = await handler.Handle(
+            new CreatePromptCommand(
+                directory.Id,
+                null,
+                futureTask.Id,
+                "From backlog",
+                "Work on it",
+                TargetAgent.Codex,
+                PromptKind.General,
+                PromptStatus.Draft,
+                null,
+                Array.Empty<FileMentionDto>()),
+            CancellationToken.None);
+
+        result.FutureTaskId.Should().Be(futureTask.Id);
+        futureTask.Status.Should().Be(status);
+    }
+
+    private static CreatePromptHandler CreateHandler(FakeApplicationDbContext context) =>
+        new(
+            context,
+            new FakeWorkspaceFileService(),
+            new FakePromptNotifier(),
+            new FakeWorkflowNotifier(),
+            new FakeDailyTaskSequenceProvider(),
+            new FakeCurrentUser(),
+            new FakeDateTimeProvider(),
+            CreateCatalog());
 
     private static PromptTemplateCatalog CreateCatalog() =>
         new(new IPromptTemplateDefinition[]
@@ -436,6 +591,8 @@ public sealed class CreatePromptHandlerTests
     {
         public List<User> UserItems { get; } = new();
         public List<WorkingDirectory> WorkingDirectoryItems { get; } = new();
+        public List<FutureTask> FutureTaskItems { get; } = new();
+        public List<FutureTaskLabel> FutureTaskLabelItems { get; } = new();
         public List<Prompt> PromptItems { get; } = new();
         public List<PromptVersion> PromptVersionItems { get; } = new();
         public List<PromptFileReference> PromptFileReferenceItems { get; } = new();
@@ -450,6 +607,8 @@ public sealed class CreatePromptHandlerTests
 
         public IQueryable<User> Users => UserItems.AsQueryable();
         public IQueryable<WorkingDirectory> WorkingDirectories => WorkingDirectoryItems.AsQueryable();
+        public IQueryable<FutureTask> FutureTasks => FutureTaskItems.AsQueryable();
+        public IQueryable<FutureTaskLabel> FutureTaskLabels => FutureTaskLabelItems.AsQueryable();
         public IQueryable<Prompt> Prompts => PromptItems.AsQueryable();
         public IQueryable<PromptVersion> PromptVersions => PromptVersionItems.AsQueryable();
         public IQueryable<PromptFileReference> PromptFileReferences => PromptFileReferenceItems.AsQueryable();
@@ -486,6 +645,12 @@ public sealed class CreatePromptHandlerTests
                     break;
                 case PromptFileReference reference:
                     PromptFileReferenceItems.Remove(reference);
+                    break;
+                case FutureTask futureTask:
+                    FutureTaskItems.Remove(futureTask);
+                    break;
+                case FutureTaskLabel futureTaskLabel:
+                    FutureTaskLabelItems.Remove(futureTaskLabel);
                     break;
             }
         }
@@ -537,6 +702,12 @@ public sealed class CreatePromptHandlerTests
                     break;
                 case WorkingDirectory directory:
                     WorkingDirectoryItems.Add(directory);
+                    break;
+                case FutureTask futureTask:
+                    FutureTaskItems.Add(futureTask);
+                    break;
+                case FutureTaskLabel futureTaskLabel:
+                    FutureTaskLabelItems.Add(futureTaskLabel);
                     break;
             }
         }

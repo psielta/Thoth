@@ -120,6 +120,8 @@ public sealed class WorkspaceFileWatchCoordinatorTests : IDisposable
 
         public IQueryable<Domain.Users.User> Users => Array.Empty<Domain.Users.User>().AsQueryable();
         public IQueryable<WorkingDirectory> WorkingDirectories => WorkingDirectoryItems.AsQueryable();
+        public IQueryable<Domain.FutureTasks.FutureTask> FutureTasks => Array.Empty<Domain.FutureTasks.FutureTask>().AsQueryable();
+        public IQueryable<Domain.FutureTasks.FutureTaskLabel> FutureTaskLabels => Array.Empty<Domain.FutureTasks.FutureTaskLabel>().AsQueryable();
         public IQueryable<Domain.Prompts.Prompt> Prompts => Array.Empty<Domain.Prompts.Prompt>().AsQueryable();
         public IQueryable<Domain.Prompts.PromptVersion> PromptVersions => Array.Empty<Domain.Prompts.PromptVersion>().AsQueryable();
         public IQueryable<Domain.Prompts.PromptFileReference> PromptFileReferences => Array.Empty<Domain.Prompts.PromptFileReference>().AsQueryable();

@@ -11,4 +11,5 @@ public sealed record GetPromptsQuery(
     PromptStatus? Status,
     TargetAgent? Agent,
     PromptKind? Kind,
-    string? Q) : IRequest<IReadOnlyList<PromptDto>>;
+    string? Q,
+    Guid? FutureTaskId = null) : IRequest<IReadOnlyList<PromptDto>>;

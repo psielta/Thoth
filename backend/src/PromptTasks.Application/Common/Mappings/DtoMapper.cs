@@ -1,5 +1,6 @@
 using System.Globalization;
 using PromptTasks.Application.Common.Models;
+using PromptTasks.Domain.FutureTasks;
 using PromptTasks.Domain.Prompts;
 using PromptTasks.Domain.WorkingDirectories;
 
@@ -18,11 +19,29 @@ public static class DtoMapper
             workingDirectory.CreatedAtUtc,
             workingDirectory.UpdatedAtUtc);
 
+    public static FutureTaskDto ToDto(this FutureTask task, IEnumerable<string> labels, int linkedPromptCount) =>
+        new(
+            task.Id,
+            task.WorkingDirectoryId,
+            task.Title,
+            task.Description,
+            task.Status,
+            task.Type,
+            labels
+                .OrderBy(label => label, StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            task.IssueGithubId,
+            task.RowVersion.ToString(CultureInfo.InvariantCulture),
+            linkedPromptCount,
+            task.CreatedAtUtc,
+            task.UpdatedAtUtc);
+
     public static PromptDto ToDto(this Prompt prompt, IEnumerable<PromptFileReference> references) =>
         new(
             prompt.Id,
             prompt.WorkingDirectoryId,
             prompt.ParentPromptId,
+            prompt.FutureTaskId,
             prompt.TaskNumber,
             prompt.Title,
             prompt.Content,

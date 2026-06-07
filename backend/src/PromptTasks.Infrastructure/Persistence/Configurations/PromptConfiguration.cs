@@ -31,6 +31,7 @@ public sealed class PromptConfiguration : IEntityTypeConfiguration<Prompt>
             .IsUnique()
             .HasFilter("\"TaskNumber\" IS NOT NULL");
         builder.HasIndex(prompt => new { prompt.ParentPromptId, prompt.UpdatedAtUtc });
+        builder.HasIndex(prompt => prompt.FutureTaskId);
 
         builder.HasOne(prompt => prompt.Owner)
             .WithMany()
@@ -41,5 +42,10 @@ public sealed class PromptConfiguration : IEntityTypeConfiguration<Prompt>
             .WithMany(prompt => prompt.ChildPrompts)
             .HasForeignKey(prompt => prompt.ParentPromptId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(prompt => prompt.FutureTask)
+            .WithMany(task => task.Prompts)
+            .HasForeignKey(prompt => prompt.FutureTaskId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

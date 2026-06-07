@@ -426,6 +426,8 @@ public sealed class WorkflowHandlerTests
 
         public IQueryable<User> Users => UserItems.AsQueryable();
         public IQueryable<WorkingDirectory> WorkingDirectories => WorkingDirectoryItems.AsQueryable();
+        public IQueryable<PromptTasks.Domain.FutureTasks.FutureTask> FutureTasks => Enumerable.Empty<PromptTasks.Domain.FutureTasks.FutureTask>().AsQueryable();
+        public IQueryable<PromptTasks.Domain.FutureTasks.FutureTaskLabel> FutureTaskLabels => Enumerable.Empty<PromptTasks.Domain.FutureTasks.FutureTaskLabel>().AsQueryable();
         public IQueryable<Prompt> Prompts => PromptItems.AsQueryable();
         public IQueryable<PromptVersion> PromptVersions => PromptVersionItems.AsQueryable();
         public IQueryable<PromptFileReference> PromptFileReferences => PromptFileReferenceItems.AsQueryable();

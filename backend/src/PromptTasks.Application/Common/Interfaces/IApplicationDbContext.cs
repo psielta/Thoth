@@ -1,4 +1,5 @@
 using PromptTasks.Domain.Ai;
+using PromptTasks.Domain.FutureTasks;
 using PromptTasks.Domain.Prompts;
 using PromptTasks.Domain.Users;
 using PromptTasks.Domain.WorkingDirectories;
@@ -10,6 +11,8 @@ public interface IApplicationDbContext
 {
     IQueryable<User> Users { get; }
     IQueryable<WorkingDirectory> WorkingDirectories { get; }
+    IQueryable<FutureTask> FutureTasks { get; }
+    IQueryable<FutureTaskLabel> FutureTaskLabels { get; }
     IQueryable<Prompt> Prompts { get; }
     IQueryable<PromptVersion> PromptVersions { get; }
     IQueryable<PromptFileReference> PromptFileReferences { get; }

@@ -26,6 +26,11 @@ public sealed class GetPromptsHandler(IApplicationDbContext context, ICurrentUse
             query = query.Where(prompt => prompt.ParentPromptId == null);
         }
 
+        if (request.FutureTaskId is { } futureTaskId)
+        {
+            query = query.Where(prompt => prompt.FutureTaskId == futureTaskId);
+        }
+
         if (request.Status is { } status)
         {
             query = query.Where(prompt => prompt.Status == status);

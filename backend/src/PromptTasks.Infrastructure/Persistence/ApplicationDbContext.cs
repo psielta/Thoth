@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PromptTasks.Application.Common.Interfaces;
 using PromptTasks.Domain.Ai;
 using PromptTasks.Domain.Common;
+using PromptTasks.Domain.FutureTasks;
 using PromptTasks.Domain.Prompts;
 using PromptTasks.Domain.Users;
 using PromptTasks.Domain.WorkingDirectories;
@@ -17,6 +18,8 @@ public sealed class ApplicationDbContext(
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<WorkingDirectory> WorkingDirectories => Set<WorkingDirectory>();
+    public DbSet<FutureTask> FutureTasks => Set<FutureTask>();
+    public DbSet<FutureTaskLabel> FutureTaskLabels => Set<FutureTaskLabel>();
     public DbSet<Prompt> Prompts => Set<Prompt>();
     public DbSet<DailyTaskSequence> DailyTaskSequences => Set<DailyTaskSequence>();
     public DbSet<PromptVersion> PromptVersions => Set<PromptVersion>();
@@ -34,6 +37,8 @@ public sealed class ApplicationDbContext(
 
     IQueryable<User> IApplicationDbContext.Users => Users;
     IQueryable<WorkingDirectory> IApplicationDbContext.WorkingDirectories => WorkingDirectories;
+    IQueryable<FutureTask> IApplicationDbContext.FutureTasks => FutureTasks;
+    IQueryable<FutureTaskLabel> IApplicationDbContext.FutureTaskLabels => FutureTaskLabels;
     IQueryable<Prompt> IApplicationDbContext.Prompts => Prompts;
     IQueryable<PromptVersion> IApplicationDbContext.PromptVersions => PromptVersions;
     IQueryable<PromptFileReference> IApplicationDbContext.PromptFileReferences => PromptFileReferences;

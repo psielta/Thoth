@@ -3,9 +3,11 @@ using PromptTasks.Application.Common.Exceptions;
 using PromptTasks.Application.Common.Interfaces;
 using PromptTasks.Application.Common.Mappings;
 using PromptTasks.Application.Common.Models;
+using PromptTasks.Application.Features.FutureTasks;
 using PromptTasks.Application.Features.PromptTemplates;
 using PromptTasks.Application.Features.Prompts;
 using PromptTasks.Application.Features.Workflow;
+using PromptTasks.Domain.FutureTasks;
 using PromptTasks.Domain.Prompts;
 using PromptTasks.Domain.Workflows;
 
@@ -33,10 +35,19 @@ public sealed class CreatePromptHandler(
             throw new ConflictException("Child prompts must use the same working directory as the parent prompt.");
         }
 
+        var futureTask = request.FutureTaskId.HasValue
+            ? FutureTaskMutationHelpers.GetFutureTask(context, request.FutureTaskId.Value, currentUser.UserId)
+            : null;
+        if (futureTask is not null && futureTask.WorkingDirectoryId != directory.Id)
+        {
+            throw new ConflictException("The linked future task must belong to the same working directory.");
+        }
+
         var prompt = new Prompt
         {
             WorkingDirectoryId = directory.Id,
             ParentPromptId = parentPrompt?.Id,
+            FutureTaskId = futureTask?.Id,
             Title = request.Title.Trim(),
             Content = request.Content,
             TargetAgent = request.TargetAgent,
@@ -71,6 +82,12 @@ public sealed class CreatePromptHandler(
         // Root prompts are tasks: start their workflow atomically so a task always has a timeline.
         var workflow = TryStartWorkflow(prompt);
         var parentWorkflow = TryAdvanceParentWorkflow(parentPrompt, request.SourceTemplateKey, dateTimeProvider.UtcNow);
+
+        // A future task that becomes a prompt starts progressing; Done/Archived are left untouched.
+        if (futureTask is not null && futureTask.Status == FutureTaskStatus.Open)
+        {
+            futureTask.Status = FutureTaskStatus.InProgress;
+        }
 
         await context.SaveChangesAsync(cancellationToken);
 

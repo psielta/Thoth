@@ -8,7 +8,17 @@ import { getErrorMessage } from '@/api/client'
 import { queryKeys } from '@/api/query-keys'
 import type { PromptStatus, PromptTemplate, PromptWorkflowStatus, TaskSummary, Workflow } from '@/api/schemas'
 import { listWorkingDirectories } from '@/api/working-directories'
-import { completeWorkflow, getBoard, getWorkflow, getWorkflowTemplate, reopenWorkflow, setPhase, startWorkflow } from '@/api/workflow'
+import {
+  completeWorkflow,
+  getBoard,
+  getWorkflow,
+  getWorkflowTemplate,
+  reopenWorkflow,
+  setPhase,
+  startWorkflow,
+  updateTaskPhases,
+  type WorkflowPhaseInput,
+} from '@/api/workflow'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -166,7 +176,9 @@ export function Board() {
 
     const targetPhase = findWorkflowPhase(workflow, column)
     if (!targetPhase) {
-      throw new Error('Esta tarefa não possui a fase de destino.')
+      // Fase do template ainda inexistente nesta tarefa (criada em /settings depois que o fluxo comecou):
+      // adiciona a fase a esta tarefa e entra nela.
+      return addPhaseToTaskAndEnter(task, column, workflow)
     }
 
     if (workflow.currentPhaseId === targetPhase.id && workflow.status === 'Active') {
@@ -181,14 +193,61 @@ export function Board() {
   }
 
   const findWorkflowPhase = (workflow: Workflow, column: BoardColumn) => {
-    if (column.phaseOrderIndex !== undefined) {
-      const byOrder = workflow.phases.find((phase) => phase.orderIndex === column.phaseOrderIndex)
-      if (byOrder) {
-        return byOrder
+    if (column.phaseName) {
+      const byName = workflow.phases.find((phase) => phase.name === column.phaseName)
+      if (byName) {
+        return byName
       }
     }
 
-    return workflow.phases.find((phase) => phase.name === column.phaseName)
+    if (column.phaseOrderIndex !== undefined) {
+      return workflow.phases.find((phase) => phase.orderIndex === column.phaseOrderIndex)
+    }
+
+    return undefined
+  }
+
+  const addPhaseToTaskAndEnter = async (
+    task: TaskSummary,
+    column: BoardColumn,
+    workflow: Workflow,
+  ): Promise<Workflow | null> => {
+    if (column.kind !== 'phase' || !column.phaseName) {
+      throw new Error('Esta tarefa não possui a fase de destino.')
+    }
+
+    const templatePhase = (templateQuery.data?.phases ?? []).find(
+      (phase) =>
+        phase.name === column.phaseName ||
+        (column.phaseOrderIndex !== undefined && phase.orderIndex === column.phaseOrderIndex),
+    )
+    const nextOrderIndex = workflow.phases.reduce((max, phase) => Math.max(max, phase.orderIndex), -1) + 1
+    const phases: WorkflowPhaseInput[] = [
+      ...workflow.phases.map((phase) => ({
+        id: phase.id,
+        name: phase.name,
+        defaultActor: phase.defaultActor,
+        orderIndex: phase.orderIndex,
+        color: phase.color,
+      })),
+      {
+        id: null,
+        name: column.phaseName,
+        defaultActor: templatePhase?.defaultActor ?? 'Human',
+        orderIndex: nextOrderIndex,
+        color: templatePhase?.color ?? '#64748b',
+      },
+    ]
+
+    const updated = await updateTaskPhases(task.promptId, phases, workflow.rowVersion)
+    const added = updated.phases.find((phase) => phase.name === column.phaseName)
+    if (!added) {
+      throw new Error('Não foi possível adicionar a fase à tarefa.')
+    }
+
+    return updated.status === 'Done'
+      ? reopenWorkflow(task.promptId, updated.rowVersion, added.id)
+      : setPhase(task.promptId, added.id, updated.rowVersion)
   }
 
   const handleDragStart = (task: TaskSummary, event: DragEvent<HTMLDivElement>) => {

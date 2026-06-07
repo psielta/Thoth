@@ -3,6 +3,8 @@ import { z } from 'zod'
 export const targetAgentSchema = z.enum(['ClaudeCode', 'Codex'])
 export const promptKindSchema = z.enum(['General', 'Planning'])
 export const promptStatusSchema = z.enum(['Draft', 'Ready', 'Archived'])
+export const futureTaskStatusSchema = z.enum(['Open', 'InProgress', 'Done', 'Archived'])
+export const futureTaskTypeSchema = z.enum(['Bug', 'Feature', 'Task'])
 export const linkedDocumentStatusSchema = z.enum(['Draft', 'Tracking', 'Paused', 'Error', 'Missing'])
 export const linkedDocumentTypeSchema = z.enum(['ClaudeCodePlan'])
 export const linkedDocumentVersionSourceSchema = z.enum(['Initial', 'FileChanged', 'ManualRefresh', 'Resumed'])
@@ -11,6 +13,8 @@ export const promptTemplateKeySchema = z.string().min(1)
 export type TargetAgent = z.infer<typeof targetAgentSchema>
 export type PromptKind = z.infer<typeof promptKindSchema>
 export type PromptStatus = z.infer<typeof promptStatusSchema>
+export type FutureTaskStatus = z.infer<typeof futureTaskStatusSchema>
+export type FutureTaskType = z.infer<typeof futureTaskTypeSchema>
 export type LinkedDocumentStatus = z.infer<typeof linkedDocumentStatusSchema>
 export type LinkedDocumentType = z.infer<typeof linkedDocumentTypeSchema>
 export type LinkedDocumentVersionSource = z.infer<typeof linkedDocumentVersionSourceSchema>
@@ -72,6 +76,7 @@ export const promptSchema = z.object({
   id: z.string().uuid(),
   workingDirectoryId: z.string().uuid(),
   parentPromptId: z.string().uuid().nullable(),
+  futureTaskId: z.string().uuid().nullable(),
   taskNumber: z.string().nullable(),
   title: z.string(),
   content: z.string(),
@@ -83,6 +88,21 @@ export const promptSchema = z.object({
   createdAtUtc: z.string(),
   updatedAtUtc: z.string(),
   mentions: z.array(fileMentionSchema),
+})
+
+export const futureTaskSchema = z.object({
+  id: z.string().uuid(),
+  workingDirectoryId: z.string().uuid(),
+  title: z.string(),
+  description: z.string(),
+  status: futureTaskStatusSchema,
+  type: futureTaskTypeSchema,
+  labels: z.array(z.string()),
+  issueGithubId: z.string().nullable(),
+  rowVersion: z.string(),
+  linkedPromptCount: z.number(),
+  createdAtUtc: z.string(),
+  updatedAtUtc: z.string(),
 })
 
 export const promptVersionSchema = z.object({
@@ -173,6 +193,7 @@ export type FileTreeNode = z.infer<typeof fileTreeNodeSchema>
 export type FileContent = z.infer<typeof fileContentSchema>
 export type FileReferenceValidation = z.infer<typeof fileReferenceValidationSchema>
 export type Prompt = z.infer<typeof promptSchema>
+export type FutureTask = z.infer<typeof futureTaskSchema>
 export type PromptVersion = z.infer<typeof promptVersionSchema>
 export type LinkedDocument = z.infer<typeof linkedDocumentSchema>
 export type LinkedDocumentContent = z.infer<typeof linkedDocumentContentSchema>
@@ -186,6 +207,7 @@ export const fileSearchResultListSchema = z.array(fileSearchResultSchema)
 export const fileTreeNodeListSchema = z.array(fileTreeNodeSchema)
 export const fileReferenceValidationListSchema = z.array(fileReferenceValidationSchema)
 export const promptListSchema = z.array(promptSchema)
+export const futureTaskListSchema = z.array(futureTaskSchema)
 export const promptVersionListSchema = z.array(promptVersionSchema)
 export const linkedDocumentListSchema = z.array(linkedDocumentSchema)
 export const linkedDocumentVersionListSchema = z.array(linkedDocumentVersionSchema)

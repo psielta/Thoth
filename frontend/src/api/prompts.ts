@@ -16,6 +16,7 @@ import {
 export type PromptPayload = {
   workingDirectoryId: string
   parentPromptId?: string | null
+  futureTaskId?: string | null
   title: string
   content: string
   targetAgent: TargetAgent
@@ -25,7 +26,10 @@ export type PromptPayload = {
   mentions: FileMention[]
 }
 
-export type UpdatePromptPayload = Omit<PromptPayload, 'workingDirectoryId' | 'sourceTemplateKey'> & {
+export type UpdatePromptPayload = Omit<
+  PromptPayload,
+  'workingDirectoryId' | 'sourceTemplateKey' | 'futureTaskId'
+> & {
   rowVersion: string
 }
 
@@ -51,6 +55,9 @@ export async function listPrompts(filters: PromptFilters): Promise<Prompt[]> {
   }
   if (filters.q) {
     searchParams.set('q', filters.q)
+  }
+  if (filters.futureTaskId) {
+    searchParams.set('futureTaskId', filters.futureTaskId)
   }
 
   const data = await api.get('prompts', { searchParams }).json<unknown>()

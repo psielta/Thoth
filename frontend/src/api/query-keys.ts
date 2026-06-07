@@ -1,4 +1,11 @@
-import type { PromptKind, PromptStatus, PromptWorkflowStatus, TargetAgent } from './schemas'
+import type {
+  FutureTaskStatus,
+  FutureTaskType,
+  PromptKind,
+  PromptStatus,
+  PromptWorkflowStatus,
+  TargetAgent,
+} from './schemas'
 
 export type PromptFilters = {
   workingDirectoryId?: string
@@ -7,6 +14,16 @@ export type PromptFilters = {
   status?: PromptStatus
   agent?: TargetAgent
   kind?: PromptKind
+  q?: string
+  futureTaskId?: string
+}
+
+export type FutureTaskFilters = {
+  workingDirectoryId?: string
+  status?: FutureTaskStatus
+  type?: FutureTaskType
+  label?: string
+  includeArchived?: boolean
   q?: string
 }
 
@@ -37,6 +54,11 @@ export const queryKeys = {
     byTaskNumber: (workingDirectoryId: string, taskNumber: string) =>
       ['prompts', 'task-number', workingDirectoryId, taskNumber] as const,
     versions: (id: string) => ['prompts', id, 'versions'] as const,
+  },
+  futureTasks: {
+    all: ['future-tasks'] as const,
+    list: (filters: FutureTaskFilters) => ['future-tasks', 'list', filters] as const,
+    detail: (id: string) => ['future-tasks', id] as const,
   },
   promptTemplates: {
     all: ['prompt-templates'] as const,

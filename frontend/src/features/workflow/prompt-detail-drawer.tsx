@@ -1,4 +1,5 @@
-import { X } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { ExternalLink, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -33,17 +34,30 @@ export function PromptDetailDrawer({ workspaceId, promptId, title, onClose }: Pr
             {title || 'Detalhes do prompt'}
           </h2>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground"
-            onClick={onClose}
-            aria-label="Fechar"
-            title="Fechar"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex shrink-0 items-center gap-1">
+            <Link
+              to="/workspaces/$workspaceId/prompts/$promptId"
+              params={{ workspaceId, promptId }}
+              search={{}}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted"
+              aria-label="Abrir na pagina completa de edicao"
+              title="Abrir na pagina completa de edicao"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground"
+              onClick={onClose}
+              aria-label="Fechar"
+              title="Fechar"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="min-h-0 overflow-auto px-4 py-3">

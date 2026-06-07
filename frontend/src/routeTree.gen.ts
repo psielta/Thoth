@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as NotasRouteImport } from './routes/notas'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspacesIndexRouteImport } from './routes/workspaces/index'
@@ -24,6 +25,11 @@ import { Route as WorkspacesWorkspaceIdPromptsPromptIdRouteImport } from './rout
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotasRoute = NotasRouteImport.update({
+  id: '/notas',
+  path: '/notas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FilesRoute = FilesRouteImport.update({
@@ -86,6 +92,7 @@ const WorkspacesWorkspaceIdPromptsPromptIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/files': typeof FilesRoute
+  '/notas': typeof NotasRoute
   '/settings': typeof SettingsRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/workspaces/': typeof WorkspacesIndexRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/files': typeof FilesRoute
+  '/notas': typeof NotasRoute
   '/settings': typeof SettingsRoute
   '/workspaces': typeof WorkspacesIndexRoute
   '/workspaces/$workspaceId/files': typeof WorkspacesWorkspaceIdFilesRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/files': typeof FilesRoute
+  '/notas': typeof NotasRoute
   '/settings': typeof SettingsRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/workspaces/': typeof WorkspacesIndexRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/files'
+    | '/notas'
     | '/settings'
     | '/workspaces/$workspaceId'
     | '/workspaces/'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/files'
+    | '/notas'
     | '/settings'
     | '/workspaces'
     | '/workspaces/$workspaceId/files'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/files'
+    | '/notas'
     | '/settings'
     | '/workspaces/$workspaceId'
     | '/workspaces/'
@@ -166,6 +178,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FilesRoute: typeof FilesRoute
+  NotasRoute: typeof NotasRoute
   SettingsRoute: typeof SettingsRoute
   WorkspacesWorkspaceIdRoute: typeof WorkspacesWorkspaceIdRouteWithChildren
   WorkspacesIndexRoute: typeof WorkspacesIndexRoute
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notas': {
+      id: '/notas'
+      path: '/notas'
+      fullPath: '/notas'
+      preLoaderRoute: typeof NotasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/files': {
@@ -281,6 +301,7 @@ const WorkspacesWorkspaceIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FilesRoute: FilesRoute,
+  NotasRoute: NotasRoute,
   SettingsRoute: SettingsRoute,
   WorkspacesWorkspaceIdRoute: WorkspacesWorkspaceIdRouteWithChildren,
   WorkspacesIndexRoute: WorkspacesIndexRoute,

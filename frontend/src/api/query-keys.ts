@@ -34,6 +34,12 @@ export type WorkflowBoardFilters = {
   q?: string
 }
 
+export type NoteFilters = {
+  notebookId?: string
+  q?: string
+  includeArchived?: boolean
+}
+
 export const queryKeys = {
   workingDirectories: {
     all: ['working-directories'] as const,
@@ -89,5 +95,15 @@ export const queryKeys = {
     session: (id: string) => ['ai', 'sessions', id] as const,
     sessions: (promptId?: string, workingDirectoryId?: string) =>
       ['ai', 'sessions', { promptId, workingDirectoryId }] as const,
+  },
+  notebooks: {
+    all: ['notebooks'] as const,
+    list: (includeArchived: boolean) => ['notebooks', 'list', includeArchived] as const,
+    detail: (id: string) => ['notebooks', id] as const,
+  },
+  notes: {
+    all: ['notes'] as const,
+    list: (filters: NoteFilters) => ['notes', 'list', filters] as const,
+    detail: (id: string) => ['notes', id] as const,
   },
 }

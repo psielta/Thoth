@@ -1,5 +1,6 @@
 const EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   cs: 'csharp',
+  cshtml: 'razor',
   css: 'css',
   go: 'go',
   html: 'html',
@@ -12,6 +13,7 @@ const EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   mjs: 'javascript',
   php: 'php',
   py: 'python',
+  razor: 'razor',
   rb: 'ruby',
   rs: 'rust',
   scss: 'scss',

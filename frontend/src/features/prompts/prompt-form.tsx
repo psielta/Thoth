@@ -75,7 +75,7 @@ export function PromptForm({
       targetAgent: 'Codex',
       kind: 'General',
       status: 'Draft',
-      content: '# Tarefa\n\n',
+      content: '',
     },
   })
 

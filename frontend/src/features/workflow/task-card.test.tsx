@@ -173,6 +173,28 @@ describe('TaskCard', () => {
     expect(screen.getByRole('button', { name: /gerar prompt filho/i })).toBeInTheDocument()
   })
 
+  it('keeps the generate-child dropdown scrollable when there are many templates', async () => {
+    vi.mocked(listPromptTemplates).mockResolvedValue(
+      Array.from({ length: 16 }, (_, index) => makeTemplate(`Template${index}`, `Template ${index}`)),
+    )
+    const task: TaskSummary = { ...makeTask(null), linkedDocumentId: 'doc-1', hasLinkedPlan: true }
+
+    renderTask(task)
+
+    const trigger = await screen.findByRole('button', { name: /gerar prompt filho/i })
+    await waitFor(() => expect(trigger).not.toBeDisabled())
+    fireEvent.click(trigger)
+
+    const menu = screen.getByRole('menu')
+    expect(menu).toHaveClass(
+      'max-h-[min(18rem,calc(100vh-1rem))]',
+      'overflow-y-auto',
+      'overscroll-contain',
+    )
+    fireEvent.scroll(menu)
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+  })
+
   it('hides the generate-child dropdown without a linked plan', () => {
     renderCard(null)
 

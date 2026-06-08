@@ -1,4 +1,4 @@
-import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom'
+import { autoUpdate, computePosition, flip, offset, shift, size } from '@floating-ui/dom'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Loader2, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -50,7 +50,17 @@ export function GeneratePromptMenu({
       computePosition(button, menu, {
         placement: 'bottom-end',
         strategy: 'fixed',
-        middleware: [offset(6), flip(), shift({ padding: 8 })],
+        middleware: [
+          offset(6),
+          flip(),
+          size({
+            padding: 8,
+            apply({ availableHeight, elements }) {
+              elements.floating.style.maxHeight = `${Math.min(288, Math.max(96, availableHeight))}px`
+            },
+          }),
+          shift({ padding: 8 }),
+        ],
       }).then(({ x, y }) => setMenuPosition({ left: x, top: y }))
 
     const cleanup = autoUpdate(button, menu, update)
@@ -76,17 +86,25 @@ export function GeneratePromptMenu({
         setOpen(false)
       }
     }
-    const onScrollOrResize = () => setOpen(false)
+    const onScroll = (event: Event) => {
+      const target = event.target as Node | null
+      if (target && (buttonRef.current?.contains(target) || menuRef.current?.contains(target))) {
+        return
+      }
+
+      setOpen(false)
+    }
+    const onResize = () => setOpen(false)
 
     window.addEventListener('pointerdown', onPointerDown, true)
     window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('scroll', onScrollOrResize, true)
-    window.addEventListener('resize', onScrollOrResize)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onResize)
     return () => {
       window.removeEventListener('pointerdown', onPointerDown, true)
       window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('scroll', onScrollOrResize, true)
-      window.removeEventListener('resize', onScrollOrResize)
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onResize)
     }
   }, [open])
 
@@ -119,7 +137,7 @@ export function GeneratePromptMenu({
             <div
               ref={menuRef}
               role="menu"
-              className="fixed z-50 grid w-64 gap-1 rounded-md border border-border bg-card p-1 shadow-xl"
+              className="fixed z-50 grid max-h-[min(18rem,calc(100vh-1rem))] w-64 gap-1 overflow-y-auto overscroll-contain rounded-md border border-border bg-card p-1 shadow-xl"
               style={{ left: menuPosition.left, top: menuPosition.top }}
             >
               {templatesQuery.error ? (

@@ -25,7 +25,7 @@ function jsonResponse(payload: unknown) {
 const workspaceId = '019e9f6a-9fb2-7f24-ac3a-bf099d2c93c0'
 const diagramId = '019e9f6a-94e7-7a23-965d-c8b05c63ee59'
 
-const sampleSummary = {
+const sampleBase = {
   id: diagramId,
   workingDirectoryId: workspaceId,
   title: 'Board',
@@ -36,7 +36,8 @@ const sampleSummary = {
   updatedAtUtc: '2026-06-01T00:00:00Z',
 }
 
-const sampleDiagram = { ...sampleSummary, content: '{}', metadataJson: null }
+const sampleSummary = { ...sampleBase, workingDirectoryName: 'repo' }
+const sampleDiagram = { ...sampleBase, content: '{}', metadataJson: null }
 
 describe('diagrams api', () => {
   beforeEach(() => {
@@ -64,6 +65,15 @@ describe('diagrams api', () => {
 
     const [, options] = apiMock.get.mock.calls[0]
     expect((options.searchParams as URLSearchParams).toString()).toBe(`workingDirectoryId=${workspaceId}`)
+  })
+
+  it('lists across all workspaces when no workspace is given', async () => {
+    apiMock.get.mockReturnValue(jsonResponse([sampleSummary]))
+
+    await listDiagrams({})
+
+    const [, options] = apiMock.get.mock.calls[0]
+    expect((options.searchParams as URLSearchParams).toString()).toBe('')
   })
 
   it('rejects invalid payloads', async () => {

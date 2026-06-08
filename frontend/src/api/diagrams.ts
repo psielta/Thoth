@@ -26,7 +26,9 @@ export type UpdateDiagramPayload = {
 
 export async function listDiagrams(filters: DiagramFilters): Promise<DiagramSummary[]> {
   const searchParams = new URLSearchParams()
-  searchParams.set('workingDirectoryId', filters.workingDirectoryId)
+  if (filters.workingDirectoryId) {
+    searchParams.set('workingDirectoryId', filters.workingDirectoryId)
+  }
   if (filters.type) {
     searchParams.set('type', filters.type)
   }

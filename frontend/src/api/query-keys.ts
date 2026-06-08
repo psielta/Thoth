@@ -42,7 +42,7 @@ export type NoteFilters = {
 }
 
 export type DiagramFilters = {
-  workingDirectoryId: string
+  workingDirectoryId?: string
   type?: DiagramType
   q?: string
   includeArchived?: boolean

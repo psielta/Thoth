@@ -11,6 +11,7 @@ vi.mock('@/api/diagrams')
 const sampleDiagram: DiagramSummary = {
   id: 'diagram-1',
   workingDirectoryId: 'ws-1',
+  workingDirectoryName: 'Repo',
   title: 'Arquitetura',
   description: null,
   type: 'Mermaid',

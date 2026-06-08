@@ -470,7 +470,7 @@ export const noteListSchema = z.array(noteSchema)
 export const diagramTypeSchema = z.enum(['Excalidraw', 'Mermaid'])
 export type DiagramType = z.infer<typeof diagramTypeSchema>
 
-export const diagramSummarySchema = z.object({
+const diagramBaseSchema = z.object({
   id: z.string().uuid(),
   workingDirectoryId: z.string().uuid(),
   title: z.string(),
@@ -480,10 +480,16 @@ export const diagramSummarySchema = z.object({
   createdAtUtc: z.string(),
   updatedAtUtc: z.string(),
 })
+
+// The list summary carries the workspace name so the global /diagramas page can
+// label which workspace each diagram belongs to.
+export const diagramSummarySchema = diagramBaseSchema.extend({
+  workingDirectoryName: z.string(),
+})
 export type DiagramSummary = z.infer<typeof diagramSummarySchema>
 export const diagramSummaryListSchema = z.array(diagramSummarySchema)
 
-export const diagramSchema = diagramSummarySchema.extend({
+export const diagramSchema = diagramBaseSchema.extend({
   content: z.string(),
   metadataJson: z.string().nullable(),
 })

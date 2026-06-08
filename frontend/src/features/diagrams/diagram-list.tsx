@@ -3,7 +3,7 @@ import type * as React from 'react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
-import type { DiagramSummary, DiagramType } from '@/api/schemas'
+import type { DiagramSummary, DiagramType, WorkingDirectory } from '@/api/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -11,7 +11,10 @@ import { cn } from '@/lib/utils'
 import { useDiagramMutations, useDiagrams } from './use-diagrams'
 
 type DiagramListProps = {
-  workspaceId: string
+  /** Fixed workspace (workspace tab). Omit for the global cross-workspace list. */
+  workspaceId?: string
+  /** Workspaces available in global mode, used for the filter and the create target. */
+  workspaces?: WorkingDirectory[]
   selectedDiagramId: string | null
   onSelect: (id: string | null) => void
 }
@@ -22,20 +25,26 @@ const NEW_DIAGRAM_CONTENT: Record<DiagramType, string> = {
   Mermaid: 'flowchart TD\n    A[Inicio] --> B[Fim]',
 }
 
-export function DiagramList({ workspaceId, selectedDiagramId, onSelect }: DiagramListProps) {
+export function DiagramList({ workspaceId, workspaces, selectedDiagramId, onSelect }: DiagramListProps) {
+  const isGlobal = !workspaceId
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<DiagramType | ''>('')
   const [includeArchived, setIncludeArchived] = useState(false)
   const [showTypeMenu, setShowTypeMenu] = useState(false)
+  const [workspaceFilter, setWorkspaceFilter] = useState('')
+  const [createWorkspaceId, setCreateWorkspaceId] = useState('')
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedSearch(search.trim()), 300)
     return () => window.clearTimeout(handle)
   }, [search])
 
+  const availableWorkspaces = workspaces ?? []
+  const filterWorkspaceId = workspaceId ?? (workspaceFilter || undefined)
+
   const diagramsQuery = useDiagrams({
-    workingDirectoryId: workspaceId,
+    workingDirectoryId: filterWorkspaceId,
     type: typeFilter || undefined,
     q: debouncedSearch || undefined,
     includeArchived,
@@ -43,11 +52,24 @@ export function DiagramList({ workspaceId, selectedDiagramId, onSelect }: Diagra
   const { create, archive, remove } = useDiagramMutations()
 
   const diagrams = diagramsQuery.data ?? []
+  const canCreate = !isGlobal || availableWorkspaces.length > 0
+
+  const toggleTypeMenu = () => {
+    if (isGlobal && !showTypeMenu) {
+      setCreateWorkspaceId((current) => current || workspaceFilter || availableWorkspaces[0]?.id || '')
+    }
+    setShowTypeMenu((open) => !open)
+  }
 
   const handleCreate = (type: DiagramType) => {
+    const target = workspaceId ?? createWorkspaceId
+    if (!target) {
+      toast.error('Selecione um workspace para criar o diagrama.')
+      return
+    }
     setShowTypeMenu(false)
     create.mutate(
-      { workingDirectoryId: workspaceId, title: 'Novo diagrama', type, content: NEW_DIAGRAM_CONTENT[type] },
+      { workingDirectoryId: target, title: 'Novo diagrama', type, content: NEW_DIAGRAM_CONTENT[type] },
       {
         onSuccess: (diagram) => onSelect(diagram.id),
         onError: (error) => toast.error(getErrorMessage(error)),
@@ -70,6 +92,14 @@ export function DiagramList({ workspaceId, selectedDiagramId, onSelect }: Diagra
     })
   }
 
+  const emptyMessage = debouncedSearch
+    ? 'Nenhum diagrama encontrado.'
+    : isGlobal
+      ? availableWorkspaces.length === 0
+        ? 'Crie um diretorio de trabalho para comecar a desenhar diagramas.'
+        : 'Nenhum diagrama ainda. Use "Novo" para criar.'
+      : 'Nenhum diagrama neste workspace ainda.'
+
   return (
     <div className="flex min-h-0 flex-col gap-3 rounded-lg border border-border bg-card p-3">
       <div className="flex items-center gap-2">
@@ -86,8 +116,8 @@ export function DiagramList({ workspaceId, selectedDiagramId, onSelect }: Diagra
         <Button
           type="button"
           size="sm"
-          onClick={() => setShowTypeMenu((open) => !open)}
-          disabled={create.isPending}
+          onClick={toggleTypeMenu}
+          disabled={create.isPending || !canCreate}
           aria-expanded={showTypeMenu}
         >
           {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -96,19 +126,65 @@ export function DiagramList({ workspaceId, selectedDiagramId, onSelect }: Diagra
       </div>
 
       {showTypeMenu ? (
-        <div className="grid grid-cols-2 gap-2 rounded-md border border-border bg-background p-2">
-          <Button type="button" variant="secondary" size="sm" onClick={() => handleCreate('Excalidraw')}>
-            <Shapes className="h-4 w-4" />
-            Excalidraw
-          </Button>
-          <Button type="button" variant="secondary" size="sm" onClick={() => handleCreate('Mermaid')}>
-            <Workflow className="h-4 w-4" />
-            Mermaid
-          </Button>
+        <div className="flex flex-col gap-2 rounded-md border border-border bg-background p-2">
+          {isGlobal ? (
+            <Select
+              value={createWorkspaceId}
+              onChange={(event) => setCreateWorkspaceId(event.target.value)}
+              aria-label="Workspace do novo diagrama"
+              className="h-8 text-xs"
+            >
+              <option value="" disabled>
+                Selecione um workspace
+              </option>
+              {availableWorkspaces.map((workspace) => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name}
+                </option>
+              ))}
+            </Select>
+          ) : null}
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => handleCreate('Excalidraw')}
+              disabled={isGlobal && !createWorkspaceId}
+            >
+              <Shapes className="h-4 w-4" />
+              Excalidraw
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => handleCreate('Mermaid')}
+              disabled={isGlobal && !createWorkspaceId}
+            >
+              <Workflow className="h-4 w-4" />
+              Mermaid
+            </Button>
+          </div>
         </div>
       ) : null}
 
       <div className="flex items-center gap-2">
+        {isGlobal ? (
+          <Select
+            value={workspaceFilter}
+            onChange={(event) => setWorkspaceFilter(event.target.value)}
+            aria-label="Filtrar por workspace"
+            className="h-8 flex-1 text-xs"
+          >
+            <option value="">Todos os workspaces</option>
+            {availableWorkspaces.map((workspace) => (
+              <option key={workspace.id} value={workspace.id}>
+                {workspace.name}
+              </option>
+            ))}
+          </Select>
+        ) : null}
         <Select
           value={typeFilter}
           onChange={(event) => setTypeFilter(event.target.value as DiagramType | '')}
@@ -147,7 +223,7 @@ export function DiagramList({ workspaceId, selectedDiagramId, onSelect }: Diagra
 
         {!diagramsQuery.isLoading && !diagramsQuery.isError && diagrams.length === 0 ? (
           <div className="rounded-md border border-dashed border-input p-4 text-center text-sm text-muted-foreground">
-            {debouncedSearch ? 'Nenhum diagrama encontrado.' : 'Nenhum diagrama neste workspace ainda.'}
+            {emptyMessage}
           </div>
         ) : null}
 
@@ -184,7 +260,16 @@ export function DiagramList({ workspaceId, selectedDiagramId, onSelect }: Diagra
                   ) : null}
                 </div>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                  {diagram.description?.trim() ? diagram.description : diagram.type}
+                  {isGlobal ? (
+                    <>
+                      <span className="text-foreground/70">{diagram.workingDirectoryName}</span>
+                      {diagram.description?.trim() ? ` · ${diagram.description}` : ''}
+                    </>
+                  ) : diagram.description?.trim() ? (
+                    diagram.description
+                  ) : (
+                    diagram.type
+                  )}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">

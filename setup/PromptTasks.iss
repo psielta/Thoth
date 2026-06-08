@@ -58,6 +58,7 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=
 [Code]
 var
   DbPage: TInputQueryWizardPage;
+  ConfigDefaultsLoaded: Boolean;
 
 function JsonEscape(Value: String): String;
 var
@@ -298,7 +299,7 @@ var
   Json: String;
   ConnectionString: String;
 begin
-  ConfigPath := ExpandConstant('{app}\PromptTasks\appsettings.Production.json');
+  ConfigPath := AddBackslash(WizardDirValue()) + 'PromptTasks\appsettings.Production.json';
   if not LoadStringFromFile(ConfigPath, JsonContent) then
     Exit;
 
@@ -337,8 +338,16 @@ begin
   DbPage.Values[3] := 'prompttasks';
   DbPage.Values[4] := 'prompttasks';
   DbPage.Values[5] := '';
+  ConfigDefaultsLoaded := False;
+end;
 
-  LoadExistingConfigDefaults();
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if (CurPageID = DbPage.ID) and (not ConfigDefaultsLoaded) then
+  begin
+    LoadExistingConfigDefaults();
+    ConfigDefaultsLoaded := True;
+  end;
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;

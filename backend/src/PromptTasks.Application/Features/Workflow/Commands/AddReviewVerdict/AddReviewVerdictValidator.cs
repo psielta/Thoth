@@ -7,7 +7,7 @@ public sealed class AddReviewVerdictValidator : AbstractValidator<AddReviewVerdi
     public AddReviewVerdictValidator()
     {
         RuleFor(command => command.PromptId).NotEmpty();
-        RuleFor(command => command.Verdict).NotEmpty().MaximumLength(4000);
+        RuleFor(command => command.Verdict).NotEmpty();
         RuleFor(command => command.RowVersion).NotEmpty();
     }
 }

@@ -110,6 +110,58 @@ public sealed class PromptWorkflowApiTests(PromptTasksApiFactory factory) : ICla
     }
 
     [Fact]
+    public async Task Review_verdict_accepts_long_text_and_custom_review_correction_phase()
+    {
+        const string customCorrectionPhase = "Correcao de Pontos da Revisao";
+        var client = factory.CreateClient();
+        var prompt = await CreateRootPromptAsync(client, "Veredito longo");
+        var workflow = await client.GetFromJsonAsync<WorkflowDto>($"/api/prompts/{prompt.Id}/workflow", JsonOptions);
+        workflow.Should().NotBeNull();
+
+        var phases = workflow!.Phases
+            .Where(phase => phase.Name != "Corre\u00e7\u00e3o da revis\u00e3o")
+            .Select((phase, index) => (object)new
+            {
+                id = (Guid?)phase.Id,
+                name = phase.Name,
+                defaultActor = phase.DefaultActor.ToString(),
+                orderIndex = index,
+                color = phase.Color
+            })
+            .ToList();
+        phases.Add(new
+        {
+            id = (Guid?)null,
+            name = customCorrectionPhase,
+            defaultActor = WorkflowActor.Codex.ToString(),
+            orderIndex = phases.Count,
+            color = "#dc2626"
+        });
+
+        var updatePhases = await client.PutAsync(
+            $"/api/prompts/{prompt.Id}/workflow/phases",
+            JsonContent(new { phases, rowVersion = workflow.RowVersion }));
+        updatePhases.StatusCode.Should().Be(HttpStatusCode.OK, await updatePhases.Content.ReadAsStringAsync());
+        workflow = await updatePhases.Content.ReadFromJsonAsync<WorkflowDto>(JsonOptions);
+        workflow!.Phases.Single(phase => phase.Name == customCorrectionPhase).Role.Should().Be(WorkflowPhaseRole.ReviewCorrection);
+
+        while (workflow.CurrentPhaseName != "Revis\u00e3o de c\u00f3digo")
+        {
+            workflow = await PostWorkflowAsync(client, prompt.Id, "advance", new { rowVersion = workflow.RowVersion, note = (string?)null });
+        }
+
+        var verdict = new string('x', 5504);
+        var response = await client.PostAsync(
+            $"/api/prompts/{prompt.Id}/workflow/review-verdict",
+            JsonContent(new { verdict, rowVersion = workflow.RowVersion }));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        var corrected = await response.Content.ReadFromJsonAsync<WorkflowDto>(JsonOptions);
+        corrected!.CurrentPhaseName.Should().Be(customCorrectionPhase);
+        corrected.Events.Should().Contain(@event => @event.Type == WorkflowEventType.Note && @event.Note == verdict);
+    }
+
+    [Fact]
     public async Task Board_hides_archived_prompts_by_default()
     {
         var client = factory.CreateClient();

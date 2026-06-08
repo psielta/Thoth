@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+
 namespace PromptTasks.Domain.Workflows;
 
 public sealed record WorkflowPhaseSeed(string Name, WorkflowActor DefaultActor, string Color, WorkflowPhaseRole Role);
@@ -22,15 +25,35 @@ public static class WorkflowDefaults
 
     public static WorkflowPhaseRole? ResolveRoleByName(string phaseName)
     {
+        var normalizedPhaseName = NormalizePhaseName(phaseName);
         foreach (var phase in Phases)
         {
-            if (string.Equals(phase.Name, phaseName.Trim(), StringComparison.OrdinalIgnoreCase))
+            if (NormalizePhaseName(phase.Name) == normalizedPhaseName)
             {
                 return phase.Role;
             }
         }
 
-        return null;
+        return normalizedPhaseName switch
+        {
+            "correcao de pontos da revisao" => WorkflowPhaseRole.ReviewCorrection,
+            _ => null
+        };
+    }
+
+    private static string NormalizePhaseName(string phaseName)
+    {
+        var normalized = phaseName.Trim().Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(normalized.Length);
+        foreach (var character in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
+            {
+                builder.Append(char.ToLowerInvariant(character));
+            }
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 
     public static WorkflowTemplate BuildTemplate(Guid ownerId)

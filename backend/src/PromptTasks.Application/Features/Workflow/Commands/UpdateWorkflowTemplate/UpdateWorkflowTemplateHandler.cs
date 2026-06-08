@@ -28,22 +28,26 @@ public sealed class UpdateWorkflowTemplateHandler(
 
         foreach (var input in request.Phases)
         {
+            var name = input.Name.Trim();
+            var role = WorkflowDefaults.ResolveRoleByName(name);
             if (input.Id is { } id && existingById.TryGetValue(id, out var phase))
             {
-                phase.Name = input.Name.Trim();
+                phase.Name = name;
                 phase.DefaultActor = input.DefaultActor;
                 phase.OrderIndex = input.OrderIndex;
                 phase.Color = input.Color;
+                phase.Role = role ?? phase.Role;
             }
             else
             {
                 context.Add(new WorkflowTemplatePhase
                 {
                     WorkflowTemplateId = template.Id,
-                    Name = input.Name.Trim(),
+                    Name = name,
                     DefaultActor = input.DefaultActor,
                     OrderIndex = input.OrderIndex,
-                    Color = input.Color
+                    Color = input.Color,
+                    Role = role
                 });
             }
         }

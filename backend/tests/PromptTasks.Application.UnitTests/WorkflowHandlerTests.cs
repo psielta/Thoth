@@ -258,6 +258,17 @@ public sealed class WorkflowHandlerTests
     }
 
     [Fact]
+    public void AddReviewVerdictValidator_allows_long_verdicts()
+    {
+        var validator = new AddReviewVerdictValidator();
+        var verdict = new string('x', 5504);
+
+        var result = validator.Validate(new AddReviewVerdictCommand(Guid.CreateVersion7(), verdict, "7"));
+
+        result.Errors.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task AddReviewVerdict_in_code_review_moves_to_review_correction()
     {
         var fixture = new Fixture();
@@ -278,6 +289,25 @@ public sealed class WorkflowHandlerTests
             @event.Type == WorkflowEventType.Note &&
             @event.Note == "PR tem regressões" &&
             @event.Actor == WorkflowActor.ClaudeCode);
+    }
+
+    [Fact]
+    public async Task AddReviewVerdict_in_code_review_uses_custom_review_correction_phase_name()
+    {
+        const string customCorrectionPhase = "Correcao de Pontos da Revisao";
+        var fixture = new Fixture();
+        var workflow = await fixture.StartAsync();
+        fixture.RenamePhaseAndClearRole("Corre\u00e7\u00e3o da revis\u00e3o", customCorrectionPhase);
+        while (workflow.CurrentPhaseName != "Revis\u00e3o de c\u00f3digo")
+        {
+            workflow = await fixture.AdvanceAsync(workflow.RowVersion);
+        }
+
+        var corrected = await fixture.AddReviewVerdictAsync("PR tem pontos a corrigir", workflow.RowVersion);
+
+        corrected.CurrentPhaseName.Should().Be(customCorrectionPhase);
+        corrected.CurrentActor.Should().Be(WorkflowActor.Codex);
+        corrected.Phases.Single(phase => phase.Name == customCorrectionPhase).Role.Should().Be(WorkflowPhaseRole.ReviewCorrection);
     }
 
     [Fact]
@@ -373,6 +403,13 @@ public sealed class WorkflowHandlerTests
         public Task<WorkflowDto> AddReviewVerdictAsync(string verdict, string rowVersion) =>
             new AddReviewVerdictHandler(_context, Notifier, _user, _clock)
                 .Handle(new AddReviewVerdictCommand(Prompt.Id, verdict, rowVersion), CancellationToken.None);
+
+        public void RenamePhaseAndClearRole(string currentName, string newName)
+        {
+            var phase = _context.PromptWorkflowPhaseItems.Single(phase => phase.Name == currentName);
+            phase.Name = newName;
+            phase.Role = null;
+        }
 
         public Task<WorkflowDto> CompleteAsync(string rowVersion) =>
             new CompleteWorkflowHandler(_context, Notifier, _user, _clock)

@@ -1,4 +1,5 @@
 import type {
+  DiagramType,
   FutureTaskStatus,
   FutureTaskType,
   PromptKind,
@@ -36,6 +37,13 @@ export type WorkflowBoardFilters = {
 
 export type NoteFilters = {
   notebookId?: string
+  q?: string
+  includeArchived?: boolean
+}
+
+export type DiagramFilters = {
+  workingDirectoryId: string
+  type?: DiagramType
   q?: string
   includeArchived?: boolean
 }
@@ -105,5 +113,10 @@ export const queryKeys = {
     all: ['notes'] as const,
     list: (filters: NoteFilters) => ['notes', 'list', filters] as const,
     detail: (id: string) => ['notes', id] as const,
+  },
+  diagrams: {
+    all: ['diagrams'] as const,
+    list: (filters: DiagramFilters) => ['diagrams', 'list', filters] as const,
+    detail: (id: string) => ['diagrams', id] as const,
   },
 }

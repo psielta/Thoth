@@ -466,3 +466,25 @@ export const noteSchema = z.object({
 })
 export type Note = z.infer<typeof noteSchema>
 export const noteListSchema = z.array(noteSchema)
+
+export const diagramTypeSchema = z.enum(['Excalidraw', 'Mermaid'])
+export type DiagramType = z.infer<typeof diagramTypeSchema>
+
+export const diagramSummarySchema = z.object({
+  id: z.string().uuid(),
+  workingDirectoryId: z.string().uuid(),
+  title: z.string(),
+  description: z.string().nullable(),
+  type: diagramTypeSchema,
+  isArchived: z.boolean(),
+  createdAtUtc: z.string(),
+  updatedAtUtc: z.string(),
+})
+export type DiagramSummary = z.infer<typeof diagramSummarySchema>
+export const diagramSummaryListSchema = z.array(diagramSummarySchema)
+
+export const diagramSchema = diagramSummarySchema.extend({
+  content: z.string(),
+  metadataJson: z.string().nullable(),
+})
+export type Diagram = z.infer<typeof diagramSchema>

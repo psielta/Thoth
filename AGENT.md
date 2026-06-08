@@ -66,6 +66,15 @@ npm install
 npm run dev
 ```
 
+Producao:
+
+```powershell
+powershell -File scripts\db-bootstrap.ps1 -DbHost localhost -Port 5435 -Superuser postgres -AppUser prompttasks -AppPassword prompttasks -Database prompttasks
+powershell -File build.ps1 -Bump patch
+```
+
+O instalador de producao roda como Windows Service `PromptTasks` na porta fixa `8091`. PostgreSQL deve ser instalado manualmente; EF cria/atualiza apenas o schema em um banco existente.
+
 ## Validacao Esperada
 
 Execute conforme o tipo de mudanca.
@@ -86,6 +95,14 @@ npm run lint
 npm run build
 ```
 
+Release:
+
+```powershell
+powershell -File build.ps1
+```
+
+Validar o instalador inclui `sc query PromptTasks`, `http://localhost:8091`, refresh de deep-link da SPA, `GET /api/ai/models` nao vazio e `GET /api/<rota-inexistente>` retornando 404 sem HTML.
+
 Para mudancas visuais ou de fluxo, valide tambem no navegador. O frontend roda em `http://localhost:5190` e a API em `http://localhost:5191`.
 
 ## Observacoes de Ambiente
@@ -94,7 +111,7 @@ Para mudancas visuais ou de fluxo, valide tambem no navegador. O frontend roda e
 - Use `rg` para buscar arquivos e texto.
 - Use migrations EF para alteracoes de banco.
 - O build do frontend pode emitir avisos `INVALID_ANNOTATION` vindos de `@microsoft/signalr`; se o comando terminar com sucesso, eles sao nao bloqueantes.
-- Nao versionar `node_modules`, `dist`, artefatos temporarios de Playwright ou arquivos locais de banco.
+- Nao versionar `node_modules`, `dist`, `build`, `backup`, artefatos temporarios de Playwright ou arquivos locais de banco.
 
 ## Padrao de Entrega
 

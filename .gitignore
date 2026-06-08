@@ -12,6 +12,10 @@ node_modules/
 dist/
 .vite/
 
+# Release artifacts
+build/
+backup/
+
 # Local env
 .env
 .env.*

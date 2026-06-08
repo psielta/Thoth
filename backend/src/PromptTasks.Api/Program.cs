@@ -14,7 +14,12 @@ builder.Services.AddSerilog((services, loggerConfiguration) => loggerConfigurati
     .ReadFrom.Services(services)
     .Enrich.FromLogContext());
 
-builder.WebHost.UseUrls("http://localhost:5191");
+builder.Host.UseWindowsService();
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.WebHost.UseUrls("http://localhost:5191");
+}
 
 builder.Services
     .AddApplication()
@@ -26,17 +31,25 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
 app.UseCors("spa");
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 app.MapControllers();
 app.MapHub<PromptHub>("/hubs/prompts");
 
-if (app.Environment.IsDevelopment())
+app.Map("/api/{**slug}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Not Found"));
+app.Map("/hubs/{**slug}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Not Found"));
+app.MapFallbackToFile("index.html");
+
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await db.Database.MigrateAsync();
     await DbSeeder.SeedAsync(db);
+}
 
+if (app.Environment.IsDevelopment())
+{
     app.MapOpenApi();
     app.MapScalarApiReference("/scalar");
 }

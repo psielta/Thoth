@@ -31,6 +31,7 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 - Contexto de workspace opcional na IA, lendo automaticamente `README.md`, `CLAUDE.md` e `AGENT.md` da raiz do diretorio de trabalho.
 - API REST documentada com OpenAPI/Scalar.
 - Testes unitarios, testes de integracao com PostgreSQL em container e testes de frontend com Vitest.
+- Instalador Windows de producao via Inno Setup, com backend self-contained servindo a SPA React em porta unica.
 
 ## Stack
 
@@ -65,7 +66,7 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 ### Infraestrutura Local
 
 - Docker Compose com PostgreSQL 18.
-- Migrations do EF Core aplicadas automaticamente em ambiente `Development`.
+- Migrations do EF Core aplicadas automaticamente no startup do backend.
 - API em `http://localhost:5191`.
 - Frontend em `http://localhost:5190`.
 
@@ -181,6 +182,57 @@ Para apontar o frontend para outra API, defina:
 ```powershell
 $env:VITE_API_BASE_URL = "http://localhost:5191/api"
 ```
+
+## Deploy de Producao
+
+O empacotamento de producao gera um instalador Windows em `dist/` usando Inno Setup. A topologia de producao e um unico Windows Service `PromptTasks`, self-contained `win-x64`, servindo API, SignalR e SPA React na porta fixa `8091`.
+
+### Pre-requisitos de producao
+
+- PostgreSQL 18 instalado manualmente pelo usuario. O instalador nao instala PostgreSQL.
+- Cliente PostgreSQL no `PATH` (`psql`, `createdb`, `pg_restore`) para os scripts de banco.
+- Inno Setup 6 instalado. Nesta maquina o caminho esperado e `C:\Program Files (x86)\Inno Setup 6\ISCC.exe`.
+- Windows PowerShell 5.1. Use `powershell`, nao `pwsh`.
+
+Antes de instalar o servico pela primeira vez em um banco vazio, crie o role e o banco:
+
+```powershell
+powershell -File scripts\db-bootstrap.ps1 `
+  -DbHost localhost `
+  -Port 5435 `
+  -Superuser postgres `
+  -AppUser prompttasks `
+  -AppPassword prompttasks `
+  -Database prompttasks
+```
+
+O EF Core cria e atualiza o schema dentro de um banco existente. Ele nao cria o role nem o database.
+
+### Gerar o instalador
+
+```powershell
+powershell -File build.ps1 -Bump patch
+```
+
+O script usa `version.json` como fonte SemVer, builda o frontend com `VITE_API_BASE_URL=/api`, publica o backend self-contained e compila `setup\PromptTasks.iss`. O instalador gerado fica em `dist\PromptTasks-Setup-X.Y.Z.exe`.
+
+Durante a instalacao, o assistente pede host, porta, banco, usuario, senha do PostgreSQL e Gemini API Key opcional. Ele grava `appsettings.Production.json`, configura o servico `PromptTasks`, cria a regra de firewall para `8091` e abre `http://localhost:8091` ao final.
+
+### Backup e importacao de banco
+
+Exportar o banco de desenvolvimento do Docker:
+
+```powershell
+powershell -File scripts\db-export.ps1
+```
+
+Importar o dump no PostgreSQL local de producao em `5435`:
+
+```powershell
+powershell -File scripts\db-import.ps1 -DumpFile backup\prompttasks-YYYYMMDD-HHMMSS.dump
+```
+
+O import chama o bootstrap, para o servico `PromptTasks` se ele existir, executa `pg_restore --clean --if-exists --no-owner --role=prompttasks` e reinicia o servico se ele estava em execucao.
 
 ## Validacao
 

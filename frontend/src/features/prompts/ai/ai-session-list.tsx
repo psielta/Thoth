@@ -56,7 +56,7 @@ export function AiSessionList({
         </span>
         <button
           onClick={onNewSession}
-          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover"
+          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
         >
           <Plus className="h-3.5 w-3.5" />
           Nova sessao
@@ -126,7 +126,7 @@ function SessionItem({
     >
       {/* Icon */}
       <div className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full ${isActive ? 'bg-primary' : 'bg-secondary'}`}>
-        <MessageSquare className={`h-3.5 w-3.5 ${isActive ? 'text-white' : 'text-muted-foreground'}`} />
+        <MessageSquare className={`h-3.5 w-3.5 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
       </div>
 
       {/* Content */}

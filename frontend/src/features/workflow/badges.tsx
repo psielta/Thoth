@@ -5,7 +5,7 @@ import { ACTOR_LABELS } from './constants'
 export function PhaseBadge({ name, color }: { name: string; color?: string | null }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-medium text-foreground">
-      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color ?? '#5e7461' }} />
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color ?? '#ffb900' }} />
       <span className="truncate">{name}</span>
     </span>
   )

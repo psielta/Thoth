@@ -368,7 +368,7 @@ export function Board() {
             <SlidersHorizontal className="h-4 w-4" />
             Filtros
             {activeFiltersCount > 0 ? (
-              <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">{activeFiltersCount}</span>
+              <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">{activeFiltersCount}</span>
             ) : null}
           </Button>
           <Button type="button" variant="default" size="sm" onClick={() => setCreating(true)}>

@@ -11,7 +11,7 @@ Instrucoes para Claude Code trabalhar neste projeto.
 
 ## Sobre o Projeto
 
-Prompt Tasks e uma aplicacao ASP.NET Core + React para criar, versionar e acompanhar prompts em Markdown usados com Claude Code e Codex. O diferencial do produto e conectar prompts a diretorios locais, validar referencias de arquivos, acompanhar planos Markdown externos e gerar prompts filhos para revisao ou implementacao desses planos.
+Thoth e uma aplicacao ASP.NET Core + React para criar, versionar e acompanhar prompts em Markdown usados com Claude Code e Codex. O diferencial do produto e conectar prompts a diretorios locais, validar referencias de arquivos, acompanhar planos Markdown externos e gerar prompts filhos para revisao ou implementacao desses planos.
 
 ## Stack
 

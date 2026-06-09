@@ -1,6 +1,6 @@
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
-import { Terminal } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
+import { ThothLogo } from '@/components/thoth-logo'
 import { UsageIndicator } from '@/features/agent-usage/usage-indicator'
 import { GlobalNewPromptButton } from '@/features/prompts/global-new-prompt-button'
 
@@ -17,11 +17,9 @@ function RootLayout() {
             to="/"
             className="group flex min-w-0 items-center gap-2.5 text-sm font-semibold text-foreground"
           >
-            <span className="logo-badge flex h-7 w-7 shrink-0 items-center justify-center rounded-lg shadow-sm ring-1 ring-inset ring-white/15 transition-transform duration-150 group-hover:scale-105">
-              <Terminal className="h-4 w-4 text-primary-foreground" strokeWidth={2.75} />
-            </span>
+            <ThothLogo className="h-8 w-8 shrink-0 text-primary transition-transform duration-150 group-hover:scale-105" />
             <span className="flex items-center gap-1 truncate">
-              <span className="truncate tracking-tight">Prompt Tasks</span>
+              <span className="truncate tracking-tight">Thoth</span>
               <span aria-hidden className="logo-caret h-3.5 w-[2px] shrink-0 rounded-[1px] bg-primary" />
             </span>
           </Link>

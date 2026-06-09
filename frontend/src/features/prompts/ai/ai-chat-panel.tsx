@@ -199,7 +199,7 @@ export function AiChatPanel({
             type="button"
             onClick={() => void handleSend()}
             disabled={!input.trim() || isBusy}
-            className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-lg bg-primary text-white transition-all hover:bg-primary-hover disabled:bg-border disabled:text-subtle-foreground disabled:cursor-not-allowed"
+            className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-lg bg-primary text-primary-foreground transition-all hover:bg-primary-hover disabled:bg-border disabled:text-subtle-foreground disabled:cursor-not-allowed"
           >
             {isBusy ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -261,12 +261,12 @@ function ChatMessage({ message }: { message: ChatStreamMessage }) {
     return (
       <div className="flex items-start justify-end gap-3">
         <div className="flex max-w-[80%] flex-col items-end gap-1">
-          <div className="rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-sm leading-relaxed text-white">
+          <div className="rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground">
             <p className="whitespace-pre-wrap">{message.content}</p>
           </div>
         </div>
         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary">
-          <User className="h-4 w-4 text-white" />
+          <User className="h-4 w-4 text-primary-foreground" />
         </div>
       </div>
     )

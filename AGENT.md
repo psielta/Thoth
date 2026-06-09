@@ -4,7 +4,7 @@ Guia operacional para agentes de codigo trabalhando neste repositorio.
 
 ## Contexto do Projeto
 
-Prompt Tasks e um gerenciador local-first de prompts em Markdown para Claude Code e Codex. O produto organiza prompts por diretorio de trabalho, valida mencoes de arquivos, vincula planos Markdown externos, versiona alteracoes e usa SignalR para manter o navegador atualizado em tempo real.
+Thoth e um gerenciador local-first de prompts em Markdown para Claude Code e Codex. O produto organiza prompts por diretorio de trabalho, valida mencoes de arquivos, vincula planos Markdown externos, versiona alteracoes e usa SignalR para manter o navegador atualizado em tempo real.
 
 Trate este repositorio como projeto de portfolio: alteracoes devem preservar clareza arquitetural, consistencia visual e boa cobertura de validacao.
 

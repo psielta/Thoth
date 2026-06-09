@@ -4,30 +4,30 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ----------------------------------------------------------------------------
- * Design tokens. Light values preserve the original look; `.dark` overrides
- * provide a cohesive deep sage-charcoal theme. Components reference these via
+ * Design tokens. Neutros em cinza quente e marca ambar (#ffb900); `.dark`
+ * fornece o tema escuro equivalente. Components reference these via
  * Tailwind utilities (bg-background, text-foreground, ...) generated below.
  * ------------------------------------------------------------------------- */
 :root {
   color-scheme: light;
 
-  /* surfaces & neutrals */
-  --background: #f7f8f6;
-  --foreground: #172126;
+  /* surfaces & neutrals (cinzas quentes, sem matiz esverdeado) */
+  --background: #f8f7f5;
+  --foreground: #1c1917;
   --card: #ffffff;
-  --muted: #eef2eb;
-  --muted-foreground: #66746b;
-  --subtle-foreground: #9aaf9e;
-  --accent: #e7ece6;
-  --secondary: #e8ede5;
-  --border: #d9dfd5;
-  --input: #cbd5c8;
-  --ring: #5e7461;
+  --muted: #f1efeb;
+  --muted-foreground: #6f6a61;
+  --subtle-foreground: #a39d92;
+  --accent: #eae7e1;
+  --secondary: #edeae4;
+  --border: #ded9d1;
+  --input: #cfc9bf;
+  --ring: #b08900;
 
   /* brand */
-  --primary: #254632;
-  --primary-hover: #1c3727;
-  --primary-foreground: #ffffff;
+  --primary: #ffb900;
+  --primary-hover: #e6a700;
+  --primary-foreground: #221a00;
 
   /* destructive (solid red) */
   --destructive: #b42318;
@@ -54,21 +54,21 @@
 .dark {
   color-scheme: dark;
 
-  --background: #0f1411;
-  --foreground: #e7ece5;
-  --card: #171d18;
-  --muted: #1e251f;
-  --muted-foreground: #9aa79d;
-  --subtle-foreground: #7e8c80;
-  --accent: #242c25;
-  --secondary: #212a23;
-  --border: #2a322b;
-  --input: #313a32;
-  --ring: #7e977f;
+  --background: #131211;
+  --foreground: #ece9e4;
+  --card: #1b1917;
+  --muted: #23201d;
+  --muted-foreground: #a8a299;
+  --subtle-foreground: #878179;
+  --accent: #292521;
+  --secondary: #262220;
+  --border: #322e29;
+  --input: #3a352f;
+  --ring: #d4a72c;
 
-  --primary: #4d8160;
-  --primary-hover: #3f6c4d;
-  --primary-foreground: #ffffff;
+  --primary: #ffb900;
+  --primary-hover: #e6a700;
+  --primary-foreground: #221a00;
 
   --destructive: #c8453a;
   --destructive-hover: #b53b2f;
@@ -175,11 +175,7 @@ body {
   min-height: 100svh;
 }
 
-/* Brand logo: gradient "app badge" + blinking terminal caret */
-.logo-badge {
-  background-image: linear-gradient(140deg, var(--primary), var(--primary-hover));
-}
-
+/* Brand logo: caret piscante ao lado do nome */
 @keyframes caret-blink {
   0%,
   50% {

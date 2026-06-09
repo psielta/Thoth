@@ -23,7 +23,8 @@ createRoot(document.getElementById('root')!).render(
             <ThemedToaster />
           </FileViewerProvider>
         </PromptHubProvider>
-        <ReactQueryDevtools initialIsOpen={false} />
+        {/* bottom-left para nao cobrir o botao flutuante global de novo prompt */}
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
       </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>,

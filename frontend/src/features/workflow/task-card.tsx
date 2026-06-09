@@ -15,6 +15,7 @@ import { ActorBadge, PhaseBadge } from './badges'
 import {
   APPROVE_ADVANCE_BY_ROLE,
   IMPLEMENTATION_TEMPLATE_KEYS,
+  IMPLEMENTATION_REVIEW_ACTION,
   PLANNING_REVIEW_ACTION,
   PLAN_REVIEW_TEMPLATE_KEYS,
   PLAN_REVIEW_IMPLEMENTATION_ACTION,
@@ -59,6 +60,7 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
   const approveTarget = currentRole ? APPROVE_ADVANCE_BY_ROLE[currentRole] : undefined
   const planReviewAction = currentRole === 'Planning' ? PLANNING_REVIEW_ACTION : undefined
   const implementationAction = currentRole === 'PlanReview' ? PLAN_REVIEW_IMPLEMENTATION_ACTION : undefined
+  const implementationReviewAction = currentRole === 'Implementation' ? IMPLEMENTATION_REVIEW_ACTION : undefined
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
@@ -70,9 +72,12 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
   const templatesQuery = useQuery({
     queryKey: queryKeys.promptTemplates.all,
     queryFn: listPromptTemplates,
-    enabled: Boolean(task.linkedDocumentId && (reReviewKey || planReviewAction || implementationAction)),
+    enabled: Boolean(task.linkedDocumentId && (reReviewKey || planReviewAction || implementationAction || implementationReviewAction)),
   })
   const reReviewTemplate = reReviewKey ? templatesQuery.data?.find((template) => template.key === reReviewKey) : undefined
+  const implementationReviewTemplate = implementationReviewAction
+    ? templatesQuery.data?.find((template) => template.key === implementationReviewAction.templateKey)
+    : undefined
   const planReviewTemplates = PLAN_REVIEW_TEMPLATE_KEYS.map((key) =>
     templatesQuery.data?.find((template) => template.key === key),
   )
@@ -164,6 +169,9 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
   )
   const hasImplementationTarget = Boolean(
     implementationAction && findPhaseByRole(task.phases, implementationAction.targetRole),
+  )
+  const hasImplementationReviewTarget = Boolean(
+    implementationReviewAction && findPhaseByRole(task.phases, implementationReviewAction.targetRole),
   )
   const workspaceName = formatWorkspaceName(task.workingDirectoryName)
   const linkContent = (
@@ -311,6 +319,28 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
           >
             <FastForward className="h-4 w-4" />
             {implementationAction.label}
+          </Button>
+        </div>
+      ) : null}
+
+      {task.workflowStatus === 'Active' && task.linkedDocumentId && implementationReviewAction && hasImplementationReviewTarget ? (
+        <div className="flex">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              if (!implementationReviewTemplate) {
+                toast.error('Template de revisão de PR indisponível.')
+                return
+              }
+
+              onGenerate?.(task, implementationReviewTemplate)
+            }}
+            disabled={isBusy || templatesQuery.isLoading}
+          >
+            <FastForward className="h-4 w-4" />
+            {implementationReviewAction.label}
           </Button>
         </div>
       ) : null}

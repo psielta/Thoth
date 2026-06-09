@@ -263,6 +263,10 @@ describe('TaskCard', () => {
     { id: 'phase-review', name: 'Revisão do plano', defaultActor: 'Codex', orderIndex: 1, color: '#7c3aed', role: 'PlanReview' },
     { id: 'phase-impl', name: 'Implementação', defaultActor: 'Codex', orderIndex: 2, color: '#0d9488', role: 'Implementation' },
   ]
+  const IMPLEMENTATION_PHASES: WorkflowPhase[] = [
+    { id: 'phase-impl', name: 'Implementação', defaultActor: 'Codex', orderIndex: 0, color: '#0d9488', role: 'Implementation' },
+    { id: 'phase-code-review', name: 'Revisão de código', defaultActor: 'Codex', orderIndex: 1, color: '#7c3aed', role: 'CodeReview' },
+  ]
   const CODE_REVIEW_PHASES: WorkflowPhase[] = [
     { id: 'phase-code-review', name: 'Revisão de código', defaultActor: 'Codex', orderIndex: 0, color: '#7c3aed', role: 'CodeReview' },
     { id: 'phase-review-correction', name: 'Correção da revisão', defaultActor: 'ClaudeCode', orderIndex: 1, color: '#d97706', role: 'ReviewCorrection' },
@@ -409,6 +413,49 @@ describe('TaskCard', () => {
     )
     expect(vi.mocked(workflowApi.setPhase)).not.toHaveBeenCalled()
     expect(vi.mocked(workflowApi.advancePhase)).not.toHaveBeenCalled()
+  })
+
+  it('opens the ReviewPullRequest child-prompt template from Implementation', async () => {
+    vi.mocked(listPromptTemplates).mockResolvedValue([makeTemplate('ReviewPullRequest', 'Revisar PR')])
+    const onGenerate = vi.fn()
+    renderTask(
+      {
+        ...makeTask(null),
+        linkedDocumentId: 'doc-1',
+        hasLinkedPlan: true,
+        pullRequestReference: '#42',
+        currentPhaseId: 'phase-impl',
+        currentPhaseName: 'Implementação',
+        phases: IMPLEMENTATION_PHASES,
+      },
+      onGenerate,
+    )
+
+    const advanceButton = await screen.findByRole('button', { name: /avan.*revis/i })
+    await waitFor(() => expect(advanceButton).not.toBeDisabled())
+    fireEvent.click(advanceButton)
+
+    expect(onGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({ promptId: 'prompt-1', pullRequestReference: '#42' }),
+      expect.objectContaining({ key: 'ReviewPullRequest' }),
+    )
+    expect(vi.mocked(workflowApi.setPhase)).not.toHaveBeenCalled()
+    expect(vi.mocked(workflowApi.advancePhase)).not.toHaveBeenCalled()
+  })
+
+  it('hides the implementation review button when the CodeReview phase is absent', () => {
+    renderTask({
+      ...makeTask(null),
+      linkedDocumentId: 'doc-1',
+      hasLinkedPlan: true,
+      currentPhaseId: 'phase-impl',
+      currentPhaseName: 'Implementação',
+      phases: [
+        { id: 'phase-impl', name: 'Implementação', defaultActor: 'Codex', orderIndex: 0, color: '#0d9488', role: 'Implementation' },
+      ],
+    })
+
+    expect(screen.queryByRole('button', { name: /avan.*revis/i })).not.toBeInTheDocument()
   })
 
   it('jumps CodeReview straight to the PracticalTest phase', async () => {

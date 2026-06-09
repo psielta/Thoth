@@ -84,6 +84,12 @@ export const PLAN_REVIEW_IMPLEMENTATION_ACTION = {
   label: 'Avançar para implementação',
 } satisfies { targetRole: WorkflowPhaseRole; label: string }
 
+export const IMPLEMENTATION_REVIEW_ACTION = {
+  targetRole: 'CodeReview',
+  templateKey: 'ReviewPullRequest',
+  label: 'Avançar para revisão',
+} satisfies { targetRole: WorkflowPhaseRole; templateKey: PromptTemplateKey; label: string }
+
 // Fases de revisão -> avanço direto quando a revisão aprova e não há prompt filho específico a criar.
 export const APPROVE_ADVANCE_BY_ROLE: Partial<
   Record<WorkflowPhaseRole, { targetRole: WorkflowPhaseRole; label: string }>

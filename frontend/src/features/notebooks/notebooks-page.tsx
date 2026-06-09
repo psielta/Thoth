@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Loader2, NotebookText } from 'lucide-react'
 import { useState } from 'react'
+import { getNotebook } from '@/api/notebooks'
 import { getNote } from '@/api/notes'
 import { queryKeys } from '@/api/query-keys'
 import { NoteEditor } from './note-editor'
@@ -15,6 +16,12 @@ export function NotebooksPage() {
     queryKey: selectedNoteId ? queryKeys.notes.detail(selectedNoteId) : ['notes', 'none'],
     queryFn: () => getNote(selectedNoteId as string),
     enabled: Boolean(selectedNoteId),
+  })
+
+  const notebookQuery = useQuery({
+    queryKey: selectedNotebookId ? queryKeys.notebooks.detail(selectedNotebookId) : ['notebooks', 'none'],
+    queryFn: () => getNotebook(selectedNotebookId as string),
+    enabled: Boolean(selectedNotebookId),
   })
 
   const handleSelectNotebook = (id: string | null) => {
@@ -50,7 +57,12 @@ export function NotebooksPage() {
             Carregando nota
           </div>
         ) : selectedNoteId && noteQuery.data ? (
-          <NoteEditor key={noteQuery.data.id} note={noteQuery.data} />
+          <NoteEditor
+            key={noteQuery.data.id}
+            note={noteQuery.data}
+            workingDirectoryId={notebookQuery.data?.workingDirectoryId ?? null}
+            onNoteCreated={setSelectedNoteId}
+          />
         ) : (
           <EmptyPane
             message={

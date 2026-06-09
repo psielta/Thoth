@@ -1,20 +1,23 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, Check, Loader2 } from 'lucide-react'
+import { AlertCircle, Check, Loader2, Sparkles } from 'lucide-react'
 import type * as React from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
-import { updateNote } from '@/api/notes'
+import { createNote, updateNote } from '@/api/notes'
 import { queryKeys } from '@/api/query-keys'
-import type { Note } from '@/api/schemas'
-import { MarkdownEditor } from '@/components/markdown-editor'
+import type { GeneratedNote, Note } from '@/api/schemas'
+import { MarkdownEditor, type MarkdownEditorHandle } from '@/components/markdown-editor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { GenerateNoteDialog } from './ai/generate-note-dialog'
 
 type SaveStatus = 'idle' | 'saving' | 'error'
 
 type NoteEditorProps = {
   note: Note
+  workingDirectoryId: string | null
+  onNoteCreated: (id: string) => void
 }
 
 /**
@@ -22,12 +25,14 @@ type NoteEditorProps = {
  * and an explicit "Salvar" button, surfacing the current save state. Must be
  * mounted with a `key={note.id}` so each note gets fresh local state.
  */
-export function NoteEditor({ note }: NoteEditorProps) {
+export function NoteEditor({ note, workingDirectoryId, onNoteCreated }: NoteEditorProps) {
   const queryClient = useQueryClient()
   const [title, setTitle] = useState(note.title)
   const [content, setContent] = useState(note.contentMarkdown)
   const [saved, setSaved] = useState({ title: note.title, content: note.contentMarkdown })
   const [status, setStatus] = useState<SaveStatus>('idle')
+  const [aiOpen, setAiOpen] = useState(false)
+  const editorRef = useRef<MarkdownEditorHandle>(null)
 
   const trimmedTitle = title.trim()
   const dirty = title !== saved.title || content !== saved.content
@@ -109,6 +114,37 @@ export function NoteEditor({ note }: NoteEditorProps) {
     }
   }
 
+  // AI draft actions. None of these persist on their own except "create new note",
+  // which uses the normal create flow; insert/replace flow through the usual autosave.
+  const handleAiInsert = (result: GeneratedNote) => {
+    editorRef.current?.insertMarkdown(result.contentMarkdown)
+    setAiOpen(false)
+  }
+
+  const handleAiReplace = (result: GeneratedNote) => {
+    setContent(result.contentMarkdown)
+    if (!title.trim() && result.suggestedTitle?.trim()) {
+      setTitle(result.suggestedTitle.trim())
+    }
+    setAiOpen(false)
+  }
+
+  const handleAiCreate = async (result: GeneratedNote) => {
+    try {
+      const created = await createNote({
+        notebookId: note.notebookId,
+        title: result.suggestedTitle?.trim() ? result.suggestedTitle.trim() : 'Nova nota',
+        contentMarkdown: result.contentMarkdown,
+      })
+      invalidate()
+      onNoteCreated(created.id)
+      setAiOpen(false)
+      toast.success('Nota criada com o conteudo gerado.')
+    } catch (error) {
+      toast.error(getErrorMessage(error))
+    }
+  }
+
   return (
     <div
       className="flex min-h-0 flex-1 flex-col gap-3 rounded-lg border border-border bg-card p-4"
@@ -124,24 +160,43 @@ export function NoteEditor({ note }: NoteEditorProps) {
         />
         <div className="flex items-center justify-between gap-3">
           <SaveIndicator status={status} dirty={dirty} hasTitle={Boolean(trimmedTitle)} />
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => void performSave()}
-            disabled={!dirty || status === 'saving' || !trimmedTitle}
-          >
-            Salvar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setAiOpen(true)}>
+              <Sparkles className="h-4 w-4" />
+              Gerar com IA
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void performSave()}
+              disabled={!dirty || status === 'saving' || !trimmedTitle}
+            >
+              Salvar
+            </Button>
+          </div>
         </div>
       </div>
 
       <MarkdownEditor
+        ref={editorRef}
         value={content}
         onChange={setContent}
         label="Conteudo em Markdown"
         className="min-h-0 flex-1"
       />
+
+      {aiOpen ? (
+        <GenerateNoteDialog
+          notebookId={note.notebookId}
+          workingDirectoryId={workingDirectoryId}
+          currentContent={content}
+          onInsert={handleAiInsert}
+          onReplace={handleAiReplace}
+          onCreate={handleAiCreate}
+          onClose={() => setAiOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

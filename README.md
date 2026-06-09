@@ -29,6 +29,7 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 - Indicadores no header para limites atuais de Claude Code e Codex, lendo as fontes locais dos agentes e sincronizando atualizacoes via SignalR.
 - **Assistente IA com Gemini:** refinamento de prompts, chat de suporte e configuracao de modelo diretamente na tela de criacao e edicao.
 - Contexto de workspace opcional na IA, lendo automaticamente `README.md`, `CLAUDE.md` e `AGENT.md` da raiz do diretorio de trabalho.
+- Geracao com IA Gemini nas Notas (Markdown estruturado com formatos como ADR, checklist, ata, resumo e plano) e nos Diagramas Mermaid, sempre como rascunho revisavel que o usuario insere, substitui ou aplica antes de salvar pelo fluxo normal.
 - API REST documentada com OpenAPI/Scalar.
 - Testes unitarios, testes de integracao com PostgreSQL em container e testes de frontend com Vitest.
 - Instalador Windows de producao via Inno Setup, com backend self-contained servindo a SPA React em porta unica.

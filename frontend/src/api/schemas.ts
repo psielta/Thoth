@@ -440,6 +440,47 @@ export type ChatChunk = z.infer<typeof chatChunkSchema>
 export const geminiModelListSchema = z.array(geminiModelSchema)
 export const aiChatSessionListSchema = z.array(aiChatSessionSchema)
 
+export const generateNoteRequestSchema = z.object({
+  instruction: z.string(),
+  format: z.string().optional(),
+  model: z.string(),
+  temperature: z.number(),
+  thinkingMode: z.string().optional(),
+  thinkingBudget: z.number().nullable().optional(),
+  thinkingLevel: z.string().nullable().optional(),
+  notebookId: z.string().uuid().optional(),
+  currentContent: z.string().optional(),
+})
+export const generatedNoteSchema = z.object({
+  suggestedTitle: z.string().nullable(),
+  contentMarkdown: z.string(),
+  promptTokens: z.number(),
+  candidateTokens: z.number(),
+})
+export const generateMermaidRequestSchema = z.object({
+  instruction: z.string(),
+  diagramKind: z.string().optional(),
+  model: z.string(),
+  temperature: z.number(),
+  thinkingMode: z.string().optional(),
+  thinkingBudget: z.number().nullable().optional(),
+  thinkingLevel: z.string().nullable().optional(),
+  workingDirectoryId: z.string().uuid().optional(),
+  diagramId: z.string().uuid().optional(),
+  currentCode: z.string().optional(),
+})
+export const generatedMermaidSchema = z.object({
+  mermaidCode: z.string(),
+  titleSuggestion: z.string().nullable(),
+  promptTokens: z.number(),
+  candidateTokens: z.number(),
+  warnings: z.array(z.string()),
+})
+export type GenerateNoteRequest = z.infer<typeof generateNoteRequestSchema>
+export type GeneratedNote = z.infer<typeof generatedNoteSchema>
+export type GenerateMermaidRequest = z.infer<typeof generateMermaidRequestSchema>
+export type GeneratedMermaid = z.infer<typeof generatedMermaidSchema>
+
 export const notebookSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),

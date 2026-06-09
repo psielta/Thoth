@@ -5,10 +5,16 @@ import {
   aiChatSessionSchema,
   aiSettingsSchema,
   geminiModelListSchema,
+  generatedMermaidSchema,
+  generatedNoteSchema,
   refinedPromptSchema,
   type AiChatSession,
   type AiSettings,
+  type GeneratedMermaid,
+  type GeneratedNote,
   type GeminiModel,
+  type GenerateMermaidRequest,
+  type GenerateNoteRequest,
   type RefinedPrompt,
   type RefinePromptRequest,
   type TranslatePromptRequest,
@@ -45,6 +51,26 @@ export async function refinePrompt(params: RefinePromptRequest): Promise<Refined
 export async function translatePrompt(params: TranslatePromptRequest): Promise<RefinedPrompt> {
   const data = await api.post('ai/translate', { json: params, timeout: AI_REQUEST_TIMEOUT_MS }).json()
   return refinedPromptSchema.parse(data)
+}
+
+export async function generateNoteMarkdown(
+  params: GenerateNoteRequest,
+  signal?: AbortSignal,
+): Promise<GeneratedNote> {
+  const data = await api
+    .post('ai/notes/generate', { json: params, timeout: AI_REQUEST_TIMEOUT_MS, signal })
+    .json()
+  return generatedNoteSchema.parse(data)
+}
+
+export async function generateMermaidDiagram(
+  params: GenerateMermaidRequest,
+  signal?: AbortSignal,
+): Promise<GeneratedMermaid> {
+  const data = await api
+    .post('ai/diagrams/mermaid/generate', { json: params, timeout: AI_REQUEST_TIMEOUT_MS, signal })
+    .json()
+  return generatedMermaidSchema.parse(data)
 }
 
 export async function listChatSessions(params: {

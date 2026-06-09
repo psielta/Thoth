@@ -3,7 +3,7 @@ import { Extension, type MarkdownToken } from '@tiptap/core'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Check, Copy } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 type MarkdownEditorProps = {
@@ -14,6 +14,11 @@ type MarkdownEditorProps = {
   contentClassName?: string
   editorClassName?: string
   editable?: boolean
+}
+
+export type MarkdownEditorHandle = {
+  /** Insert Markdown at the current cursor position, keeping `onChange` in sync. */
+  insertMarkdown: (markdown: string) => void
 }
 
 /**
@@ -31,15 +36,18 @@ const MarkdownEscapeText = Extension.create({
   }),
 })
 
-export function MarkdownEditor({
-  value,
-  onChange,
-  label = 'Markdown',
-  className,
-  contentClassName,
-  editorClassName,
-  editable = true,
-}: MarkdownEditorProps) {
+export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(
+  {
+    value,
+    onChange,
+    label = 'Markdown',
+    className,
+    contentClassName,
+    editorClassName,
+    editable = true,
+  },
+  ref,
+) {
   const extensions = useMemo(() => [StarterKit, MarkdownEscapeText, Markdown], [])
 
   const editor = useEditor({
@@ -68,6 +76,19 @@ export function MarkdownEditor({
 
     editor.commands.setContent(value || '', { contentType: 'markdown' })
   }, [editor, value])
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      insertMarkdown: (markdown: string) => {
+        if (!editor || !markdown) {
+          return
+        }
+        editor.chain().focus().insertContent(markdown, { contentType: 'markdown' }).run()
+      },
+    }),
+    [editor],
+  )
 
   const [copied, setCopied] = useState(false)
 
@@ -107,4 +128,4 @@ export function MarkdownEditor({
       <EditorContent editor={editor} className={cn('min-h-0 flex-1 overflow-y-auto', contentClassName)} />
     </div>
   )
-}
+})

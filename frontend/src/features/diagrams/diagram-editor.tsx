@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, Check, Loader2 } from 'lucide-react'
+import { AlertCircle, Check, Loader2, Sparkles } from 'lucide-react'
 import type * as React from 'react'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ import { queryKeys } from '@/api/query-keys'
 import type { Diagram } from '@/api/schemas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { GenerateMermaidDialog } from './ai/generate-mermaid-dialog'
 
 const ExcalidrawEditor = lazy(() => import('./excalidraw-editor'))
 const MermaidEditor = lazy(() => import('./mermaid-editor'))
@@ -35,6 +36,7 @@ export function DiagramEditor({ diagram }: { diagram: Diagram }) {
   })
   const [status, setStatus] = useState<SaveStatus>('idle')
   const [lastSavedAt, setLastSavedAt] = useState(diagram.updatedAtUtc)
+  const [aiOpen, setAiOpen] = useState(false)
 
   const trimmedTitle = title.trim()
   const dirty = title !== saved.title || description !== saved.description || content !== saved.content
@@ -149,15 +151,23 @@ export function DiagramEditor({ diagram }: { diagram: Diagram }) {
         />
         <div className="flex items-center justify-between gap-3">
           <SaveIndicator status={status} dirty={dirty} hasTitle={Boolean(trimmedTitle)} lastSavedAt={lastSavedAt} />
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => void performSave()}
-            disabled={!dirty || status === 'saving' || !trimmedTitle}
-          >
-            Salvar
-          </Button>
+          <div className="flex items-center gap-2">
+            {diagram.type === 'Mermaid' ? (
+              <Button type="button" variant="secondary" size="sm" onClick={() => setAiOpen(true)}>
+                <Sparkles className="h-4 w-4" />
+                Gerar Mermaid com IA
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void performSave()}
+              disabled={!dirty || status === 'saving' || !trimmedTitle}
+            >
+              Salvar
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -168,6 +178,16 @@ export function DiagramEditor({ diagram }: { diagram: Diagram }) {
           <MermaidEditor value={content} onChange={setContent} />
         )}
       </Suspense>
+
+      {aiOpen && diagram.type === 'Mermaid' ? (
+        <GenerateMermaidDialog
+          workingDirectoryId={diagram.workingDirectoryId}
+          diagramId={diagram.id}
+          currentCode={content}
+          onApply={setContent}
+          onClose={() => setAiOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

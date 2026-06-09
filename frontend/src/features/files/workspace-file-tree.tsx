@@ -1,6 +1,8 @@
-import { ChevronRight, FileText, Folder, Loader2, Search } from 'lucide-react'
+import { useIsFetching, useQueryClient } from '@tanstack/react-query'
+import { ChevronRight, FileText, Folder, Loader2, RefreshCw, Search } from 'lucide-react'
 import type { DragEvent } from 'react'
 import { useMemo, useState } from 'react'
+import { queryKeys } from '@/api/query-keys'
 import type { FileSearchResult, FileTreeNode } from '@/api/schemas'
 import { useDebouncedValue } from '@/hooks/use-debounced-value'
 import { cn } from '@/lib/utils'
@@ -23,12 +25,20 @@ export function WorkspaceFileTree({
   onOpenFile,
   className,
 }: WorkspaceFileTreeProps) {
+  const queryClient = useQueryClient()
   const rootQuery = useDirectoryChildren(workingDirectoryId, '')
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => new Set())
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search.trim(), 250)
   const isSearching = debouncedSearch.length >= 2
   const searchQuery = useFileSearch(workingDirectoryId, debouncedSearch, isSearching)
+  const refreshingCount = useIsFetching({ queryKey: queryKeys.files.trees(workingDirectoryId) })
+  const isRefreshing = refreshingCount > 0
+
+  const handleRefresh = () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.files.trees(workingDirectoryId) })
+    void queryClient.invalidateQueries({ queryKey: queryKeys.files.searches(workingDirectoryId) })
+  }
 
   const toggleExpanded = (relativePath: string) => {
     setExpandedPaths((current) => {
@@ -52,8 +62,20 @@ export function WorkspaceFileTree({
       )}
     >
       <div className="grid gap-2 border-b border-border px-3 py-2">
-        <div className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-          Arquivos do workspace
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+            Arquivos do workspace
+          </div>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            title="Recarregar arquivos"
+            aria-label="Recarregar arquivos do workspace"
+            className="rounded p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-60"
+          >
+            <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
+          </button>
         </div>
         <div className="relative">
           <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />

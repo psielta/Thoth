@@ -56,8 +56,10 @@ export const queryKeys = {
   files: {
     search: (workingDirectoryId: string, query: string, limit: number) =>
       ['files', 'search', workingDirectoryId, query, limit] as const,
+    searches: (workingDirectoryId: string) => ['files', 'search', workingDirectoryId] as const,
     tree: (workingDirectoryId: string, relativePath: string) =>
       ['files', 'tree', workingDirectoryId, relativePath] as const,
+    trees: (workingDirectoryId: string) => ['files', 'tree', workingDirectoryId] as const,
     content: (workingDirectoryId: string, relativePath: string) =>
       ['files', 'content', workingDirectoryId, relativePath] as const,
   },

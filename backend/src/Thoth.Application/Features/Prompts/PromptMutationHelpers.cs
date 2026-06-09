@@ -1,0 +1,110 @@
+using System.Globalization;
+using Thoth.Application.Common.Exceptions;
+using Thoth.Application.Common.Interfaces;
+using Thoth.Application.Common.Models;
+using Thoth.Domain.Prompts;
+using Thoth.Domain.WorkingDirectories;
+
+namespace Thoth.Application.Features.Prompts;
+
+internal static class PromptMutationHelpers
+{
+    public static WorkingDirectory GetWorkingDirectory(
+        IApplicationDbContext context,
+        Guid workingDirectoryId,
+        Guid ownerId)
+    {
+        var directory = context.WorkingDirectories
+            .FirstOrDefault(item => item.Id == workingDirectoryId && item.OwnerId == ownerId);
+
+        return directory ?? throw new NotFoundException("Working directory was not found.");
+    }
+
+    public static Prompt GetPrompt(IApplicationDbContext context, Guid promptId, Guid ownerId)
+    {
+        var prompt = context.Prompts
+            .FirstOrDefault(item => item.Id == promptId && item.OwnerId == ownerId);
+
+        return prompt ?? throw new NotFoundException("Prompt was not found.");
+    }
+
+    public static void EnsureRowVersion(Prompt prompt, string rowVersion)
+    {
+        if (!uint.TryParse(rowVersion, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed) ||
+            parsed != prompt.RowVersion)
+        {
+            throw new ConflictException("The prompt was changed by another operation. Reload it before saving.");
+        }
+    }
+
+    public static PromptVersion CreateVersion(Prompt prompt, IDateTimeProvider dateTimeProvider, string? changeNote = null) =>
+        new()
+        {
+            PromptId = prompt.Id,
+            VersionNumber = prompt.CurrentVersion,
+            Title = prompt.Title,
+            Content = prompt.Content,
+            TargetAgent = prompt.TargetAgent,
+            Kind = prompt.Kind,
+            Status = prompt.Status,
+            ChangeNote = changeNote,
+            CreatedAtUtc = dateTimeProvider.UtcNow
+        };
+
+    public static IReadOnlyList<LinkedDocument> PauseLinkedDocumentsIfPromptIsArchived(
+        IApplicationDbContext context,
+        Prompt prompt,
+        IDateTimeProvider dateTimeProvider)
+    {
+        if (prompt.Status != PromptStatus.Archived)
+        {
+            return Array.Empty<LinkedDocument>();
+        }
+
+        var documents = context.LinkedDocuments
+            .Where(document => document.PromptId == prompt.Id &&
+                               (document.Status == LinkedDocumentStatus.Tracking ||
+                                document.Status == LinkedDocumentStatus.Error ||
+                                document.Status == LinkedDocumentStatus.Missing))
+            .ToList();
+        var now = dateTimeProvider.UtcNow;
+
+        foreach (var document in documents)
+        {
+            document.Status = LinkedDocumentStatus.Paused;
+            document.UpdatedAtUtc = now;
+        }
+
+        return documents;
+    }
+
+    public static async Task<IReadOnlyList<PromptFileReference>> BuildReferencesAsync(
+        IWorkspaceFileService workspaceFileService,
+        string rootAbsolutePath,
+        IEnumerable<FileMentionDto>? mentions,
+        CancellationToken cancellationToken)
+    {
+        var references = new List<PromptFileReference>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var mention in mentions ?? Array.Empty<FileMentionDto>())
+        {
+            var relativePath = mention.RelativePath.Trim();
+            if (relativePath.Length == 0 || !seen.Add(relativePath))
+            {
+                continue;
+            }
+
+            var resolution = await workspaceFileService.ResolveRelativePathAsync(rootAbsolutePath, relativePath, cancellationToken);
+            references.Add(new PromptFileReference
+            {
+                RelativePath = resolution.RelativePath,
+                RawMention = mention.Label?.Trim() is { Length: > 0 } label ? label : resolution.RelativePath,
+                Exists = resolution.Exists,
+                ResolvedAtUtc = resolution.ResolvedAtUtc
+            });
+        }
+
+        return references;
+    }
+}

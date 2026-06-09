@@ -10,6 +10,8 @@ $ErrorActionPreference = "Stop"
 $repoRoot = $PSScriptRoot
 $versionFile = Join-Path $repoRoot "version.json"
 $stageDir = Join-Path $repoRoot "build\publish"
+# A pasta de staging mantem o nome PromptTasks: ela espelha o DestDir
+# {app}\PromptTasks do instalador, preservado para upgrades de instalacoes existentes.
 $publishDir = Join-Path $stageDir "PromptTasks"
 $distDir = Join-Path $repoRoot "dist"
 
@@ -206,7 +208,7 @@ function Publish-Backend {
         [string]$Revision
     )
 
-    $csproj = Join-Path $repoRoot "backend\src\PromptTasks.Api\PromptTasks.Api.csproj"
+    $csproj = Join-Path $repoRoot "backend\src\Thoth.Api\Thoth.Api.csproj"
     if (-not (Test-Path -LiteralPath $csproj)) {
         throw "Csproj nao encontrado: $csproj"
     }
@@ -244,7 +246,7 @@ function Compile-Iss {
         [string]$IsccPath
     )
 
-    $iss = Join-Path $repoRoot "setup\PromptTasks.iss"
+    $iss = Join-Path $repoRoot "setup\Thoth.iss"
     if (-not (Test-Path -LiteralPath $iss)) {
         throw "Script Inno Setup nao encontrado: $iss"
     }

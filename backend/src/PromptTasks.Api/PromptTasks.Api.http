@@ -1,6 +1,0 @@
-@PromptTasks.Api_HostAddress = http://localhost:5125
-
-GET {{PromptTasks.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

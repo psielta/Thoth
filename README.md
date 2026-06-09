@@ -76,14 +76,14 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 ```text
 backend/
   src/
-    PromptTasks.Domain/          Entidades, enums e regras de dominio
-    PromptTasks.Application/     Casos de uso, DTOs, validadores e contratos
-    PromptTasks.Infrastructure/  EF Core, PostgreSQL, filesystem e watchers
-    PromptTasks.Api/             Controllers REST, SignalR, OpenAPI e DI
+    Thoth.Domain/          Entidades, enums e regras de dominio
+    Thoth.Application/     Casos de uso, DTOs, validadores e contratos
+    Thoth.Infrastructure/  EF Core, PostgreSQL, filesystem e watchers
+    Thoth.Api/             Controllers REST, SignalR, OpenAPI e DI
   tests/
-    PromptTasks.Application.UnitTests/
-    PromptTasks.Infrastructure.UnitTests/
-    PromptTasks.Api.IntegrationTests/
+    Thoth.Application.UnitTests/
+    Thoth.Infrastructure.UnitTests/
+    Thoth.Api.IntegrationTests/
 
 frontend/
   src/
@@ -155,7 +155,7 @@ Password=prompttasks
 ### 3. Executar a API
 
 ```powershell
-dotnet run --project backend/src/PromptTasks.Api/PromptTasks.Api.csproj
+dotnet run --project backend/src/Thoth.Api/Thoth.Api.csproj
 ```
 
 Servicos expostos:
@@ -186,7 +186,7 @@ $env:VITE_API_BASE_URL = "http://localhost:5191/api"
 
 ## Deploy de Producao
 
-O empacotamento de producao gera um instalador Windows em `dist/` usando Inno Setup. A topologia de producao e um unico Windows Service `PromptTasks`, self-contained `win-x64`, servindo API, SignalR e SPA React na porta fixa `8091`.
+O empacotamento de producao gera um instalador Windows em `dist/` usando Inno Setup. A topologia de producao e um unico Windows Service `PromptTasks` (nome interno mantido por compatibilidade de upgrade; o nome de exibicao e Thoth), self-contained `win-x64`, servindo API, SignalR e SPA React na porta fixa `8091`.
 
 ### Pre-requisitos de producao
 
@@ -215,7 +215,7 @@ O EF Core cria e atualiza o schema dentro de um banco existente. Ele nao cria o 
 powershell -File build.ps1 -Bump patch
 ```
 
-O script usa `version.json` como fonte SemVer, builda o frontend com `VITE_API_BASE_URL=/api`, publica o backend self-contained e compila `setup\PromptTasks.iss`. O instalador gerado fica em `dist\PromptTasks-Setup-X.Y.Z.exe`.
+O script usa `version.json` como fonte SemVer, builda o frontend com `VITE_API_BASE_URL=/api`, publica o backend self-contained e compila `setup\Thoth.iss`. O instalador gerado fica em `dist\Thoth-Setup-X.Y.Z.exe`.
 
 Durante a instalacao, o assistente pede host, porta, banco, usuario, senha do PostgreSQL, Gemini API Key opcional e a configuracao de Agent Usage. Ele grava `appsettings.Production.json`, configura o servico `PromptTasks`, cria a regra de firewall para `8091` e abre `http://localhost:8091` ao final.
 
@@ -242,8 +242,8 @@ O import chama o bootstrap, para o servico `PromptTasks` se ele existir, executa
 Backend:
 
 ```powershell
-dotnet build backend/PromptTasks.sln
-dotnet test backend/PromptTasks.sln
+dotnet build backend/Thoth.sln
+dotnet test backend/Thoth.sln
 ```
 
 Frontend:

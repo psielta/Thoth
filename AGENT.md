@@ -55,7 +55,7 @@ docker compose up -d
 API:
 
 ```powershell
-dotnet run --project backend/src/PromptTasks.Api/PromptTasks.Api.csproj
+dotnet run --project backend/src/Thoth.Api/Thoth.Api.csproj
 ```
 
 Frontend:
@@ -82,8 +82,8 @@ Execute conforme o tipo de mudanca.
 Backend:
 
 ```powershell
-dotnet build backend/PromptTasks.sln
-dotnet test backend/PromptTasks.sln
+dotnet build backend/Thoth.sln
+dotnet test backend/Thoth.sln
 ```
 
 Frontend:

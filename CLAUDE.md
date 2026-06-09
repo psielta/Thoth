@@ -55,7 +55,7 @@ docker compose up -d
 Rodar API:
 
 ```powershell
-dotnet run --project backend/src/PromptTasks.Api/PromptTasks.Api.csproj
+dotnet run --project backend/src/Thoth.Api/Thoth.Api.csproj
 ```
 
 Rodar frontend:
@@ -68,8 +68,8 @@ npm run dev
 Validar backend:
 
 ```powershell
-dotnet build backend/PromptTasks.sln
-dotnet test backend/PromptTasks.sln
+dotnet build backend/Thoth.sln
+dotnet test backend/Thoth.sln
 ```
 
 Validar frontend:

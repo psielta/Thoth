@@ -1,0 +1,20 @@
+using Thoth.Domain.Prompts;
+
+namespace Thoth.Application.Common.Models;
+
+public sealed record PromptTemplateDto(
+    PromptTemplateKey Key,
+    string DisplayName,
+    string Description,
+    TargetAgent DefaultTargetAgent,
+    PromptKind DefaultKind,
+    PromptTemplateInputDto? Input,
+    IReadOnlyList<PromptTemplateInputDto> Inputs);
+
+public sealed record PromptTemplateInputDto(
+    string Key,
+    string Label,
+    string Placeholder,
+    string HelpText,
+    bool Required,
+    bool Multiline);

@@ -42,7 +42,7 @@ function Stop-ServiceByName {
     }
 }
 
-Write-SetupLog "Inicio da preparacao do setup do Prompt Tasks."
+Write-SetupLog "Inicio da preparacao do setup do Thoth."
 Stop-ServiceByName -Name "PromptTasks"
-Write-SetupLog "Preparacao do setup do Prompt Tasks concluida."
+Write-SetupLog "Preparacao do setup do Thoth concluida."
 exit 0

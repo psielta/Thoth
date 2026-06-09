@@ -19,14 +19,19 @@ const sampleNote: Note = {
   updatedAtUtc: '2026-06-01T00:00:00Z',
 }
 
-function renderList(onSelectNote = vi.fn()) {
+function renderList(onSelectNote = vi.fn(), onCreatePrompt?: (note: Note) => void) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
 
   render(
     <QueryClientProvider client={queryClient}>
-      <NoteList notebookId="nb-1" selectedNoteId={null} onSelectNote={onSelectNote} />
+      <NoteList
+        notebookId="nb-1"
+        selectedNoteId={null}
+        onSelectNote={onSelectNote}
+        onCreatePrompt={onCreatePrompt}
+      />
     </QueryClientProvider>,
   )
 
@@ -72,5 +77,24 @@ describe('NoteList', () => {
     renderList()
 
     expect(await screen.findByText('Nenhuma nota neste bloco ainda.')).toBeInTheDocument()
+  })
+
+  it('offers a create-prompt action per note without selecting the note', async () => {
+    const onSelectNote = vi.fn()
+    const onCreatePrompt = vi.fn()
+    renderList(onSelectNote, onCreatePrompt)
+    await screen.findByText('Minha nota')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Criar prompt a partir da nota' }))
+
+    expect(onCreatePrompt).toHaveBeenCalledWith(sampleNote)
+    expect(onSelectNote).not.toHaveBeenCalled()
+  })
+
+  it('hides the create-prompt action when no handler is provided', async () => {
+    renderList()
+    await screen.findByText('Minha nota')
+
+    expect(screen.queryByRole('button', { name: 'Criar prompt a partir da nota' })).not.toBeInTheDocument()
   })
 })

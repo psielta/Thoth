@@ -1,16 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
 import { Loader2, NotebookText } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { getNotebook } from '@/api/notebooks'
 import { getNote } from '@/api/notes'
 import { queryKeys } from '@/api/query-keys'
+import type { Note } from '@/api/schemas'
+import { listWorkingDirectories } from '@/api/working-directories'
+import { NewPromptDrawer } from '@/features/workflow/new-prompt-drawer'
 import { NoteEditor } from './note-editor'
 import { NoteList } from './note-list'
 import { NotebookList } from './notebook-list'
+import { buildPromptSeedFromNote, type NotePromptSeed } from './note-prompt-seed'
 
 export function NotebooksPage() {
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null)
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+  const [promptSeed, setPromptSeed] = useState<NotePromptSeed | null>(null)
 
   const noteQuery = useQuery({
     queryKey: selectedNoteId ? queryKeys.notes.detail(selectedNoteId) : ['notes', 'none'],
@@ -24,9 +30,24 @@ export function NotebooksPage() {
     enabled: Boolean(selectedNotebookId),
   })
 
+  const workspacesQuery = useQuery({
+    queryKey: queryKeys.workingDirectories.all,
+    queryFn: listWorkingDirectories,
+    enabled: Boolean(promptSeed),
+  })
+
   const handleSelectNotebook = (id: string | null) => {
     setSelectedNotebookId(id)
     setSelectedNoteId(null)
+  }
+
+  const handleCreatePromptFromNote = (note: Note) => {
+    const seed = buildPromptSeedFromNote(note)
+    if (seed.truncated) {
+      toast.error('A nota excede o limite do prompt; o conteudo foi recortado no limite permitido.')
+    }
+
+    setPromptSeed(seed)
   }
 
   return (
@@ -46,6 +67,7 @@ export function NotebooksPage() {
             notebookId={selectedNotebookId}
             selectedNoteId={selectedNoteId}
             onSelectNote={setSelectedNoteId}
+            onCreatePrompt={handleCreatePromptFromNote}
           />
         ) : (
           <EmptyPane message="Selecione um bloco para ver suas notas." />
@@ -73,6 +95,17 @@ export function NotebooksPage() {
           />
         )}
       </div>
+
+      {promptSeed && workspacesQuery.data ? (
+        <NewPromptDrawer
+          workspaces={workspacesQuery.data}
+          defaultWorkingDirectoryId={notebookQuery.data?.workingDirectoryId ?? undefined}
+          initialTitle={promptSeed.title}
+          initialContent={promptSeed.content}
+          onClose={() => setPromptSeed(null)}
+          onCreated={() => setPromptSeed(null)}
+        />
+      ) : null}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import {
   Archive,
   ArchiveRestore,
+  FilePlus2,
   Loader2,
   Pin,
   PinOff,
@@ -22,9 +23,10 @@ type NoteListProps = {
   notebookId: string
   selectedNoteId: string | null
   onSelectNote: (id: string | null) => void
+  onCreatePrompt?: (note: Note) => void
 }
 
-export function NoteList({ notebookId, selectedNoteId, onSelectNote }: NoteListProps) {
+export function NoteList({ notebookId, selectedNoteId, onSelectNote, onCreatePrompt }: NoteListProps) {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [includeArchived, setIncludeArchived] = useState(false)
@@ -148,6 +150,11 @@ export function NoteList({ notebookId, selectedNoteId, onSelectNote }: NoteListP
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">{preview(note.contentMarkdown)}</p>
               </div>
               <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                {onCreatePrompt ? (
+                  <IconAction title="Criar prompt a partir da nota" onClick={() => onCreatePrompt(note)}>
+                    <FilePlus2 className="h-3.5 w-3.5" />
+                  </IconAction>
+                ) : null}
                 <IconAction
                   title={note.isPinned ? 'Desafixar' : 'Fixar'}
                   onClick={() => pin.mutate({ id: note.id, isPinned: !note.isPinned }, { onError: (error) => toast.error(getErrorMessage(error)) })}

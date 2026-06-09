@@ -15,6 +15,7 @@ vi.mock('@/api/prompts', () => ({
 vi.mock('@/api/working-directories', () => ({
   getWorkingDirectory: vi.fn(),
   updateWorkingDirectory: vi.fn(),
+  listWorkingDirectories: vi.fn().mockResolvedValue([]),
 }))
 
 vi.mock('@/features/prompts/prompt-detail', () => ({

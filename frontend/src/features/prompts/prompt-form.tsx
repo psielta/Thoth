@@ -35,6 +35,8 @@ type PromptFormProps = {
   onDeleted?: () => void
   onCreated?: (prompt: Prompt) => void
   showWorkspaceFileTree?: boolean
+  initialTitle?: string
+  initialContent?: string
 }
 
 export function PromptForm({
@@ -43,6 +45,8 @@ export function PromptForm({
   onDeleted,
   onCreated,
   showWorkspaceFileTree = true,
+  initialTitle,
+  initialContent,
 }: PromptFormProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -71,11 +75,11 @@ export function PromptForm({
   const form = useForm<PromptFormValues>({
     resolver: zodResolver(promptFormSchema),
     defaultValues: {
-      title: '',
+      title: promptId ? '' : initialTitle ?? '',
       targetAgent: 'Codex',
       kind: 'General',
       status: 'Draft',
-      content: '',
+      content: promptId ? '' : initialContent ?? '',
     },
   })
 

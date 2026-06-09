@@ -13,6 +13,8 @@ type NewPromptDrawerProps = {
   workspaces: WorkingDirectory[]
   onClose: () => void
   onCreated: () => void
+  initialTitle?: string
+  initialContent?: string
 }
 
 export function NewPromptDrawer({
@@ -20,6 +22,8 @@ export function NewPromptDrawer({
   workspaces,
   onClose,
   onCreated,
+  initialTitle,
+  initialContent,
 }: NewPromptDrawerProps) {
   const { openFile } = useFileViewer()
   const [workingDirectoryId, setWorkingDirectoryId] = useState(
@@ -90,6 +94,8 @@ export function NewPromptDrawer({
                   workingDirectoryId={workingDirectoryId}
                   onCreated={handleCreated}
                   showWorkspaceFileTree={false}
+                  initialTitle={initialTitle}
+                  initialContent={initialContent}
                 />
               </div>
             ) : (

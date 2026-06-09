@@ -2,6 +2,7 @@ import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
 import { Terminal } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { UsageIndicator } from '@/features/agent-usage/usage-indicator'
+import { GlobalNewPromptButton } from '@/features/prompts/global-new-prompt-button'
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -66,6 +67,7 @@ function RootLayout() {
       <main className="mx-auto grid min-w-0 w-full max-w-7xl gap-6 px-4 py-6">
         <Outlet />
       </main>
+      <GlobalNewPromptButton />
     </div>
   )
 }

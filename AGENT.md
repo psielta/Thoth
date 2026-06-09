@@ -73,7 +73,7 @@ powershell -File scripts\db-bootstrap.ps1 -DbHost localhost -Port 5435 -Superuse
 powershell -File build.ps1 -Bump patch
 ```
 
-O instalador de producao roda como Windows Service `PromptTasks` na porta fixa `8091`. PostgreSQL deve ser instalado manualmente; EF cria/atualiza apenas o schema em um banco existente.
+O instalador de producao roda como Windows Service `PromptTasks` na porta fixa `8091`. PostgreSQL deve ser instalado manualmente; EF cria/atualiza apenas o schema em um banco existente. O assistente tambem configura Agent Usage e preserva os caminhos existentes de Claude/Codex em upgrades.
 
 ## Validacao Esperada
 

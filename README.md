@@ -216,7 +216,9 @@ powershell -File build.ps1 -Bump patch
 
 O script usa `version.json` como fonte SemVer, builda o frontend com `VITE_API_BASE_URL=/api`, publica o backend self-contained e compila `setup\PromptTasks.iss`. O instalador gerado fica em `dist\PromptTasks-Setup-X.Y.Z.exe`.
 
-Durante a instalacao, o assistente pede host, porta, banco, usuario, senha do PostgreSQL e Gemini API Key opcional. Ele grava `appsettings.Production.json`, configura o servico `PromptTasks`, cria a regra de firewall para `8091` e abre `http://localhost:8091` ao final.
+Durante a instalacao, o assistente pede host, porta, banco, usuario, senha do PostgreSQL, Gemini API Key opcional e a configuracao de Agent Usage. Ele grava `appsettings.Production.json`, configura o servico `PromptTasks`, cria a regra de firewall para `8091` e abre `http://localhost:8091` ao final.
+
+Se Agent Usage for habilitado em producao, informe caminhos absolutos do usuario Windows que usa Claude/Codex, por exemplo `C:\Users\psiel\.claude\.credentials.json`, `C:\Users\psiel\.claude\projects` e `C:\Users\psiel\.codex\sessions`. Nao use `~`: o servico roda como `LocalSystem` e `~` apontaria para o perfil do sistema. Em upgrades, o instalador preenche esses campos a partir do `appsettings.Production.json` existente para nao apagar a configuracao.
 
 ### Backup e importacao de banco
 

@@ -58,6 +58,8 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=
 [Code]
 var
   DbPage: TInputQueryWizardPage;
+  AgentOptionsPage: TInputOptionWizardPage;
+  AgentPathsPage: TInputQueryWizardPage;
   ConfigDefaultsLoaded: Boolean;
 
 function JsonEscape(Value: String): String;
@@ -164,6 +166,31 @@ begin
   end;
 end;
 
+function ExtractJsonBoolean(Json: String; Key: String; DefaultValue: Boolean): Boolean;
+var
+  Token: String;
+  Remainder: String;
+  KeyPos: Integer;
+  ColonPos: Integer;
+begin
+  Result := DefaultValue;
+  Token := '"' + Key + '"';
+  KeyPos := Pos(Token, Json);
+  if KeyPos = 0 then
+    Exit;
+
+  Remainder := Copy(Json, KeyPos + Length(Token), Length(Json));
+  ColonPos := Pos(':', Remainder);
+  if ColonPos = 0 then
+    Exit;
+
+  Remainder := Trim(Copy(Remainder, ColonPos + 1, Length(Remainder)));
+  if CompareText(Copy(Remainder, 1, 4), 'true') = 0 then
+    Result := True
+  else if CompareText(Copy(Remainder, 1, 5), 'false') = 0 then
+    Result := False;
+end;
+
 function ExtractConnectionValue(ConnectionString: String; Key: String; DefaultValue: String): String;
 var
   I: Integer;
@@ -208,6 +235,46 @@ begin
   end;
 end;
 
+function BoolToJson(Value: Boolean): String;
+begin
+  if Value then
+    Result := 'true'
+  else
+    Result := 'false';
+end;
+
+function DefaultProfilePath(RelativePath: String): String;
+var
+  Profile: String;
+begin
+  Profile := GetEnv('USERPROFILE');
+  if Profile = '' then
+    Profile := GetEnv('HOMEDRIVE') + GetEnv('HOMEPATH');
+
+  if Profile = '' then
+    Result := ''
+  else
+    Result := AddBackslash(Profile) + RelativePath;
+end;
+
+function ValidateAgentPath(Value: String; LabelText: String): Boolean;
+begin
+  Result := False;
+  if Trim(Value) = '' then
+  begin
+    MsgBox('Informe o caminho de ' + LabelText + '.', mbError, MB_OK);
+    Exit;
+  end;
+
+  if Copy(Trim(Value), 1, 1) = '~' then
+  begin
+    MsgBox('Nao use ~ em ' + LabelText + '. Informe o caminho absoluto do usuario Windows.', mbError, MB_OK);
+    Exit;
+  end;
+
+  Result := True;
+end;
+
 function BuildConnectionString(): String;
 begin
   Result :=
@@ -236,7 +303,15 @@ begin
     '    "DefaultConnection": "' + JsonEscape(BuildConnectionString()) + '"' + #13#10 +
     '  },' + #13#10 +
     '  "AgentUsage": {' + #13#10 +
-    '    "Enabled": false' + #13#10 +
+    '    "Enabled": ' + BoolToJson(AgentOptionsPage.Values[0]) + ',' + #13#10 +
+    '    "Claude": {' + #13#10 +
+    '      "CredentialsPath": "' + JsonEscape(AgentPathsPage.Values[0]) + '",' + #13#10 +
+    '      "ProjectsDir": "' + JsonEscape(AgentPathsPage.Values[1]) + '",' + #13#10 +
+    '      "EnableTranscriptFallback": true' + #13#10 +
+    '    },' + #13#10 +
+    '    "Codex": {' + #13#10 +
+    '      "SessionsDir": "' + JsonEscape(AgentPathsPage.Values[2]) + '"' + #13#10 +
+    '    }' + #13#10 +
     '  },' + #13#10 +
     '  "Gemini": {' + #13#10 +
     '    "ApiKey": "' + JsonEscape(DbPage.Values[5]) + '"' + #13#10 +
@@ -315,6 +390,10 @@ begin
   end;
 
   DbPage.Values[5] := ExtractJsonString(Json, 'ApiKey', DbPage.Values[5]);
+  AgentOptionsPage.Values[0] := ExtractJsonBoolean(Json, 'Enabled', AgentOptionsPage.Values[0]);
+  AgentPathsPage.Values[0] := ExtractJsonString(Json, 'CredentialsPath', AgentPathsPage.Values[0]);
+  AgentPathsPage.Values[1] := ExtractJsonString(Json, 'ProjectsDir', AgentPathsPage.Values[1]);
+  AgentPathsPage.Values[2] := ExtractJsonString(Json, 'SessionsDir', AgentPathsPage.Values[2]);
 end;
 
 procedure InitializeWizard();
@@ -338,6 +417,28 @@ begin
   DbPage.Values[3] := 'prompttasks';
   DbPage.Values[4] := 'prompttasks';
   DbPage.Values[5] := '';
+
+  AgentOptionsPage := CreateInputOptionPage(
+    DbPage.ID,
+    'Monitoramento de uso dos agentes',
+    'Configure se o servico deve monitorar uso do Claude e Codex.',
+    'Quando o servico roda como LocalSystem, informe caminhos absolutos do seu usuario Windows.',
+    False,
+    False);
+  AgentOptionsPage.Add('Habilitar Agent Usage');
+  AgentOptionsPage.Values[0] := False;
+
+  AgentPathsPage := CreateInputQueryPage(
+    AgentOptionsPage.ID,
+    'Caminhos do Agent Usage',
+    'Informe os caminhos absolutos das credenciais e sessoes.',
+    'Nao use ~ em producao. Use caminhos como C:\Users\seu-usuario\.claude e C:\Users\seu-usuario\.codex.');
+  AgentPathsPage.Add('Claude credentials:', False);
+  AgentPathsPage.Add('Claude projects:', False);
+  AgentPathsPage.Add('Codex sessions:', False);
+  AgentPathsPage.Values[0] := DefaultProfilePath('.claude\.credentials.json');
+  AgentPathsPage.Values[1] := DefaultProfilePath('.claude\projects');
+  AgentPathsPage.Values[2] := DefaultProfilePath('.codex\sessions');
   ConfigDefaultsLoaded := False;
 end;
 
@@ -350,11 +451,41 @@ begin
   end;
 end;
 
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  if (PageID = AgentPathsPage.ID) and (not AgentOptionsPage.Values[0]) then
+    Result := True;
+end;
+
 function NextButtonClick(CurPageID: Integer): Boolean;
 var
   Port: Integer;
 begin
   Result := True;
+  if CurPageID = AgentPathsPage.ID then
+  begin
+    if not ValidateAgentPath(AgentPathsPage.Values[0], 'Claude credentials') then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    if not ValidateAgentPath(AgentPathsPage.Values[1], 'Claude projects') then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    if not ValidateAgentPath(AgentPathsPage.Values[2], 'Codex sessions') then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    Exit;
+  end;
+
   if CurPageID <> DbPage.ID then
     Exit;
 

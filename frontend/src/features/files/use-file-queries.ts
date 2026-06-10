@@ -7,6 +7,7 @@ export function useDirectoryChildren(workingDirectoryId: string, relativePath: s
     queryKey: queryKeys.files.tree(workingDirectoryId, relativePath),
     queryFn: () => browseDirectory(workingDirectoryId, relativePath),
     enabled: Boolean(workingDirectoryId) && enabled,
+    retry: false,
     staleTime: 30_000,
   })
 }
@@ -16,6 +17,7 @@ export function useFileContent(workingDirectoryId: string, relativePath: string,
     queryKey: queryKeys.files.content(workingDirectoryId, relativePath),
     queryFn: () => getFileContent(workingDirectoryId, relativePath),
     enabled: Boolean(workingDirectoryId) && Boolean(relativePath) && enabled,
+    retry: false,
     staleTime: 0,
   })
 }
@@ -27,6 +29,7 @@ export function useFileSearch(workingDirectoryId: string, query: string, enabled
     queryKey: queryKeys.files.search(workingDirectoryId, query, FILE_SEARCH_LIMIT),
     queryFn: () => searchFiles(workingDirectoryId, query, FILE_SEARCH_LIMIT),
     enabled: Boolean(workingDirectoryId) && query.length >= 2 && enabled,
+    retry: false,
     staleTime: 10_000,
   })
 }

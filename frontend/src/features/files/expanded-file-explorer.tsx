@@ -1,5 +1,6 @@
-import { FileCode2, Minimize2, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react'
+import { AlertTriangle, FileCode2, Minimize2, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { getErrorMessage } from '@/api/client'
 import type { GitFileStatus, WorkingDirectory } from '@/api/schemas'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
@@ -8,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { FileSearchPalette } from './file-search-palette'
 import { FileViewerPanel } from './file-viewer-panel'
 import { GitDiffViewer } from './git-diff-viewer'
+import { useDirectoryChildren } from './use-file-queries'
 import { WorkspaceFileTree } from './workspace-file-tree'
 
 const TREE_WIDTH_STORAGE_KEY = 'prompt-tasks:files:tree-width'
@@ -29,6 +31,7 @@ type ExpandedFileExplorerProps = {
   onChangeWorkspace: (workingDirectoryId: string) => void
   selectedPath: string | null
   onSelectFile: (relativePath: string) => void
+  onClearSelection?: () => void
   onExit: () => void
   /** Permite ajustar o overlay (ex.: z-index acima do drawer de visualizacao). */
   className?: string
@@ -45,22 +48,36 @@ export function ExpandedFileExplorer({
   onChangeWorkspace,
   selectedPath,
   onSelectFile,
+  onClearSelection,
   onExit,
   className,
 }: ExpandedFileExplorerProps) {
+  const rootQuery = useDirectoryChildren(workingDirectoryId, '')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [treeVisible, setTreeVisible] = useState(true)
   const [diffSelection, setDiffSelection] = useState<{
     workingDirectoryId: string
     entry: GitFileStatus
   } | null>(null)
+  const rootUnavailable = rootQuery.isError
   const [storedTreeWidth, setStoredTreeWidth] = useLocalStorage(
     TREE_WIDTH_STORAGE_KEY,
     String(TREE_DEFAULT_WIDTH),
   )
   const [treeWidth, setTreeWidth] = useState(() => clampTreeWidth(Number.parseInt(storedTreeWidth, 10)))
+  const rootReady = rootQuery.isSuccess
   const activeDiffSelection =
-    diffSelection?.workingDirectoryId === workingDirectoryId ? diffSelection.entry : null
+    rootReady && diffSelection?.workingDirectoryId === workingDirectoryId ? diffSelection.entry : null
+
+  useEffect(() => {
+    if (!rootUnavailable) {
+      return
+    }
+
+    if (selectedPath) {
+      onClearSelection?.()
+    }
+  }, [onClearSelection, rootUnavailable, selectedPath])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -209,7 +226,9 @@ export function ExpandedFileExplorer({
           </>
         ) : null}
 
-        {activeDiffSelection ? (
+        {rootUnavailable ? (
+          <WorkspaceUnavailablePanel error={rootQuery.error} />
+        ) : activeDiffSelection ? (
           <GitDiffViewer
             workingDirectoryId={workingDirectoryId}
             path={activeDiffSelection.path}
@@ -217,7 +236,7 @@ export function ExpandedFileExplorer({
             status={activeDiffSelection.status}
             className="min-w-0 flex-1"
           />
-        ) : selectedPath ? (
+        ) : rootReady && selectedPath ? (
           <FileViewerPanel
             workingDirectoryId={workingDirectoryId}
             relativePath={selectedPath}
@@ -242,6 +261,20 @@ export function ExpandedFileExplorer({
           onClose={() => setPaletteOpen(false)}
         />
       ) : null}
+    </div>
+  )
+}
+
+function WorkspaceUnavailablePanel({ error }: { error: unknown }) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-input bg-card p-6 text-center text-sm text-muted-foreground">
+      <AlertTriangle className="h-6 w-6 text-warning-solid" />
+      <p className="font-medium text-foreground">Diretorio do workspace nao encontrado.</p>
+      <p className="max-w-md">
+        A pasta cadastrada para este workspace nao esta mais acessivel. Selecione outro workspace ou ajuste o
+        diretorio em Workspaces.
+      </p>
+      <p className="max-w-md text-xs text-destructive">{getErrorMessage(error)}</p>
     </div>
   )
 }

@@ -56,6 +56,11 @@ export function ExpandedFileOverlay({
     onSelectFile?.(activeWorkspaceId, relativePath)
   }
 
+  const handleClearSelection = () => {
+    setSelection({ workspaceId: activeWorkspaceId, path: null })
+    writeLastOpenedFile(activeWorkspaceId, null)
+  }
+
   if (!workspacesQuery.data) {
     return (
       <div
@@ -86,6 +91,7 @@ export function ExpandedFileOverlay({
       onChangeWorkspace={setActiveWorkspaceId}
       selectedPath={selectedPath}
       onSelectFile={handleSelectFile}
+      onClearSelection={handleClearSelection}
       onExit={onExit}
       className={className}
     />

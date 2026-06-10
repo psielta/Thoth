@@ -105,6 +105,20 @@ public sealed class WorkspaceFileWatchCoordinatorTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task JoinFile_ignores_workspace_when_root_directory_was_removed()
+    {
+        Directory.Delete(_root, recursive: true);
+
+        var act = async () => await _service.JoinFileAsync(
+            _workingDirectoryId,
+            "tracked.txt",
+            "conn-1",
+            CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+    }
+
     public void Dispose()
     {
         _service.Dispose();

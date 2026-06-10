@@ -28,9 +28,18 @@ public sealed class WorkspaceFileWatchService(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var fileKey = WorkspaceFilePath.CreateFileKey(relativePath);
-        var normalizedRelativePath = WorkspaceFilePath.NormalizeRelativePath(
-            relativePath.Trim().TrimStart('@').Replace('\\', '/'));
+        string fileKey;
+        string normalizedRelativePath;
+        try
+        {
+            fileKey = WorkspaceFilePath.CreateFileKey(relativePath);
+            normalizedRelativePath = WorkspaceFilePath.NormalizeRelativePath(
+                relativePath.Trim().TrimStart('@').Replace('\\', '/'));
+        }
+        catch
+        {
+            return;
+        }
 
         using var scope = scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
@@ -40,7 +49,28 @@ public sealed class WorkspaceFileWatchService(
             return;
         }
 
-        var rootCanonical = WorkspaceFilePath.CanonicalizeExistingPath(directory.AbsolutePath);
+        string rootCanonical;
+        try
+        {
+            rootCanonical = WorkspaceFilePath.CanonicalizeExistingPath(directory.AbsolutePath);
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            logger.LogWarning(
+                exception,
+                "Skipping file watcher subscription because working directory path is inaccessible: {WorkingDirectoryId}",
+                workingDirectoryId);
+            return;
+        }
+
+        if (!Directory.Exists(rootCanonical))
+        {
+            logger.LogWarning(
+                "Skipping file watcher subscription because working directory path does not exist: {WorkingDirectoryId}",
+                workingDirectoryId);
+            return;
+        }
         var tracked = _trackedFiles.GetOrAdd(
             new FileWatchKey(workingDirectoryId, fileKey),
             _ => new TrackedFile(workingDirectoryId, fileKey, normalizedRelativePath, rootCanonical));

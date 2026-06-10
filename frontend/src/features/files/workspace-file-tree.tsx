@@ -40,8 +40,9 @@ export function WorkspaceFileTree({
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search.trim(), 250)
   const isSearching = debouncedSearch.length >= 2
-  const searchQuery = useFileSearch(workingDirectoryId, debouncedSearch, isSearching)
-  const gitStatusQuery = useGitStatus(workingDirectoryId)
+  const workspaceReady = rootQuery.isSuccess
+  const searchQuery = useFileSearch(workingDirectoryId, debouncedSearch, isSearching && workspaceReady)
+  const gitStatusQuery = useGitStatus(workingDirectoryId, workspaceReady)
   const fileRefreshingCount = useIsFetching({ queryKey: queryKeys.files.trees(workingDirectoryId) })
   const gitRefreshingCount = useIsFetching({ queryKey: queryKeys.git.status(workingDirectoryId) })
   const refreshingCount = fileRefreshingCount + gitRefreshingCount
@@ -130,6 +131,15 @@ export function WorkspaceFileTree({
       <div className="min-h-0 overflow-auto p-1">
         {isSearching ? (
           <>
+            {rootQuery.isError ? (
+              <div className="grid gap-1 px-2 py-2 text-xs">
+                <p className="font-medium text-destructive">Diretorio do workspace nao encontrado.</p>
+                <p className="text-muted-foreground">
+                  A pasta cadastrada nao esta mais acessivel. Selecione outro workspace ou ajuste o cadastro.
+                </p>
+              </div>
+            ) : null}
+
             {searchQuery.isLoading ? (
               <div className="flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -141,7 +151,7 @@ export function WorkspaceFileTree({
               <div className="px-2 py-2 text-xs text-destructive">Nao foi possivel buscar os arquivos.</div>
             ) : null}
 
-            {!searchQuery.isLoading && !searchQuery.data?.length ? (
+            {!rootQuery.isError && !searchQuery.isLoading && !searchQuery.data?.length ? (
               <div className="px-2 py-2 text-xs text-muted-foreground">Nenhum arquivo encontrado.</div>
             ) : null}
 
@@ -169,10 +179,15 @@ export function WorkspaceFileTree({
             ) : null}
 
             {rootQuery.isError ? (
-              <div className="px-2 py-2 text-xs text-destructive">Nao foi possivel carregar os arquivos.</div>
+              <div className="grid gap-1 px-2 py-2 text-xs">
+                <p className="font-medium text-destructive">Diretorio do workspace nao encontrado.</p>
+                <p className="text-muted-foreground">
+                  A pasta cadastrada nao esta mais acessivel. Selecione outro workspace ou ajuste o cadastro.
+                </p>
+              </div>
             ) : null}
 
-            {!rootQuery.isLoading && !nodes.length ? (
+            {!rootQuery.isLoading && !rootQuery.isError && !nodes.length ? (
               <div className="px-2 py-2 text-xs text-muted-foreground">Diretorio vazio.</div>
             ) : null}
 
@@ -197,17 +212,19 @@ export function WorkspaceFileTree({
         )}
       </div>
 
-      <GitChangesList
-        entries={gitChanges}
-        isLoading={gitStatusQuery.isLoading}
-        isError={gitStatusQuery.isError}
-        isRefreshing={gitRefreshingCount > 0}
-        selectedPath={selectedGitPath}
-        onRefresh={handleGitRefresh}
-        onSelectChange={onSelectGitChange}
-        onSelectFile={onSelectFile}
-        onOpenFile={onOpenFile}
-      />
+      {workspaceReady ? (
+        <GitChangesList
+          entries={gitChanges}
+          isLoading={gitStatusQuery.isLoading}
+          isError={gitStatusQuery.isError}
+          isRefreshing={gitRefreshingCount > 0}
+          selectedPath={selectedGitPath}
+          onRefresh={handleGitRefresh}
+          onSelectChange={onSelectGitChange}
+          onSelectFile={onSelectFile}
+          onOpenFile={onOpenFile}
+        />
+      ) : null}
     </section>
   )
 }

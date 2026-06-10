@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Maximize2 } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ExpandedFileOverlay } from '@/features/files/expanded-file-overlay'
 import { FileExplorer } from '@/features/files/file-explorer'
@@ -27,6 +27,11 @@ function WorkspaceFilesContent({ workspaceId }: { workspaceId: string }) {
     writeLastOpenedFile(workspaceId, relativePath)
   }
 
+  const handleClearSelection = useCallback(() => {
+    setSelectedPath(null)
+    writeLastOpenedFile(workspaceId, null)
+  }, [workspaceId])
+
   return (
     <div className="grid gap-3">
       <div className="flex justify-end">
@@ -47,6 +52,7 @@ function WorkspaceFilesContent({ workspaceId }: { workspaceId: string }) {
         workingDirectoryId={workspaceId}
         selectedPath={selectedPath}
         onSelectFile={handleSelectFile}
+        onClearSelection={handleClearSelection}
         className="min-h-[24rem] lg:h-[calc(100svh-27rem)]"
       />
 

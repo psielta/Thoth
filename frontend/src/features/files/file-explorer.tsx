@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { AlertTriangle } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import type { GitFileStatus } from '@/api/schemas'
+import { getErrorMessage } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { FileViewerPanel } from './file-viewer-panel'
 import { GitDiffViewer } from './git-diff-viewer'
+import { useDirectoryChildren } from './use-file-queries'
 import { WorkspaceFileTree } from './workspace-file-tree'
 
 type FileExplorerProps = {
@@ -15,6 +18,7 @@ type FileExplorerProps = {
    */
   selectedPath?: string | null
   onSelectFile?: (relativePath: string) => void
+  onClearSelection?: () => void
 }
 
 /**
@@ -22,11 +26,32 @@ type FileExplorerProps = {
  * (via `className`) so the Monaco editor scrolls internally instead of growing.
  * Remount with a `key` to reset the selected file when switching workspaces.
  */
-export function FileExplorer({ workingDirectoryId, className, selectedPath, onSelectFile }: FileExplorerProps) {
+export function FileExplorer({
+  workingDirectoryId,
+  className,
+  selectedPath,
+  onSelectFile,
+  onClearSelection,
+}: FileExplorerProps) {
+  const rootQuery = useDirectoryChildren(workingDirectoryId, '')
   const [internalPath, setInternalPath] = useState<string | null>(null)
   const [diffSelection, setDiffSelection] = useState<GitFileStatus | null>(null)
   const isControlled = selectedPath !== undefined
-  const activePath = isControlled ? selectedPath : internalPath
+  const rootReady = rootQuery.isSuccess
+  const rootUnavailable = rootQuery.isError
+  const selectedActivePath = isControlled ? selectedPath : internalPath
+  const activePath = rootReady ? selectedActivePath : null
+  const activeDiffSelection = rootReady ? diffSelection : null
+
+  useEffect(() => {
+    if (!rootUnavailable) {
+      return
+    }
+
+    if (selectedActivePath) {
+      onClearSelection?.()
+    }
+  }, [onClearSelection, rootUnavailable, selectedActivePath])
 
   const handleSelectFile = (relativePath: string) => {
     setDiffSelection(null)
@@ -52,12 +77,14 @@ export function FileExplorer({ workingDirectoryId, className, selectedPath, onSe
         className="min-h-[24rem] lg:min-h-0"
       />
 
-      {diffSelection ? (
+      {rootUnavailable ? (
+        <WorkspaceUnavailablePanel error={rootQuery.error} />
+      ) : activeDiffSelection ? (
         <GitDiffViewer
           workingDirectoryId={workingDirectoryId}
-          path={diffSelection.path}
-          originalPath={diffSelection.originalPath}
-          status={diffSelection.status}
+          path={activeDiffSelection.path}
+          originalPath={activeDiffSelection.originalPath}
+          status={activeDiffSelection.status}
           className="min-h-[24rem] lg:min-h-0"
         />
       ) : activePath ? (
@@ -72,6 +99,20 @@ export function FileExplorer({ workingDirectoryId, className, selectedPath, onSe
           Selecione um arquivo na arvore para visualizar o conteudo.
         </div>
       )}
+    </div>
+  )
+}
+
+function WorkspaceUnavailablePanel({ error }: { error: unknown }) {
+  return (
+    <div className="flex min-h-[24rem] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-input bg-card p-6 text-center text-sm text-muted-foreground lg:min-h-0">
+      <AlertTriangle className="h-5 w-5 text-warning-solid" />
+      <p className="font-medium text-foreground">Diretorio do workspace nao encontrado.</p>
+      <p className="max-w-md">
+        A pasta cadastrada para este workspace nao esta mais acessivel. Selecione outro workspace ou ajuste o
+        diretorio em Workspaces.
+      </p>
+      <p className="max-w-md text-xs text-destructive">{getErrorMessage(error)}</p>
     </div>
   )
 }

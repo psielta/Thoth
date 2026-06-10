@@ -66,14 +66,16 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
   const invokeJoinFile = useCallback((workingDirectoryId: string, relativePath: string) => {
     const connection = connectionRef.current
     if (connection?.state === HubConnectionState.Connected) {
-      void connection.invoke('JoinFile', workingDirectoryId, relativePath)
+      void connection.invoke('JoinFile', workingDirectoryId, relativePath).catch(() => {
+        joinedFilesRef.current.delete(fileSubscriptionKey(workingDirectoryId, relativePath))
+      })
     }
   }, [])
 
   const invokeLeaveFile = useCallback((workingDirectoryId: string, relativePath: string) => {
     const connection = connectionRef.current
     if (connection?.state === HubConnectionState.Connected) {
-      void connection.invoke('LeaveFile', workingDirectoryId, relativePath)
+      void connection.invoke('LeaveFile', workingDirectoryId, relativePath).catch(() => undefined)
     }
   }, [])
 

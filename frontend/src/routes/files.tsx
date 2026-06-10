@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Maximize2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { queryKeys } from '@/api/query-keys'
 import { listWorkingDirectories } from '@/api/working-directories'
 import { Button } from '@/components/ui/button'
@@ -56,6 +56,15 @@ function FilesPage() {
     setSelection({ workspaceId: selectedId, path: relativePath })
     writeLastOpenedFile(selectedId, relativePath)
   }
+
+  const handleClearSelection = useCallback(() => {
+    if (!selectedId) {
+      return
+    }
+
+    setSelection({ workspaceId: selectedId, path: null })
+    writeLastOpenedFile(selectedId, null)
+  }, [selectedId])
 
   const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedId)
 
@@ -122,6 +131,7 @@ function FilesPage() {
           workingDirectoryId={selectedId}
           selectedPath={selectedPath}
           onSelectFile={handleSelectFile}
+          onClearSelection={handleClearSelection}
           className="min-h-0 flex-1"
         />
       ) : null}
@@ -133,6 +143,7 @@ function FilesPage() {
           onChangeWorkspace={setStoredId}
           selectedPath={selectedPath}
           onSelectFile={handleSelectFile}
+          onClearSelection={handleClearSelection}
           onExit={() => setExpanded(false)}
         />
       ) : null}

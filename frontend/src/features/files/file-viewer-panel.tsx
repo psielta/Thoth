@@ -127,7 +127,7 @@ function toMonacoGitDecoration(change: GitLineChange, monaco: MonacoNamespace): 
 
 export function FileViewerPanel({ workingDirectoryId, relativePath, className, inline = false }: FileViewerPanelProps) {
   const contentQuery = useFileContent(workingDirectoryId, relativePath)
-  useFileSubscription(workingDirectoryId, relativePath)
+  useFileSubscription(workingDirectoryId, contentQuery.data?.relativePath ?? relativePath, contentQuery.isSuccess)
   const gitStatusQuery = useGitStatus(workingDirectoryId)
   const { resolvedTheme } = useTheme()
   const monacoRef = useRef<MonacoNamespace | null>(null)

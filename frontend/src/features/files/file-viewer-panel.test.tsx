@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as filesApi from '@/api/files'
@@ -50,7 +50,9 @@ describe('FileViewerPanel', () => {
     localStorage.clear()
     vi.mocked(filesApi.getFileContent).mockImplementation(async (_workingDirectoryId, relativePath) => ({
       relativePath,
-      content: relativePath.endsWith('.md') ? '# Titulo\n\nParagrafo do plano.' : 'const total = 1',
+      content: relativePath.endsWith('.md')
+        ? '# Titulo\n\nParagrafo do plano.\n\n## Secao A\n\nDetalhes da secao.'
+        : 'const total = 1',
       sizeBytes: 100,
       truncated: false,
       isBinary: false,
@@ -91,6 +93,24 @@ describe('FileViewerPanel', () => {
 
     expect(await screen.findByRole('heading', { name: 'Titulo' })).toBeInTheDocument()
     expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument()
+  })
+
+  it('shows the document outline in preview mode and scrolls to the clicked heading', async () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+
+    renderPanel('docs/plano.md')
+    await screen.findByTestId('monaco-editor')
+    await userEvent.click(screen.getByRole('button', { name: 'Visual' }))
+
+    const outline = await screen.findByRole('navigation', { name: 'Sumario do documento' })
+    expect(within(outline).getByRole('button', { name: 'Titulo' })).toBeInTheDocument()
+
+    await userEvent.click(within(outline).getByRole('button', { name: 'Secao A' }))
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Alternar sumario' }))
+    expect(screen.queryByRole('navigation', { name: 'Sumario do documento' })).not.toBeInTheDocument()
   })
 
   it('adjusts font size, minimap and word wrap through the toolbar controls', async () => {

@@ -1,14 +1,24 @@
-import { AlertTriangle, BookOpen, Code2, Copy, FileCode2, Loader2, Map as MapIcon, WrapText, ZoomIn, ZoomOut } from 'lucide-react'
+import {
+  AlertTriangle,
+  BookOpen,
+  Code2,
+  Copy,
+  FileCode2,
+  Loader2,
+  Map as MapIcon,
+  TableOfContents,
+  WrapText,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react'
 import { lazy, Suspense, useMemo } from 'react'
-import ReactMarkdown from 'react-markdown'
-import rehypeSanitize from 'rehype-sanitize'
-import remarkGfm from 'remark-gfm'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
 import { useTheme } from '@/components/theme/theme-provider'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { cn } from '@/lib/utils'
 import { extensionToLanguage } from './extension-to-language'
+import { MarkdownFilePreview } from './markdown-file-preview'
 import { useFileContent } from './use-file-queries'
 import { useFileSubscription } from './use-file-subscription'
 
@@ -33,6 +43,7 @@ const FONT_SIZE_STORAGE_KEY = 'prompt-tasks:files:editor-font-size'
 const MINIMAP_STORAGE_KEY = 'prompt-tasks:files:editor-minimap'
 const WORD_WRAP_STORAGE_KEY = 'prompt-tasks:files:editor-word-wrap'
 const MARKDOWN_VIEW_STORAGE_KEY = 'prompt-tasks:files:markdown-view'
+const MARKDOWN_OUTLINE_STORAGE_KEY = 'prompt-tasks:files:markdown-outline'
 const FONT_SIZE_DEFAULT = 13
 const FONT_SIZE_MIN = 10
 const FONT_SIZE_MAX = 28
@@ -80,10 +91,12 @@ export function FileViewerPanel({ workingDirectoryId, relativePath, className, i
   const [minimapPref, setMinimapPref] = useLocalStorage(MINIMAP_STORAGE_KEY, 'on')
   const [wordWrapPref, setWordWrapPref] = useLocalStorage(WORD_WRAP_STORAGE_KEY, 'on')
   const [markdownViewPref, setMarkdownViewPref] = useLocalStorage(MARKDOWN_VIEW_STORAGE_KEY, 'code')
+  const [outlinePref, setOutlinePref] = useLocalStorage(MARKDOWN_OUTLINE_STORAGE_KEY, 'on')
 
   const fontSize = clampFontSize(Number.parseInt(storedFontSize, 10))
   const minimapEnabled = minimapPref !== 'off'
   const wordWrapEnabled = wordWrapPref !== 'off'
+  const outlineEnabled = outlinePref !== 'off'
 
   const language = useMemo(() => {
     const extension = relativePath.includes('.') ? relativePath.slice(relativePath.lastIndexOf('.')) : null
@@ -163,6 +176,17 @@ export function FileViewerPanel({ workingDirectoryId, relativePath, className, i
                 Visual
               </button>
             </div>
+          ) : null}
+
+          {showMarkdownPreview ? (
+            <ToolbarIconButton
+              onClick={() => setOutlinePref(outlineEnabled ? 'off' : 'on')}
+              title={outlineEnabled ? 'Ocultar sumario' : 'Mostrar sumario'}
+              ariaLabel="Alternar sumario"
+              active={outlineEnabled}
+            >
+              <TableOfContents className="h-3.5 w-3.5" />
+            </ToolbarIconButton>
           ) : null}
 
           {hasTextContent && !showMarkdownPreview ? (
@@ -247,13 +271,7 @@ export function FileViewerPanel({ workingDirectoryId, relativePath, className, i
           ) : null}
 
           {contentQuery.data && !contentQuery.data.isBinary && showMarkdownPreview ? (
-            <div className="h-full overflow-y-auto p-4 sm:p-6">
-              <div className="linked-markdown mx-auto max-w-3xl">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-                  {contentQuery.data.content}
-                </ReactMarkdown>
-              </div>
-            </div>
+            <MarkdownFilePreview content={contentQuery.data.content} showOutline={outlineEnabled} />
           ) : null}
 
           {contentQuery.data && !contentQuery.data.isBinary && !showMarkdownPreview ? (

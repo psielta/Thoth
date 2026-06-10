@@ -88,6 +88,11 @@ export function PromptForm({
     name: 'content',
   })
 
+  const title = useWatch({
+    control: form.control,
+    name: 'title',
+  })
+
   useEffect(() => {
     if (!promptQuery.data) {
       return
@@ -336,6 +341,10 @@ export function PromptForm({
           onChange={(value, nextMentions) => {
             form.setValue('content', value, { shouldDirty: true, shouldValidate: true })
             setEditorMentions({ promptId, mentions: nextMentions })
+          }}
+          exportPdfMeta={{
+            title: title?.trim() || 'Prompt',
+            subtitle: promptQuery.data?.taskNumber ?? undefined,
           }}
         />
 

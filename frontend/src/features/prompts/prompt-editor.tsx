@@ -4,12 +4,13 @@ import type { EditorView } from '@tiptap/pm/view'
 import type { JSONContent } from '@tiptap/react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { Check, Copy, Loader2 } from 'lucide-react'
+import { Check, Copy, FileDown, Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
 import { searchFiles, validateFileReferences } from '@/api/files'
 import type { FileMention, FileSearchResult } from '@/api/schemas'
+import { exportMarkdownPdf } from '@/lib/export-markdown-pdf'
 import { cn } from '@/lib/utils'
 import { WORKSPACE_FILE_MIME } from '@/features/files/workspace-file-tree'
 import { createFileMentionSuggestion, FileMention as FileMentionExtension } from './file-mention'
@@ -23,6 +24,7 @@ type PromptEditorProps = {
   contentClassName?: string
   editorClassName?: string
   editable?: boolean
+  exportPdfMeta?: { title: string; subtitle?: string }
 }
 
 const fileSearchCache = new Map<string, Promise<FileSearchResult[]>>()
@@ -59,8 +61,10 @@ export function PromptEditor({
   contentClassName,
   editorClassName,
   editable = true,
+  exportPdfMeta,
 }: PromptEditorProps) {
   const [isValidatingMentions, setIsValidatingMentions] = useState(false)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
   const onOpenMentionRef = useRef(onOpenMention)
 
   useEffect(() => {
@@ -338,6 +342,26 @@ export function PromptEditor({
     })
   }, [editor])
 
+  const handleExportPdf = useCallback(async () => {
+    if (!editor || !exportPdfMeta) {
+      return
+    }
+
+    setIsExportingPdf(true)
+    try {
+      await exportMarkdownPdf({
+        title: exportPdfMeta.title,
+        subtitle: exportPdfMeta.subtitle,
+        markdown: editor.getMarkdown(),
+      })
+      toast.success('PDF gerado.')
+    } catch (error) {
+      toast.error(getErrorMessage(error))
+    } finally {
+      setIsExportingPdf(false)
+    }
+  }, [editor, exportPdfMeta])
+
   return (
     <div className={cn('overflow-hidden rounded-lg border border-input bg-card', className)}>
       <div className="flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -348,6 +372,27 @@ export function PromptEditor({
               <Loader2 className="h-3 w-3 animate-spin" />
               Validando mencoes
             </span>
+          ) : null}
+          {exportPdfMeta ? (
+            <button
+              type="button"
+              onClick={() => void handleExportPdf()}
+              disabled={isExportingPdf}
+              title="Baixar PDF"
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[0.68rem] transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isExportingPdf ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Gerando
+                </>
+              ) : (
+                <>
+                  <FileDown className="h-3 w-3" />
+                  Baixar PDF
+                </>
+              )}
+            </button>
           ) : null}
           <button
             type="button"

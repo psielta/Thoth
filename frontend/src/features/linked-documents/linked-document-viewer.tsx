@@ -1,5 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Check, FileText, GitPullRequest, Loader2, Pause, Play, RefreshCw, Trash2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  Check,
+  FileDown,
+  FileText,
+  GitPullRequest,
+  Loader2,
+  Pause,
+  Play,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
@@ -24,6 +35,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DiffViewerModal } from '@/features/diff/diff-viewer-modal'
 import { useLinkedPlanCompare } from '@/features/diff/use-linked-plan-compare'
+import { exportMarkdownPdf } from '@/lib/export-markdown-pdf'
 import { GeneratePromptMenu } from './generate-prompt-menu'
 import { LinkedDocumentHistory } from './linked-document-history'
 
@@ -66,6 +78,7 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
   const [isCompareOpen, setIsCompareOpen] = useState(false)
   const [isEditingPullRequest, setIsEditingPullRequest] = useState(false)
   const [pullRequestDraft, setPullRequestDraft] = useState('')
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
 
   const documentQuery = useQuery({
     queryKey: queryKeys.linkedDocuments.detail(documentId),
@@ -105,6 +118,26 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
     queryFn: () => getLinkedDocumentContent(documentId, contentVersion),
     enabled: Boolean(document && contentVersion),
   })
+
+  const handleExportPdf = async () => {
+    if (!document || !contentQuery.data?.content.trim()) {
+      return
+    }
+
+    setIsExportingPdf(true)
+    try {
+      await exportMarkdownPdf({
+        title: document.displayName,
+        subtitle: `Versao ${contentVersion ?? document.currentVersion}`,
+        markdown: contentQuery.data.content,
+      })
+      toast.success('PDF gerado.')
+    } catch (error) {
+      toast.error(getErrorMessage(error))
+    } finally {
+      setIsExportingPdf(false)
+    }
+  }
 
   const updateDocumentCache = async (updated: LinkedDocument, message: string) => {
     queryClient.setQueryData(queryKeys.linkedDocuments.detail(updated.id), updated)
@@ -282,13 +315,30 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
               </div>
             </div>
 
-            <div className="grid min-w-0 gap-2 sm:grid-cols-2 md:grid-cols-4">
+            <div className="grid min-w-0 gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
               <GeneratePromptMenu
                 linkedDocumentId={document.id}
                 disabled={isBusy}
                 pullRequestReference={document.pullRequestReference}
                 className="w-full min-w-0 whitespace-nowrap"
               />
+
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="w-full min-w-0 whitespace-nowrap"
+                onClick={() => void handleExportPdf()}
+                disabled={isBusy || isExportingPdf || contentQuery.isLoading || !contentQuery.data?.content.trim()}
+                title="Baixar PDF do plano"
+              >
+                {isExportingPdf ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="h-4 w-4" />
+                )}
+                Baixar PDF
+              </Button>
 
               <Button
                 type="button"

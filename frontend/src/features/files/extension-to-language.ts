@@ -25,6 +25,7 @@ const EXTENSION_LANGUAGE_MAP: Record<string, string> = {
   json: 'json',
   jsonc: 'json',
   manifest: 'xml',
+  markdown: 'markdown',
   md: 'markdown',
   mjs: 'javascript',
   nuspec: 'xml',

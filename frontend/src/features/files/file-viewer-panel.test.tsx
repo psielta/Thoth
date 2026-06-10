@@ -92,4 +92,25 @@ describe('FileViewerPanel', () => {
     expect(await screen.findByRole('heading', { name: 'Titulo' })).toBeInTheDocument()
     expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument()
   })
+
+  it('adjusts font size, minimap and word wrap through the toolbar controls', async () => {
+    renderPanel('src/app.ts')
+
+    const editor = await screen.findByTestId('monaco-editor')
+    expect(editor).toHaveAttribute('data-font-size', '13')
+    expect(editor).toHaveAttribute('data-minimap', 'true')
+    expect(editor).toHaveAttribute('data-word-wrap', 'on')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Aumentar fonte do editor' }))
+    expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-font-size', '14')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Restaurar tamanho padrao da fonte' }))
+    expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-font-size', '13')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Alternar minimapa' }))
+    expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-minimap', 'false')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Alternar quebra de linha' }))
+    expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-word-wrap', 'off')
+  })
 })

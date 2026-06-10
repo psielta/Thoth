@@ -1,4 +1,4 @@
-import { AlertTriangle, BookOpen, Code2, Copy, FileCode2, Loader2 } from 'lucide-react'
+import { AlertTriangle, BookOpen, Code2, Copy, FileCode2, Loader2, Map as MapIcon, WrapText, ZoomIn, ZoomOut } from 'lucide-react'
 import { lazy, Suspense, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeSanitize from 'rehype-sanitize'
@@ -26,10 +26,24 @@ type FileViewerPanelProps = {
 
 const byteFormatter = new Intl.NumberFormat('pt-BR')
 
-// Preferencia compartilhada entre todas as superficies do viewer (explorer
-// inline, modo expandido e drawer), persistida no mesmo padrao das demais
+// Preferencias do viewer compartilhadas entre todas as superficies (explorer
+// inline, modo expandido e drawer), persistidas no mesmo padrao das demais
 // chaves de arquivos.
+const FONT_SIZE_STORAGE_KEY = 'prompt-tasks:files:editor-font-size'
+const MINIMAP_STORAGE_KEY = 'prompt-tasks:files:editor-minimap'
+const WORD_WRAP_STORAGE_KEY = 'prompt-tasks:files:editor-word-wrap'
 const MARKDOWN_VIEW_STORAGE_KEY = 'prompt-tasks:files:markdown-view'
+const FONT_SIZE_DEFAULT = 13
+const FONT_SIZE_MIN = 10
+const FONT_SIZE_MAX = 28
+
+function clampFontSize(size: number) {
+  if (Number.isNaN(size)) {
+    return FONT_SIZE_DEFAULT
+  }
+
+  return Math.min(Math.max(size, FONT_SIZE_MIN), FONT_SIZE_MAX)
+}
 
 type ToolbarIconButtonProps = {
   onClick: () => void
@@ -62,7 +76,14 @@ export function FileViewerPanel({ workingDirectoryId, relativePath, className, i
   useFileSubscription(workingDirectoryId, relativePath)
   const { resolvedTheme } = useTheme()
 
+  const [storedFontSize, setStoredFontSize] = useLocalStorage(FONT_SIZE_STORAGE_KEY, String(FONT_SIZE_DEFAULT))
+  const [minimapPref, setMinimapPref] = useLocalStorage(MINIMAP_STORAGE_KEY, 'on')
+  const [wordWrapPref, setWordWrapPref] = useLocalStorage(WORD_WRAP_STORAGE_KEY, 'on')
   const [markdownViewPref, setMarkdownViewPref] = useLocalStorage(MARKDOWN_VIEW_STORAGE_KEY, 'code')
+
+  const fontSize = clampFontSize(Number.parseInt(storedFontSize, 10))
+  const minimapEnabled = minimapPref !== 'off'
+  const wordWrapEnabled = wordWrapPref !== 'off'
 
   const language = useMemo(() => {
     const extension = relativePath.includes('.') ? relativePath.slice(relativePath.lastIndexOf('.')) : null
@@ -144,6 +165,50 @@ export function FileViewerPanel({ workingDirectoryId, relativePath, className, i
             </div>
           ) : null}
 
+          {hasTextContent && !showMarkdownPreview ? (
+            <div className="flex items-center gap-0.5">
+              <ToolbarIconButton
+                onClick={() => setStoredFontSize(String(clampFontSize(fontSize - 1)))}
+                title="Diminuir fonte"
+                ariaLabel="Diminuir fonte do editor"
+              >
+                <ZoomOut className="h-3.5 w-3.5" />
+              </ToolbarIconButton>
+              <button
+                type="button"
+                onClick={() => setStoredFontSize(String(FONT_SIZE_DEFAULT))}
+                title="Restaurar tamanho padrao da fonte"
+                aria-label="Restaurar tamanho padrao da fonte"
+                className="rounded px-1 py-0.5 font-mono text-[0.65rem] tabular-nums text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                {fontSize}px
+              </button>
+              <ToolbarIconButton
+                onClick={() => setStoredFontSize(String(clampFontSize(fontSize + 1)))}
+                title="Aumentar fonte (Ctrl+scroll no editor tambem aplica zoom)"
+                ariaLabel="Aumentar fonte do editor"
+              >
+                <ZoomIn className="h-3.5 w-3.5" />
+              </ToolbarIconButton>
+              <ToolbarIconButton
+                onClick={() => setMinimapPref(minimapEnabled ? 'off' : 'on')}
+                title={minimapEnabled ? 'Ocultar minimapa' : 'Mostrar minimapa'}
+                ariaLabel="Alternar minimapa"
+                active={minimapEnabled}
+              >
+                <MapIcon className="h-3.5 w-3.5" />
+              </ToolbarIconButton>
+              <ToolbarIconButton
+                onClick={() => setWordWrapPref(wordWrapEnabled ? 'off' : 'on')}
+                title={wordWrapEnabled ? 'Desativar quebra de linha' : 'Ativar quebra de linha'}
+                ariaLabel="Alternar quebra de linha"
+                active={wordWrapEnabled}
+              >
+                <WrapText className="h-3.5 w-3.5" />
+              </ToolbarIconButton>
+            </div>
+          ) : null}
+
           {contentQuery.data ? (
             <span className="hidden text-xs text-muted-foreground sm:inline">
               {byteFormatter.format(contentQuery.data.sizeBytes)} bytes
@@ -206,13 +271,23 @@ export function FileViewerPanel({ workingDirectoryId, relativePath, className, i
                 theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
                 options={{
                   readOnly: true,
-                  minimap: { enabled: false },
+                  domReadOnly: true,
+                  minimap: { enabled: minimapEnabled },
                   scrollBeyondLastLine: false,
                   fontFamily: 'JetBrains Mono Variable, ui-monospace, monospace',
-                  fontSize: 13,
+                  fontSize,
                   lineNumbers: 'on',
-                  wordWrap: 'on',
+                  wordWrap: wordWrapEnabled ? 'on' : 'off',
                   automaticLayout: true,
+                  mouseWheelZoom: true,
+                  stickyScroll: { enabled: true },
+                  folding: true,
+                  showFoldingControls: 'always',
+                  guides: { indentation: true, bracketPairs: 'active' },
+                  bracketPairColorization: { enabled: true },
+                  renderLineHighlight: 'all',
+                  smoothScrolling: true,
+                  unicodeHighlight: { ambiguousCharacters: false },
                 }}
                 height="100%"
               />

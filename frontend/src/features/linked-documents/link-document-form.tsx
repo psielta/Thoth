@@ -21,7 +21,7 @@ type FormValues = z.infer<typeof formSchema>
 
 type LinkDocumentFormProps = {
   promptId: string
-  onLinked: (document: LinkedDocument) => void
+  onLinked?: (document: LinkedDocument) => void
 }
 
 export function LinkDocumentForm({ promptId, onLinked }: LinkDocumentFormProps) {
@@ -45,7 +45,7 @@ export function LinkDocumentForm({ promptId, onLinked }: LinkDocumentFormProps) 
       form.reset()
       queryClient.setQueryData(queryKeys.linkedDocuments.detail(document.id), document)
       await queryClient.invalidateQueries({ queryKey: queryKeys.linkedDocuments.forPrompt(promptId) })
-      onLinked(document)
+      onLinked?.(document)
       toast.success('Markdown vinculado.')
     },
     onError: (error) => toast.error(getErrorMessage(error)),
@@ -54,7 +54,7 @@ export function LinkDocumentForm({ promptId, onLinked }: LinkDocumentFormProps) 
   const onSubmit = form.handleSubmit((values) => linkMutation.mutate(values))
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-3 border-b border-border pb-4">
+    <form onSubmit={onSubmit} className="grid gap-3">
       <FormField
         label="Markdown do plano"
         htmlFor="linked-document-path"

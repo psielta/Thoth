@@ -34,8 +34,8 @@ export const MONACO_THEME_LIGHT = 'thoth-light'
 export const MONACO_THEME_DARK = 'thoth-dark'
 
 const scrollbarColors = {
-  'scrollbarSlider.background': '#ffb90066',
-  'scrollbarSlider.hoverBackground': '#ffb90099',
+  'scrollbarSlider.background': '#ffb900',
+  'scrollbarSlider.hoverBackground': '#e6a700',
   'scrollbarSlider.activeBackground': '#e6a700',
 }
 

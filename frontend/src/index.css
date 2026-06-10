@@ -160,7 +160,7 @@ body {
 }
 
 /* Form controls inherit the app font — but in @layer base so Tailwind's
- * text-*/font-* utilities (which carry the intended sizes) still win.
+ * text-size and font-size utilities (which carry the intended sizes) still win.
  * Unlayered, this `font: inherit` would override every utility on buttons. */
 @layer base {
   button,
@@ -169,35 +169,48 @@ body {
   select {
     font: inherit;
   }
+}
 
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: var(--primary) var(--muted);
-  }
+/* Scrollbars use brand primary. Kept unlayered so the production bundle always emits them. */
+*,
+html,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) var(--muted);
+}
 
-  *::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
 
-  *::-webkit-scrollbar-track {
-    background: var(--muted);
-    border-radius: 999px;
-  }
+*::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 999px;
+}
 
-  *::-webkit-scrollbar-thumb {
-    background-color: var(--primary);
-    border: 2px solid var(--muted);
-    border-radius: 999px;
-  }
+*::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+  border: 2px solid var(--muted);
+  border-radius: 999px;
+}
 
-  *::-webkit-scrollbar-thumb:hover {
-    background-color: var(--primary-hover);
-  }
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary-hover);
+}
 
-  *::-webkit-scrollbar-corner {
-    background: var(--muted);
-  }
+*::-webkit-scrollbar-corner {
+  background: var(--muted);
+}
+
+/* Monaco uses custom scrollbar elements instead of native scrollbars. */
+.monaco-scrollable-element > .scrollbar > .slider {
+  background: var(--primary) !important;
+}
+
+.monaco-scrollable-element > .scrollbar > .slider:hover,
+.monaco-scrollable-element > .scrollbar > .slider.active {
+  background: var(--primary-hover) !important;
 }
 
 #root {

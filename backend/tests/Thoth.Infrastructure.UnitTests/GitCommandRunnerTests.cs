@@ -45,16 +45,16 @@ public sealed class GitCommandRunnerTests : IDisposable
         SkipIfGitUnavailable();
         var runner = CreateRunner();
         await RunGit(runner, ["init"]);
-        await File.WriteAllTextAsync(Path.Combine(_root, "arquivo.txt"), "versao inicial");
+        await File.WriteAllTextAsync(Path.Combine(_root, "arquivo.txt"), "versao inicial com ação");
         await RunGit(runner, ["add", "."]);
         await RunGit(runner, ["-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "-m", "init"]);
-        await File.WriteAllTextAsync(Path.Combine(_root, "arquivo.txt"), "versao alterada");
+        await File.WriteAllTextAsync(Path.Combine(_root, "arquivo.txt"), "versao alterada com ação");
 
         var status = await RunGit(runner, ["-c", "core.quotepath=false", "status", "--porcelain=v1", "-z", "--", "."]);
         var original = await RunGit(runner, ["show", "HEAD:./arquivo.txt"]);
 
         status.StandardOutput.Should().Contain(" M arquivo.txt");
-        original.StandardOutput.Should().Be("versao inicial");
+        original.StandardOutput.Should().Be("versao inicial com ação");
     }
 
     [Fact]

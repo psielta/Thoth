@@ -91,5 +91,5 @@ public static class GitPorcelainParser
         x is 'R' or 'C' || y is 'R' or 'C';
 
     private static string NormalizePath(string path) =>
-        path.Trim().Replace('\\', '/');
+        path.Replace('\\', '/');
 }

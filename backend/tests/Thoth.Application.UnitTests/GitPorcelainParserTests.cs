@@ -45,6 +45,18 @@ public sealed class GitPorcelainParserTests
     }
 
     [Fact]
+    public void Parse_preserves_leading_and_trailing_spaces_in_z_paths()
+    {
+        var result = GitPorcelainParser.Parse(" M  leading.txt\0 M trailing.txt \0");
+
+        result.Should().BeEquivalentTo(
+        [
+            new GitFileStatusDto(" leading.txt", GitFileChangeStatus.Modified),
+            new GitFileStatusDto("trailing.txt ", GitFileChangeStatus.Modified)
+        ]);
+    }
+
+    [Fact]
     public void Parse_empty_output_returns_empty_list()
     {
         GitPorcelainParser.Parse(string.Empty).Should().BeEmpty();

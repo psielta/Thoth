@@ -48,7 +48,7 @@ export function GitDiffViewer({ workingDirectoryId, path, originalPath, status, 
   return (
     <section
       className={cn(
-        'grid min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-card',
+        'grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-lg border border-border bg-card',
         className,
       )}
     >
@@ -119,6 +119,12 @@ export function GitDiffViewer({ workingDirectoryId, path, originalPath, status, 
           </Suspense>
         ) : null}
       </div>
+
+      {!skipCurrent && currentQuery.data?.truncated ? (
+        <div className="border-t border-border bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
+          Arquivo truncado para visualizacao. Abra no editor local para ver o conteudo completo.
+        </div>
+      ) : null}
     </section>
   )
 }

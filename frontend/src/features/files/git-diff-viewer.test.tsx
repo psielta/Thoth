@@ -91,4 +91,20 @@ describe('GitDiffViewer', () => {
     await screen.findByTestId('diff-editor')
     expect(gitApi.getGitOriginalFile).toHaveBeenCalledWith('ws-1', 'src/old.ts')
   })
+
+  it('warns when the current file content is truncated', async () => {
+    vi.mocked(filesApi.getFileContent).mockResolvedValueOnce({
+      relativePath: 'src/app.ts',
+      content: 'current',
+      sizeBytes: 1_500_000,
+      truncated: true,
+      isBinary: false,
+    })
+
+    renderViewer()
+
+    expect(
+      await screen.findByText('Arquivo truncado para visualizacao. Abra no editor local para ver o conteudo completo.'),
+    ).toBeInTheDocument()
+  })
 })

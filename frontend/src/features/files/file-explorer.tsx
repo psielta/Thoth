@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import type { GitFileStatus } from '@/api/schemas'
 import { cn } from '@/lib/utils'
 import { FileViewerPanel } from './file-viewer-panel'
+import { GitChangesPanel } from './git-changes-panel'
+import { GitDiffViewer } from './git-diff-viewer'
 import { WorkspaceFileTree } from './workspace-file-tree'
 
 type FileExplorerProps = {
@@ -22,10 +25,12 @@ type FileExplorerProps = {
  */
 export function FileExplorer({ workingDirectoryId, className, selectedPath, onSelectFile }: FileExplorerProps) {
   const [internalPath, setInternalPath] = useState<string | null>(null)
+  const [diffSelection, setDiffSelection] = useState<GitFileStatus | null>(null)
   const isControlled = selectedPath !== undefined
   const activePath = isControlled ? selectedPath : internalPath
 
   const handleSelectFile = (relativePath: string) => {
+    setDiffSelection(null)
     if (!isControlled) {
       setInternalPath(relativePath)
     }
@@ -33,16 +38,36 @@ export function FileExplorer({ workingDirectoryId, className, selectedPath, onSe
     onSelectFile?.(relativePath)
   }
 
+  const handleSelectChange = (entry: GitFileStatus) => {
+    setDiffSelection(entry)
+  }
+
   return (
     <div className={cn('grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)] lg:grid-rows-1', className)}>
-      <WorkspaceFileTree
-        workingDirectoryId={workingDirectoryId}
-        selectedPath={activePath}
-        onSelectFile={handleSelectFile}
-        className="min-h-[24rem] lg:min-h-0"
-      />
+      <div className="flex min-h-0 flex-col gap-4">
+        <WorkspaceFileTree
+          workingDirectoryId={workingDirectoryId}
+          selectedPath={activePath}
+          onSelectFile={handleSelectFile}
+          className="min-h-[18rem] flex-1 lg:min-h-0"
+        />
+        <GitChangesPanel
+          workingDirectoryId={workingDirectoryId}
+          selectedPath={diffSelection?.path}
+          onSelectChange={handleSelectChange}
+          className="max-h-80 min-h-40 shrink-0"
+        />
+      </div>
 
-      {activePath ? (
+      {diffSelection ? (
+        <GitDiffViewer
+          workingDirectoryId={workingDirectoryId}
+          path={diffSelection.path}
+          originalPath={diffSelection.originalPath}
+          status={diffSelection.status}
+          className="min-h-[24rem] lg:min-h-0"
+        />
+      ) : activePath ? (
         <FileViewerPanel
           workingDirectoryId={workingDirectoryId}
           relativePath={activePath}

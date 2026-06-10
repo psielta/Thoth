@@ -3,10 +3,13 @@ import { ChevronRight, FileText, Folder, Loader2, RefreshCw, Search } from 'luci
 import type { CSSProperties, DragEvent } from 'react'
 import { useMemo, useState } from 'react'
 import { queryKeys } from '@/api/query-keys'
-import type { FileSearchResult, FileTreeNode } from '@/api/schemas'
+import type { FileSearchResult, FileTreeNode, GitFileStatusValue } from '@/api/schemas'
 import { useDebouncedValue } from '@/hooks/use-debounced-value'
 import { cn } from '@/lib/utils'
+import { createFileKey, parentDirectoryPath } from './file-key'
+import { getGitStatusMeta } from './git-status-meta'
 import { useDirectoryChildren, useFileSearch } from './use-file-queries'
+import { useGitStatus } from './use-git-queries'
 
 export const WORKSPACE_FILE_MIME = 'application/x-workspace-file'
 
@@ -34,12 +37,32 @@ export function WorkspaceFileTree({
   const debouncedSearch = useDebouncedValue(search.trim(), 250)
   const isSearching = debouncedSearch.length >= 2
   const searchQuery = useFileSearch(workingDirectoryId, debouncedSearch, isSearching)
-  const refreshingCount = useIsFetching({ queryKey: queryKeys.files.trees(workingDirectoryId) })
+  const gitStatusQuery = useGitStatus(workingDirectoryId)
+  const fileRefreshingCount = useIsFetching({ queryKey: queryKeys.files.trees(workingDirectoryId) })
+  const gitRefreshingCount = useIsFetching({ queryKey: queryKeys.git.status(workingDirectoryId) })
+  const refreshingCount = fileRefreshingCount + gitRefreshingCount
   const isRefreshing = refreshingCount > 0
+
+  const { statusByKey, changedDirKeys } = useMemo(() => {
+    const nextStatusByKey = new Map<string, GitFileStatusValue>()
+    const nextChangedDirKeys = new Set<string>()
+
+    for (const entry of gitStatusQuery.data ?? []) {
+      nextStatusByKey.set(createFileKey(entry.path), entry.status)
+      let currentParent = parentDirectoryPath(entry.path)
+      while (currentParent) {
+        nextChangedDirKeys.add(createFileKey(currentParent))
+        currentParent = parentDirectoryPath(currentParent)
+      }
+    }
+
+    return { statusByKey: nextStatusByKey, changedDirKeys: nextChangedDirKeys }
+  }, [gitStatusQuery.data])
 
   const handleRefresh = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.files.trees(workingDirectoryId) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.files.searches(workingDirectoryId) })
+    void queryClient.invalidateQueries({ queryKey: queryKeys.git.status(workingDirectoryId) })
   }
 
   const toggleExpanded = (relativePath: string) => {
@@ -148,6 +171,8 @@ export function WorkspaceFileTree({
                   depth={0}
                   expandedPaths={expandedPaths}
                   selectedPath={selectedPath}
+                  statusByKey={statusByKey}
+                  changedDirKeys={changedDirKeys}
                   onToggleExpanded={toggleExpanded}
                   onSelectFile={onSelectFile}
                   onOpenFile={onOpenFile}
@@ -213,6 +238,8 @@ type TreeNodeProps = {
   depth: number
   expandedPaths: Set<string>
   selectedPath?: string | null
+  statusByKey: Map<string, GitFileStatusValue>
+  changedDirKeys: Set<string>
   onToggleExpanded: (relativePath: string) => void
   onSelectFile?: (relativePath: string) => void
   onOpenFile?: (relativePath: string) => void
@@ -224,6 +251,8 @@ function TreeNode({
   depth,
   expandedPaths,
   selectedPath,
+  statusByKey,
+  changedDirKeys,
   onToggleExpanded,
   onSelectFile,
   onOpenFile,
@@ -232,6 +261,9 @@ function TreeNode({
   const childrenQuery = useDirectoryChildren(workingDirectoryId, node.relativePath, node.isDirectory && isExpanded)
   const children = useMemo(() => childrenQuery.data ?? [], [childrenQuery.data])
   const isSelected = !node.isDirectory && selectedPath === node.relativePath
+  const status = node.isDirectory ? undefined : statusByKey.get(createFileKey(node.relativePath))
+  const meta = status ? getGitStatusMeta(status) : null
+  const hasDirectoryChanges = node.isDirectory && changedDirKeys.has(createFileKey(node.relativePath))
 
   const handleClick = () => {
     if (node.isDirectory) {
@@ -287,6 +319,17 @@ function TreeNode({
           <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         )}
         <span className="truncate font-mono">{node.name}</span>
+        {meta ? (
+          <span
+            className={cn('ml-auto shrink-0 rounded px-1 font-mono text-[0.65rem] font-semibold', meta.badgeClass)}
+            title={meta.label}
+          >
+            {meta.letter}
+          </span>
+        ) : null}
+        {hasDirectoryChanges ? (
+          <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-warning-solid/70" title="Alteracoes no diretorio" />
+        ) : null}
       </button>
 
       {node.isDirectory && isExpanded ? (
@@ -310,6 +353,8 @@ function TreeNode({
                 depth={depth + 1}
                 expandedPaths={expandedPaths}
                 selectedPath={selectedPath}
+                statusByKey={statusByKey}
+                changedDirKeys={changedDirKeys}
                 onToggleExpanded={onToggleExpanded}
                 onSelectFile={onSelectFile}
                 onOpenFile={onOpenFile}

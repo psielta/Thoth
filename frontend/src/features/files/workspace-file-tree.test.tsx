@@ -3,10 +3,12 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as filesApi from '@/api/files'
+import * as gitApi from '@/api/git'
 import type { FileTreeNode } from '@/api/schemas'
 import { WorkspaceFileTree } from './workspace-file-tree'
 
 vi.mock('@/api/files')
+vi.mock('@/api/git')
 
 const sampleNodes: FileTreeNode[] = [
   { name: 'src', relativePath: 'src', isDirectory: true },
@@ -32,6 +34,7 @@ describe('WorkspaceFileTree', () => {
     vi.clearAllMocks()
     vi.mocked(filesApi.browseDirectory).mockResolvedValue(sampleNodes)
     vi.mocked(filesApi.searchFiles).mockResolvedValue([])
+    vi.mocked(gitApi.getGitStatus).mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -55,5 +58,16 @@ describe('WorkspaceFileTree', () => {
     await waitFor(() => expect(filesApi.browseDirectory).toHaveBeenCalledTimes(2))
     expect(filesApi.browseDirectory).toHaveBeenLastCalledWith('ws-1', '')
     expect(await screen.findByText('README.md')).toBeInTheDocument()
+  })
+
+  it('renders git status badges for changed files', async () => {
+    vi.mocked(gitApi.getGitStatus).mockResolvedValue([
+      { path: 'README.md', status: 'Modified', originalPath: null },
+    ])
+
+    renderTree()
+
+    const badge = await screen.findByTitle('Modificado')
+    expect(badge).toHaveTextContent('M')
   })
 })

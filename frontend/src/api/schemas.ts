@@ -64,6 +64,22 @@ export const fileContentSchema = z.object({
   isBinary: z.boolean(),
 })
 
+export const gitFileStatusValueSchema = z.enum(['Modified', 'Added', 'Deleted', 'Renamed', 'Untracked'])
+
+export const gitFileStatusSchema = z.object({
+  path: z.string(),
+  status: gitFileStatusValueSchema,
+  originalPath: z.string().nullable().optional(),
+})
+
+export const gitOriginalFileSchema = z.object({
+  content: z.string(),
+})
+
+export const gitDiffSchema = z.object({
+  diff: z.string(),
+})
+
 export const fileReferenceValidationSchema = z.object({
   rawPath: z.string(),
   relativePath: z.string(),
@@ -191,6 +207,10 @@ export type ValidatePathResponse = z.infer<typeof validatePathResponseSchema>
 export type FileSearchResult = z.infer<typeof fileSearchResultSchema>
 export type FileTreeNode = z.infer<typeof fileTreeNodeSchema>
 export type FileContent = z.infer<typeof fileContentSchema>
+export type GitFileStatusValue = z.infer<typeof gitFileStatusValueSchema>
+export type GitFileStatus = z.infer<typeof gitFileStatusSchema>
+export type GitOriginalFile = z.infer<typeof gitOriginalFileSchema>
+export type GitDiff = z.infer<typeof gitDiffSchema>
 export type FileReferenceValidation = z.infer<typeof fileReferenceValidationSchema>
 export type Prompt = z.infer<typeof promptSchema>
 export type FutureTask = z.infer<typeof futureTaskSchema>
@@ -205,6 +225,7 @@ export type GeneratedPromptDraft = z.infer<typeof promptDraftSchema>
 export const workingDirectoryListSchema = z.array(workingDirectorySchema)
 export const fileSearchResultListSchema = z.array(fileSearchResultSchema)
 export const fileTreeNodeListSchema = z.array(fileTreeNodeSchema)
+export const gitStatusListSchema = z.array(gitFileStatusSchema)
 export const fileReferenceValidationListSchema = z.array(fileReferenceValidationSchema)
 export const promptListSchema = z.array(promptSchema)
 export const futureTaskListSchema = z.array(futureTaskSchema)

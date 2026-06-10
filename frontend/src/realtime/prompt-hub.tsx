@@ -154,6 +154,10 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
     })
 
     connection.on('WorkspaceFileChanged', (workingDirectoryId: string, changedPath: string) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.git.status(workingDirectoryId) })
+      // File notifications are emitted only for joined file groups, so Git cache coverage is partial.
+      queryClient.invalidateQueries({ queryKey: queryKeys.git.diff(workingDirectoryId, changedPath) })
+
       const subscription = joinedFilesRef.current.get(fileSubscriptionKey(workingDirectoryId, changedPath))
       if (!subscription) {
         return

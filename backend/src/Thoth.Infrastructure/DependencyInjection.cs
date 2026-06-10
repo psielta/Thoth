@@ -6,6 +6,7 @@ using Thoth.Application.Common.Interfaces;
 using Thoth.Infrastructure.Ai;
 using Thoth.Infrastructure.AgentUsage;
 using Thoth.Infrastructure.FileSystem;
+using Thoth.Infrastructure.Git;
 using Thoth.Infrastructure.Persistence;
 using Thoth.Infrastructure.Services;
 
@@ -27,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUser, SystemCurrentUser>();
         services.AddMemoryCache();
         services.AddScoped<IWorkspaceFileService, WorkspaceFileService>();
+        services.AddSingleton<IGitCommandRunner, GitCommandRunner>();
         ConfigureAgentUsage(services, configuration);
         services.Configure<LinkedDocumentOptions>(options =>
         {

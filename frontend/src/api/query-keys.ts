@@ -63,6 +63,12 @@ export const queryKeys = {
     content: (workingDirectoryId: string, relativePath: string) =>
       ['files', 'content', workingDirectoryId, relativePath] as const,
   },
+  git: {
+    status: (workingDirectoryId: string) => ['git', 'status', workingDirectoryId] as const,
+    originalFile: (workingDirectoryId: string, path: string) =>
+      ['git', 'original-file', workingDirectoryId, path] as const,
+    diff: (workingDirectoryId: string, path: string) => ['git', 'diff', workingDirectoryId, path] as const,
+  },
   prompts: {
     all: ['prompts'] as const,
     list: (filters: PromptFilters) => ['prompts', 'list', filters] as const,

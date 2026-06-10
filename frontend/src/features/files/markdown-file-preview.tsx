@@ -55,7 +55,7 @@ export function MarkdownFilePreview({ content, showOutline }: MarkdownFilePrevie
           aria-label="Sumario do documento"
           className="hidden min-h-0 flex-col gap-1 overflow-y-auto border-r border-border p-3 md:flex"
         >
-          <p className="px-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="shrink-0 px-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
             Sumario
           </p>
           {outline.map((entry, index) => (
@@ -65,7 +65,11 @@ export function MarkdownFilePreview({ content, showOutline }: MarkdownFilePrevie
               onClick={() => scrollToHeading(index)}
               title={entry.text}
               className={cn(
-                'truncate rounded px-1.5 py-1 text-left text-xs transition-colors hover:bg-secondary hover:text-foreground',
+                // shrink-0: dentro do flex-col com overflow, os itens encolhiam
+                // em documentos com muitos headings e o truncate clipava o texto
+                // a uma fatia de poucos pixels; sem shrink eles transbordam para
+                // o scroll do painel.
+                'shrink-0 truncate rounded px-1.5 py-1 text-left text-xs transition-colors hover:bg-secondary hover:text-foreground',
                 entry.depth <= 1 ? 'font-semibold text-foreground' : 'text-muted-foreground',
               )}
               style={{ paddingLeft: `${0.375 + (entry.depth - 1) * 0.75}rem` }}

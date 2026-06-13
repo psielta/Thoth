@@ -2,7 +2,21 @@ namespace Thoth.Infrastructure.Terminals;
 
 public static class TerminalEnvironmentBootstrap
 {
-    public static Dictionary<string, string> BuildColorEnvironment()
+    public static Dictionary<string, string> BuildSpawnEnvironment()
+    {
+        var environment = WindowsUserEnvironmentBlock.TryCreate() ?? CopyCurrentProcessEnvironment();
+
+        foreach (var (key, value) in BuildColorOverrides())
+        {
+            environment[key] = value;
+        }
+
+        return environment;
+    }
+
+    public static Dictionary<string, string> BuildColorEnvironment() => BuildSpawnEnvironment();
+
+    public static Dictionary<string, string> BuildColorOverrides()
     {
         return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -13,5 +27,20 @@ public static class TerminalEnvironmentBootstrap
             ["CLICOLOR_FORCE"] = "1",
             ["NO_COLOR"] = string.Empty,
         };
+    }
+
+    private static Dictionary<string, string> CopyCurrentProcessEnvironment()
+    {
+        var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
+        {
+            if (entry.Key is string key && entry.Value is string value)
+            {
+                environment[key] = value;
+            }
+        }
+
+        return environment;
     }
 }

@@ -24,6 +24,8 @@ public sealed class TerminalShellBootstrapTests
         args.Should().Equal(
             "-NoLogo",
             "-NoExit",
+            "-ExecutionPolicy",
+            "Bypass",
             "-Command",
             "Set-Location -LiteralPath 'D:\\repos\\it''s-here'");
     }

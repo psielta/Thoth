@@ -12,6 +12,14 @@ public static class TerminalShellBootstrap
     public static string[] BuildPowerShellStartupArgs(string cwd)
     {
         var escaped = cwd.Replace("'", "''", StringComparison.Ordinal);
-        return new[] { "-NoLogo", "-NoExit", "-Command", $"Set-Location -LiteralPath '{escaped}'" };
+        return
+        [
+            "-NoLogo",
+            "-NoExit",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            $"Set-Location -LiteralPath '{escaped}'",
+        ];
     }
 }

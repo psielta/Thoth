@@ -580,3 +580,20 @@ export const diagramSchema = diagramBaseSchema.extend({
   metadataJson: z.string().nullable(),
 })
 export type Diagram = z.infer<typeof diagramSchema>
+
+export const terminalAgentLaunchSchema = z.enum(['Claude', 'Codex', 'Grok'])
+export type TerminalAgentLaunch = z.infer<typeof terminalAgentLaunchSchema>
+
+export const terminalSessionSchema = z.object({
+  id: z.string().uuid(),
+  promptId: z.string().uuid(),
+  shell: z.string(),
+  cwd: z.string(),
+  createdAtUtc: z.string(),
+})
+export type TerminalSession = z.infer<typeof terminalSessionSchema>
+
+export const terminalCapabilitiesSchema = z.object({
+  enabled: z.boolean(),
+})
+export type TerminalCapabilities = z.infer<typeof terminalCapabilitiesSchema>

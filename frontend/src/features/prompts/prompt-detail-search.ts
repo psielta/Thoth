@@ -1,6 +1,6 @@
-export type DetailTab = 'prompt' | 'linked-plan' | 'children' | 'timeline'
+export type DetailTab = 'prompt' | 'linked-plan' | 'children' | 'timeline' | 'terminals'
 
-const TABS: ReadonlyArray<DetailTab> = ['prompt', 'linked-plan', 'children', 'timeline']
+const TABS: ReadonlyArray<DetailTab> = ['prompt', 'linked-plan', 'children', 'timeline', 'terminals']
 
 export function isDetailTab(value: unknown): value is DetailTab {
   return typeof value === 'string' && (TABS as readonly string[]).includes(value)

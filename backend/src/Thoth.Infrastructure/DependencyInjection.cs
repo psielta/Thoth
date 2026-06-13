@@ -9,6 +9,7 @@ using Thoth.Infrastructure.FileSystem;
 using Thoth.Infrastructure.Git;
 using Thoth.Infrastructure.Persistence;
 using Thoth.Infrastructure.Services;
+using Thoth.Infrastructure.Terminals;
 
 namespace Thoth.Infrastructure;
 
@@ -73,6 +74,63 @@ public static class DependencyInjection
             provider.GetRequiredService<WorkspaceFileWatchService>());
         services.AddSingleton<IHostedService>(provider =>
             provider.GetRequiredService<WorkspaceFileWatchService>());
+        services.AddSingleton<IPtyConnectionFactory, PortaPtyConnectionFactory>();
+        services.Configure<TerminalOptions>(options =>
+        {
+            var section = configuration.GetSection("Terminals");
+            if (bool.TryParse(section["Enabled"], out var enabled))
+            {
+                options.Enabled = enabled;
+            }
+
+            if (bool.TryParse(section["AllowRemoteConnections"], out var allowRemoteConnections))
+            {
+                options.AllowRemoteConnections = allowRemoteConnections;
+            }
+
+            var allowedShells = section.GetSection("AllowedShells").Get<string[]>();
+            if (allowedShells is { Length: > 0 })
+            {
+                options.AllowedShells = allowedShells;
+            }
+
+            options.DefaultShell = ReadString(section["DefaultShell"], options.DefaultShell)!;
+
+            if (int.TryParse(section["MaxSessionsPerPrompt"], out var maxSessionsPerPrompt))
+            {
+                options.MaxSessionsPerPrompt = maxSessionsPerPrompt;
+            }
+
+            if (int.TryParse(section["MaxTotalSessions"], out var maxTotalSessions))
+            {
+                options.MaxTotalSessions = maxTotalSessions;
+            }
+
+            if (int.TryParse(section["OrphanTimeoutSeconds"], out var orphanTimeoutSeconds))
+            {
+                options.OrphanTimeoutSeconds = orphanTimeoutSeconds;
+            }
+
+            if (int.TryParse(section["OutputFlushMilliseconds"], out var outputFlushMilliseconds))
+            {
+                options.OutputFlushMilliseconds = outputFlushMilliseconds;
+            }
+
+            if (int.TryParse(section["MaxOutputChunkBytes"], out var maxOutputChunkBytes))
+            {
+                options.MaxOutputChunkBytes = maxOutputChunkBytes;
+            }
+
+            if (int.TryParse(section["MaxInputBytes"], out var maxInputBytes))
+            {
+                options.MaxInputBytes = maxInputBytes;
+            }
+        });
+        services.AddSingleton<TerminalSessionManager>();
+        services.AddSingleton<ITerminalSessionCoordinator>(provider =>
+            provider.GetRequiredService<TerminalSessionManager>());
+        services.AddSingleton<IHostedService>(provider =>
+            provider.GetRequiredService<TerminalSessionManager>());
 
         ConfigureGemini(services, configuration, environment);
 

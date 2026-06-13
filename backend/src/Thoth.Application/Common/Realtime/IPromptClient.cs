@@ -13,4 +13,6 @@ public interface IPromptClient
     Task TaskWorkflowChanged(TaskSummaryDto summary);
     Task AgentUsageUpdated(AgentUsageDto usage);
     Task WorkspaceFileChanged(Guid workingDirectoryId, string relativePath);
+    Task TerminalOutput(Guid sessionId, string dataBase64);
+    Task TerminalExited(Guid sessionId, int exitCode);
 }

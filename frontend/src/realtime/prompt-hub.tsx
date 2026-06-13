@@ -22,6 +22,9 @@ type FileSubscription = {
   count: number
 }
 
+type TerminalOutputHandler = (dataBase64: string) => void
+type TerminalExitHandler = (exitCode: number) => void
+
 type PromptHubContextValue = {
   connected: boolean
   joinWorkingDirectory: (id: string) => void
@@ -30,6 +33,12 @@ type PromptHubContextValue = {
   leaveTasks: () => void
   joinFile: (workingDirectoryId: string, relativePath: string) => void
   leaveFile: (workingDirectoryId: string, relativePath: string) => void
+  joinTerminal: (sessionId: string) => void
+  leaveTerminal: (sessionId: string) => void
+  sendTerminalInput: (sessionId: string, dataBase64: string) => void
+  resizeTerminal: (sessionId: string, cols: number, rows: number) => void
+  subscribeTerminalOutput: (sessionId: string, handler: TerminalOutputHandler) => () => void
+  subscribeTerminalExit: (sessionId: string, handler: TerminalExitHandler) => () => void
 }
 
 const PromptHubContext = createContext<PromptHubContextValue | null>(null)
@@ -39,6 +48,9 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
   const connectionRef = useRef<HubConnection | null>(null)
   const joinedWorkingDirectoriesRef = useRef(new Set<string>())
   const joinedFilesRef = useRef(new Map<string, FileSubscription>())
+  const joinedTerminalsRef = useRef(new Set<string>())
+  const terminalOutputHandlersRef = useRef(new Map<string, Set<TerminalOutputHandler>>())
+  const terminalExitHandlersRef = useRef(new Map<string, Set<TerminalExitHandler>>())
   const tasksJoinedRef = useRef(false)
   const [connected, setConnected] = useState(false)
 
@@ -79,6 +91,22 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const invokeJoinTerminal = useCallback((sessionId: string) => {
+    const connection = connectionRef.current
+    if (connection?.state === HubConnectionState.Connected) {
+      void connection.invoke('JoinTerminal', sessionId).catch(() => {
+        joinedTerminalsRef.current.delete(sessionId)
+      })
+    }
+  }, [])
+
+  const invokeLeaveTerminal = useCallback((sessionId: string) => {
+    const connection = connectionRef.current
+    if (connection?.state === HubConnectionState.Connected) {
+      void connection.invoke('LeaveTerminal', sessionId).catch(() => undefined)
+    }
+  }, [])
+
   const rejoinAll = useCallback(() => {
     joinedWorkingDirectoriesRef.current.forEach(invokeJoin)
     if (tasksJoinedRef.current) {
@@ -87,7 +115,8 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
     joinedFilesRef.current.forEach(({ workingDirectoryId, relativePath }) => {
       invokeJoinFile(workingDirectoryId, relativePath)
     })
-  }, [invokeJoin, invokeJoinFile, invokeJoinTasks])
+    joinedTerminalsRef.current.forEach(invokeJoinTerminal)
+  }, [invokeJoin, invokeJoinFile, invokeJoinTasks, invokeJoinTerminal])
 
   useEffect(() => {
     const connection = new HubConnectionBuilder()
@@ -153,6 +182,16 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
     connection.on('AgentUsageUpdated', (payload: unknown) => {
       const usage = agentUsageSchema.parse(payload)
       queryClient.setQueryData(queryKeys.agentUsage.current(), usage)
+    })
+
+    connection.on('TerminalOutput', (sessionId: string, dataBase64: string) => {
+      const handlers = terminalOutputHandlersRef.current.get(sessionId)
+      handlers?.forEach((handler) => handler(dataBase64))
+    })
+
+    connection.on('TerminalExited', (sessionId: string, exitCode: number) => {
+      const handlers = terminalExitHandlersRef.current.get(sessionId)
+      handlers?.forEach((handler) => handler(exitCode))
     })
 
     connection.on('WorkspaceFileChanged', (workingDirectoryId: string, changedPath: string) => {
@@ -268,6 +307,70 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
     [invokeLeaveFile],
   )
 
+  const joinTerminal = useCallback(
+    (sessionId: string) => {
+      joinedTerminalsRef.current.add(sessionId)
+      invokeJoinTerminal(sessionId)
+    },
+    [invokeJoinTerminal],
+  )
+
+  const leaveTerminal = useCallback(
+    (sessionId: string) => {
+      joinedTerminalsRef.current.delete(sessionId)
+      invokeLeaveTerminal(sessionId)
+    },
+    [invokeLeaveTerminal],
+  )
+
+  const sendTerminalInput = useCallback((sessionId: string, dataBase64: string) => {
+    const connection = connectionRef.current
+    if (connection?.state === HubConnectionState.Connected) {
+      void connection.invoke('SendTerminalInput', sessionId, dataBase64)
+    }
+  }, [])
+
+  const resizeTerminal = useCallback((sessionId: string, cols: number, rows: number) => {
+    const connection = connectionRef.current
+    if (connection?.state === HubConnectionState.Connected) {
+      void connection.invoke('ResizeTerminal', sessionId, cols, rows)
+    }
+  }, [])
+
+  const subscribeTerminalOutput = useCallback((sessionId: string, handler: TerminalOutputHandler) => {
+    const handlers = terminalOutputHandlersRef.current.get(sessionId) ?? new Set<TerminalOutputHandler>()
+    handlers.add(handler)
+    terminalOutputHandlersRef.current.set(sessionId, handlers)
+
+    return () => {
+      const current = terminalOutputHandlersRef.current.get(sessionId)
+      if (!current) {
+        return
+      }
+      current.delete(handler)
+      if (current.size === 0) {
+        terminalOutputHandlersRef.current.delete(sessionId)
+      }
+    }
+  }, [])
+
+  const subscribeTerminalExit = useCallback((sessionId: string, handler: TerminalExitHandler) => {
+    const handlers = terminalExitHandlersRef.current.get(sessionId) ?? new Set<TerminalExitHandler>()
+    handlers.add(handler)
+    terminalExitHandlersRef.current.set(sessionId, handlers)
+
+    return () => {
+      const current = terminalExitHandlersRef.current.get(sessionId)
+      if (!current) {
+        return
+      }
+      current.delete(handler)
+      if (current.size === 0) {
+        terminalExitHandlersRef.current.delete(sessionId)
+      }
+    }
+  }, [])
+
   const value = useMemo(
     () => ({
       connected,
@@ -277,8 +380,28 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       leaveTasks,
       joinFile,
       leaveFile,
+      joinTerminal,
+      leaveTerminal,
+      sendTerminalInput,
+      resizeTerminal,
+      subscribeTerminalOutput,
+      subscribeTerminalExit,
     }),
-    [connected, joinFile, joinWorkingDirectory, leaveFile, leaveWorkingDirectory, joinTasks, leaveTasks],
+    [
+      connected,
+      joinFile,
+      joinTerminal,
+      joinWorkingDirectory,
+      leaveFile,
+      leaveTerminal,
+      leaveWorkingDirectory,
+      joinTasks,
+      leaveTasks,
+      resizeTerminal,
+      sendTerminalInput,
+      subscribeTerminalExit,
+      subscribeTerminalOutput,
+    ],
   )
 
   return <PromptHubContext.Provider value={value}>{children}</PromptHubContext.Provider>

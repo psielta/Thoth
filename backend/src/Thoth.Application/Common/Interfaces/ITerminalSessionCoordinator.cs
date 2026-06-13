@@ -26,6 +26,8 @@ public interface ITerminalSessionCoordinator
 
     IReadOnlyList<TerminalSessionDescriptor> ListForPrompt(Guid promptId);
 
+    IReadOnlyList<TerminalSessionDescriptor> ListAll();
+
     TerminalSessionDescriptor? TryGetSession(Guid sessionId);
 
     Task KillForPromptAsync(Guid promptId, CancellationToken cancellationToken);

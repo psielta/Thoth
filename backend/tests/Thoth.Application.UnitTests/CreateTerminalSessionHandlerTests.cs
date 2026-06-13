@@ -230,6 +230,9 @@ public sealed class CreateTerminalSessionHandlerTests
         public IReadOnlyList<TerminalSessionDescriptor> ListForPrompt(Guid promptId) =>
             Array.Empty<TerminalSessionDescriptor>();
 
+        public IReadOnlyList<TerminalSessionDescriptor> ListAll() =>
+            Array.Empty<TerminalSessionDescriptor>();
+
         public TerminalSessionDescriptor? TryGetSession(Guid sessionId) => null;
 
         public Task KillForPromptAsync(Guid promptId, CancellationToken cancellationToken) => Task.CompletedTask;

@@ -270,6 +270,13 @@ public sealed class TerminalSessionManager(
             .ToList();
     }
 
+    public IReadOnlyList<TerminalSessionDescriptor> ListAll() =>
+        _sessions.Values
+            .ToArray()
+            .Select(ToDescriptor)
+            .OrderBy(descriptor => descriptor.CreatedAtUtc)
+            .ToList();
+
     public TerminalSessionDescriptor? TryGetSession(Guid sessionId) =>
         _sessions.TryGetValue(sessionId, out var session) ? ToDescriptor(session) : null;
 

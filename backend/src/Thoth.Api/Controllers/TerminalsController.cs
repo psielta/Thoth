@@ -6,6 +6,7 @@ using Thoth.Application.Common.Models;
 using Thoth.Application.Features.Terminals;
 using Thoth.Application.Features.Terminals.Commands.CloseTerminalSession;
 using Thoth.Application.Features.Terminals.Commands.CreateTerminalSession;
+using Thoth.Application.Features.Terminals.Queries.ListAllTerminalSessions;
 using Thoth.Application.Features.Terminals.Queries.ListTerminalSessions;
 using Thoth.Infrastructure.Terminals;
 
@@ -52,6 +53,14 @@ public sealed class TerminalsController(ISender sender, IOptions<TerminalOptions
     {
         TerminalAccessGuard.EnsureAccess(terminalOptions, HttpContext.Connection.RemoteIpAddress);
         return Ok(await sender.Send(new ListTerminalSessionsQuery(promptId), cancellationToken));
+    }
+
+    [HttpGet("api/terminals")]
+    public async Task<ActionResult<IReadOnlyList<PromptTerminalsGroupDto>>> ListAll(
+        CancellationToken cancellationToken)
+    {
+        TerminalAccessGuard.EnsureAccess(terminalOptions, HttpContext.Connection.RemoteIpAddress);
+        return Ok(await sender.Send(new ListAllTerminalSessionsQuery(), cancellationToken));
     }
 
     [HttpDelete("api/terminals/{sessionId:guid}")]

@@ -40,8 +40,6 @@ export function TerminalView({ sessionId, active, fontSize, onZoom, onSessionExi
   const terminalRef = useRef<{ term: Terminal; fitAddon: FitAddon } | null>(null)
   const onZoomRef = useRef(onZoom)
   const activeRef = useRef(active)
-  onZoomRef.current = onZoom
-  activeRef.current = active
   const {
     joinTerminal,
     leaveTerminal,
@@ -52,6 +50,11 @@ export function TerminalView({ sessionId, active, fontSize, onZoom, onSessionExi
   } = usePromptHub()
 
   useEffect(() => {
+    onZoomRef.current = onZoom
+    activeRef.current = active
+  }, [active, onZoom])
+
+  useEffect(() => {
     const container = containerRef.current
     if (!container) {
       return
@@ -59,7 +62,7 @@ export function TerminalView({ sessionId, active, fontSize, onZoom, onSessionExi
 
     const term = new Terminal({
       cursorBlink: true,
-      convertEol: true,
+      convertEol: false,
       scrollback: 10_000,
       smoothScrollDuration: 0,
       fontFamily: TERMINAL_FONT_FAMILY,
@@ -103,11 +106,17 @@ export function TerminalView({ sessionId, active, fontSize, onZoom, onSessionExi
     })
 
     const onWheel = (event: WheelEvent) => {
-      event.stopPropagation()
-      if ((event.ctrlKey || event.metaKey) && activeRef.current && onZoomRef.current) {
-        event.preventDefault()
-        onZoomRef.current(event.deltaY < 0 ? 1 : -1)
+      if (!(event.ctrlKey || event.metaKey)) {
+        return
       }
+
+      if (!activeRef.current || !onZoomRef.current) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      onZoomRef.current(event.deltaY < 0 ? 1 : -1)
     }
     container.addEventListener('wheel', onWheel, { passive: false })
 
@@ -121,6 +130,7 @@ export function TerminalView({ sessionId, active, fontSize, onZoom, onSessionExi
       term.dispose()
       terminalRef.current = null
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fontSize handled in dedicated effect
   }, [
     joinTerminal,
     leaveTerminal,
@@ -139,10 +149,14 @@ export function TerminalView({ sessionId, active, fontSize, onZoom, onSessionExi
     }
 
     terminal.term.options.fontSize = fontSize
+    if (!active) {
+      return
+    }
+
     scheduleTerminalFit(terminal.fitAddon, terminal.term, (cols, rows) => {
       resizeTerminal(sessionId, cols, rows)
     })
-  }, [fontSize, resizeTerminal, sessionId])
+  }, [active, fontSize, resizeTerminal, sessionId])
 
   useEffect(() => {
     const container = containerRef.current

@@ -130,7 +130,7 @@ export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
           <div
             role="group"
             aria-label="Zoom do terminal"
-            className="absolute right-2 top-2 z-10 flex items-center gap-0.5 rounded-md border border-border bg-card/95 p-0.5 shadow-sm backdrop-blur-sm"
+            className="pointer-events-auto absolute right-2 top-2 z-10 flex items-center gap-0.5 rounded-md border border-border bg-card/95 p-0.5 shadow-sm backdrop-blur-sm"
           >
             <Button
               type="button"
@@ -167,16 +167,18 @@ export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
               <ZoomIn className="h-3.5 w-3.5" />
             </Button>
           </div>
-          {sessions.map((session) => (
-            <TerminalView
-              key={session.id}
-              sessionId={session.id}
-              active={session.id === resolvedActiveId}
-              fontSize={fontSize}
-              onZoom={adjustFontSize}
-              onSessionExit={removeSession}
-            />
-          ))}
+          <div className="absolute inset-0 pt-10">
+            {sessions.map((session) => (
+              <TerminalView
+                key={session.id}
+                sessionId={session.id}
+                active={session.id === resolvedActiveId}
+                fontSize={fontSize}
+                onZoom={adjustFontSize}
+                onSessionExit={removeSession}
+              />
+            ))}
+          </div>
         </div>
       ) : null}
     </div>

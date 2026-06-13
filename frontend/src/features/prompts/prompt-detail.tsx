@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Clock, FileText, GitBranch, MessageSquarePlus, MessageSquareText, Terminal } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { getPrompt } from '@/api/prompts'
 import { queryKeys } from '@/api/query-keys'
 import { getWorkflow } from '@/api/workflow'
@@ -13,7 +13,9 @@ import { WorkflowPanel } from '@/features/workflow/workflow-panel'
 import type { DetailTab } from './prompt-detail-search'
 import { getTerminalCapabilities } from '@/api/terminals'
 import { PromptChildrenPanel } from './prompt-children-panel'
-import { TerminalsPanel } from './terminals-panel'
+const TerminalsPanel = lazy(() =>
+  import('./terminals-panel').then((module) => ({ default: module.TerminalsPanel })),
+)
 import { PromptForm } from './prompt-form'
 import { PromptVersions } from './prompt-versions'
 
@@ -144,7 +146,11 @@ export function PromptDetailView({ workspaceId, promptId, activeTab, onTabChange
         <PromptChildrenPanel workingDirectoryId={workspaceId} parentPromptId={promptId} />
       ) : null}
 
-      {activeTab === 'terminals' && terminalsEnabled ? <TerminalsPanel promptId={promptId} /> : null}
+      {activeTab === 'terminals' && terminalsEnabled ? (
+        <Suspense fallback={<div className="text-sm text-muted-foreground">Carregando terminais...</div>}>
+          <TerminalsPanel promptId={promptId} />
+        </Suspense>
+      ) : null}
 
       {showVerdict ? (
         <ReviewVerdictDialog promptId={promptId} onClose={() => setShowVerdict(false)} />

@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IWorkspaceFileNotifier, SignalRWorkspaceFileNotifier>();
         services.AddScoped<IWorkflowNotifier, SignalRWorkflowNotifier>();
         services.AddScoped<IAgentUsageNotifier, SignalRAgentUsageNotifier>();
+        services.AddScoped<ITerminalNotifier, SignalRTerminalNotifier>();
 
         services.AddProblemDetails(options =>
         {
@@ -43,6 +44,7 @@ public static class DependencyInjection
         services.AddExceptionHandler<NotFoundExceptionHandler>();
         services.AddExceptionHandler<PathTraversalExceptionHandler>();
         services.AddExceptionHandler<ConflictExceptionHandler>();
+        services.AddExceptionHandler<ForbiddenExceptionHandler>();
         services.AddExceptionHandler<GlobalExceptionHandler>();
 
         var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()

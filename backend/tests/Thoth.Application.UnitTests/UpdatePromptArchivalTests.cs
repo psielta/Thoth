@@ -32,6 +32,7 @@ public sealed class UpdatePromptArchivalTests
             promptNotifier,
             watcher,
             linkedDocumentNotifier,
+            new FakeTerminalCoordinator(),
             new FakeCurrentUser(),
             clock,
             new NoOpSender());
@@ -366,6 +367,51 @@ public sealed class UpdatePromptArchivalTests
     private sealed class FakeDateTimeProvider : IDateTimeProvider
     {
         public DateTimeOffset UtcNow { get; } = new(2026, 5, 30, 12, 0, 0, TimeSpan.Zero);
+    }
+
+    private sealed class FakeTerminalCoordinator : ITerminalSessionCoordinator
+    {
+        public List<Guid> KilledPrompts { get; } = new();
+
+        public Task<TerminalSessionDescriptor> CreateAsync(
+            Guid promptId,
+            string cwd,
+            string shell,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public void WriteInput(Guid sessionId, byte[] input)
+        {
+        }
+
+        public void Resize(Guid sessionId, ushort cols, ushort rows)
+        {
+        }
+
+        public Task CloseAsync(Guid sessionId, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public void AttachConnection(Guid sessionId, string connectionId)
+        {
+        }
+
+        public void DetachConnection(Guid sessionId, string connectionId)
+        {
+        }
+
+        public void ReleaseConnection(string connectionId)
+        {
+        }
+
+        public IReadOnlyList<TerminalSessionDescriptor> ListForPrompt(Guid promptId) =>
+            Array.Empty<TerminalSessionDescriptor>();
+
+        public TerminalSessionDescriptor? TryGetSession(Guid sessionId) => null;
+
+        public Task KillForPromptAsync(Guid promptId, CancellationToken cancellationToken)
+        {
+            KilledPrompts.Add(promptId);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class NoOpSender : ISender

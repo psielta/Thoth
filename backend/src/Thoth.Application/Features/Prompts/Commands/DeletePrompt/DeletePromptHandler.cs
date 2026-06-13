@@ -8,6 +8,7 @@ namespace Thoth.Application.Features.Prompts.Commands.DeletePrompt;
 public sealed class DeletePromptHandler(
     IApplicationDbContext context,
     IPromptNotifier promptNotifier,
+    ITerminalSessionCoordinator terminalCoordinator,
     ICurrentUser currentUser,
     ISender sender)
     : IRequestHandler<DeletePromptCommand>
@@ -18,6 +19,7 @@ public sealed class DeletePromptHandler(
         var workingDirectoryId = prompt.WorkingDirectoryId;
 
         await sender.Send(new ReleasePromptAiSessionsCommand(prompt.Id), cancellationToken);
+        await terminalCoordinator.KillForPromptAsync(prompt.Id, cancellationToken);
 
         context.Remove(prompt);
         await context.SaveChangesAsync(cancellationToken);

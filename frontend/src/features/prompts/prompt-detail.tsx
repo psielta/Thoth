@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Clock, FileText, GitBranch, MessageSquarePlus, MessageSquareText } from 'lucide-react'
+import { Clock, FileText, GitBranch, MessageSquarePlus, MessageSquareText, Terminal } from 'lucide-react'
 import { useState } from 'react'
 import { getPrompt } from '@/api/prompts'
 import { queryKeys } from '@/api/query-keys'
@@ -11,7 +11,9 @@ import { currentPhaseRole, isReviewPhaseRole } from '@/features/workflow/constan
 import { ReviewVerdictDialog } from '@/features/workflow/review-verdict-dialog'
 import { WorkflowPanel } from '@/features/workflow/workflow-panel'
 import type { DetailTab } from './prompt-detail-search'
+import { getTerminalCapabilities } from '@/api/terminals'
 import { PromptChildrenPanel } from './prompt-children-panel'
+import { TerminalsPanel } from './terminals-panel'
 import { PromptForm } from './prompt-form'
 import { PromptVersions } from './prompt-versions'
 
@@ -33,6 +35,13 @@ export function PromptDetailView({ workspaceId, promptId, activeTab, onTabChange
     queryKey: queryKeys.workflow.detail(promptId),
     queryFn: () => getWorkflow(promptId),
   })
+
+  const terminalCapabilitiesQuery = useQuery({
+    queryKey: queryKeys.terminals.capabilities(),
+    queryFn: getTerminalCapabilities,
+    staleTime: 60_000,
+  })
+  const terminalsEnabled = terminalCapabilitiesQuery.data?.enabled ?? false
   const workflow = workflowQuery.data ?? null
   const reviewRole = workflow ? currentPhaseRole(workflow.phases, workflow.currentPhaseId) : null
   const canAddVerdict = workflow?.status === 'Active' && isReviewPhaseRole(reviewRole)
@@ -106,6 +115,18 @@ export function PromptDetailView({ workspaceId, promptId, activeTab, onTabChange
           <GitBranch className="h-4 w-4" />
           Prompts filhos
         </Button>
+        {terminalsEnabled ? (
+          <Button
+            type="button"
+            variant={activeTab === 'terminals' ? 'default' : 'ghost'}
+            size="sm"
+            aria-pressed={activeTab === 'terminals'}
+            onClick={() => onTabChange('terminals')}
+          >
+            <Terminal className="h-4 w-4" />
+            Terminais
+          </Button>
+        ) : null}
       </div>
 
       {activeTab === 'prompt' ? (
@@ -122,6 +143,8 @@ export function PromptDetailView({ workspaceId, promptId, activeTab, onTabChange
       {activeTab === 'children' ? (
         <PromptChildrenPanel workingDirectoryId={workspaceId} parentPromptId={promptId} />
       ) : null}
+
+      {activeTab === 'terminals' && terminalsEnabled ? <TerminalsPanel promptId={promptId} /> : null}
 
       {showVerdict ? (
         <ReviewVerdictDialog promptId={promptId} onClose={() => setShowVerdict(false)} />

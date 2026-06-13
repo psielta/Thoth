@@ -13,6 +13,7 @@ public sealed class UpdatePromptStatusHandler(
     IPromptNotifier promptNotifier,
     ILinkedDocumentWatchCoordinator watchCoordinator,
     ILinkedDocumentNotifier linkedDocumentNotifier,
+    ITerminalSessionCoordinator terminalCoordinator,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     ISender sender)
@@ -34,7 +35,10 @@ public sealed class UpdatePromptStatusHandler(
         await context.SaveChangesAsync(cancellationToken);
 
         if (prompt.Status == PromptStatus.Archived)
+        {
             await sender.Send(new ReleasePromptAiSessionsCommand(prompt.Id), cancellationToken);
+            await terminalCoordinator.KillForPromptAsync(prompt.Id, cancellationToken);
+        }
 
         var references = context.PromptFileReferences
             .Where(reference => reference.PromptId == prompt.Id)

@@ -13,6 +13,7 @@
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="DotNetEnv" />
+    <PackageReference Include="Porta.Pty" />
   </ItemGroup>
 
   <ItemGroup>

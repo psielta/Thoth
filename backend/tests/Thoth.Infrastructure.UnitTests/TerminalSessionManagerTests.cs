@@ -63,6 +63,27 @@ public sealed class TerminalSessionManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task CloseAsync_notifies_exit_to_clients()
+    {
+        await _manager.StartAsync(CancellationToken.None);
+
+        try
+        {
+            var promptId = Guid.CreateVersion7();
+            var descriptor = await _manager.CreateAsync(promptId, _root, string.Empty, CancellationToken.None);
+            await _manager.CloseAsync(descriptor.Id, CancellationToken.None);
+            await Task.Delay(200);
+
+            _notifier.Exits.Should().ContainSingle(item =>
+                item.SessionId == descriptor.Id && item.ExitCode == -1);
+        }
+        finally
+        {
+            await _manager.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Fact]
     public async Task KillForPromptAsync_removes_all_prompt_sessions()
     {
         var promptId = Guid.CreateVersion7();
@@ -190,6 +211,7 @@ public sealed class TerminalSessionManagerTests : IDisposable
     private sealed class RecordingTerminalNotifier : ITerminalNotifier
     {
         public ConcurrentQueue<(Guid SessionId, string DataBase64)> Outputs { get; } = new();
+        public ConcurrentQueue<(Guid SessionId, int ExitCode)> Exits { get; } = new();
 
         public Task TerminalOutputAsync(Guid sessionId, string dataBase64, CancellationToken cancellationToken)
         {
@@ -197,7 +219,10 @@ public sealed class TerminalSessionManagerTests : IDisposable
             return Task.CompletedTask;
         }
 
-        public Task TerminalExitedAsync(Guid sessionId, int exitCode, CancellationToken cancellationToken) =>
-            Task.CompletedTask;
+        public Task TerminalExitedAsync(Guid sessionId, int exitCode, CancellationToken cancellationToken)
+        {
+            Exits.Enqueue((sessionId, exitCode));
+            return Task.CompletedTask;
+        }
     }
 }

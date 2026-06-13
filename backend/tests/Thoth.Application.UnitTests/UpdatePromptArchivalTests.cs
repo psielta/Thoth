@@ -27,12 +27,13 @@ public sealed class UpdatePromptArchivalTests
         var watcher = new FakeWatchCoordinator();
         var linkedDocumentNotifier = new FakeLinkedDocumentNotifier();
         var clock = new FakeDateTimeProvider();
+        var terminalCoordinator = new FakeTerminalCoordinator();
         var handler = new UpdatePromptStatusHandler(
             context,
             promptNotifier,
             watcher,
             linkedDocumentNotifier,
-            new FakeTerminalCoordinator(),
+            terminalCoordinator,
             new FakeCurrentUser(),
             clock,
             new NoOpSender());
@@ -42,6 +43,7 @@ public sealed class UpdatePromptArchivalTests
             CancellationToken.None);
 
         result.Status.Should().Be(PromptStatus.Archived);
+        terminalCoordinator.KilledPrompts.Should().ContainSingle().Which.Should().Be(prompt.Id);
         prompt.Status.Should().Be(PromptStatus.Archived);
         prompt.CurrentVersion.Should().Be(2);
         context.PromptVersionItems.Should().ContainSingle(version =>
@@ -78,12 +80,14 @@ public sealed class UpdatePromptArchivalTests
         var promptNotifier = new FakePromptNotifier();
         var watcher = new FakeWatchCoordinator();
         var linkedDocumentNotifier = new FakeLinkedDocumentNotifier();
+        var terminalCoordinator = new FakeTerminalCoordinator();
         var handler = new UpdatePromptHandler(
             context,
             new FakeWorkspaceFileService(),
             promptNotifier,
             watcher,
             linkedDocumentNotifier,
+            terminalCoordinator,
             new FakeCurrentUser(),
             new FakeDateTimeProvider());
 
@@ -101,6 +105,7 @@ public sealed class UpdatePromptArchivalTests
 
         result.Status.Should().Be(PromptStatus.Archived);
         result.Title.Should().Be("Archived prompt");
+        terminalCoordinator.KilledPrompts.Should().ContainSingle().Which.Should().Be(prompt.Id);
         tracking.Status.Should().Be(LinkedDocumentStatus.Paused);
         watcher.Stopped.Should().ContainSingle().Which.Should().Be(tracking.Id);
         linkedDocumentNotifier.Updated.Should().ContainSingle(item =>

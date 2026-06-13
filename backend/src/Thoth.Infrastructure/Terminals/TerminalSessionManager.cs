@@ -182,9 +182,16 @@ public sealed class TerminalSessionManager(
     {
         if (_sessions.TryGetValue(sessionId, out var session))
         {
+            var becameOrphaned = false;
             lock (session.Gate)
             {
                 session.Connections.Remove(connectionId);
+                becameOrphaned = session.Connections.Count == 0;
+            }
+
+            if (becameOrphaned)
+            {
+                session.LastActivityUtc = DateTimeOffset.UtcNow;
             }
         }
 
@@ -429,7 +436,16 @@ public sealed class TerminalSessionManager(
             session.OutputBuffer.RemoveRange(0, length);
         }
 
-        _outputQueue.Writer.TryWrite(new TerminalOutputChunk(session.Id, data));
+        if (!_outputQueue.Writer.TryWrite(new TerminalOutputChunk(session.Id, data)))
+        {
+            lock (session.Gate)
+            {
+                session.OutputBuffer.InsertRange(0, data);
+            }
+
+            ScheduleFlush(session);
+            return;
+        }
 
         lock (session.Gate)
         {
@@ -494,6 +510,8 @@ public sealed class TerminalSessionManager(
             logger.LogWarning(exception, "Failed to kill terminal session {SessionId} ({Reason})", sessionId, reason);
         }
 
+        FlushOutput(session);
+        _ = NotifyExitAsync(sessionId, -1);
         _ = session.Pty.DisposeAsync();
         logger.LogInformation("Terminal session {SessionId} killed ({Reason})", sessionId, reason);
     }

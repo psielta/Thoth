@@ -3,6 +3,7 @@ using Thoth.Application.Common.Interfaces;
 using Thoth.Application.Common.Mappings;
 using Thoth.Application.Common.Models;
 using Thoth.Application.Features.Prompts;
+using Thoth.Domain.Prompts;
 
 namespace Thoth.Application.Features.Prompts.Commands.UpdatePrompt;
 
@@ -12,6 +13,7 @@ public sealed class UpdatePromptHandler(
     IPromptNotifier promptNotifier,
     ILinkedDocumentWatchCoordinator watchCoordinator,
     ILinkedDocumentNotifier linkedDocumentNotifier,
+    ITerminalSessionCoordinator terminalCoordinator,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider)
     : IRequestHandler<UpdatePromptCommand, PromptDto>
@@ -53,6 +55,9 @@ public sealed class UpdatePromptHandler(
         context.AddRange(references);
 
         await context.SaveChangesAsync(cancellationToken);
+
+        if (prompt.Status == PromptStatus.Archived)
+            await terminalCoordinator.KillForPromptAsync(prompt.Id, cancellationToken);
 
         var dto = prompt.ToDto(references);
         await promptNotifier.PromptUpdatedAsync(dto, cancellationToken);

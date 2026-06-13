@@ -8,10 +8,12 @@ import { usePromptHub } from '@/realtime/prompt-hub'
 type TerminalViewProps = {
   sessionId: string
   active: boolean
+  onSessionExit?: (sessionId: string, exitCode: number) => void
 }
 
-export function TerminalView({ sessionId, active }: TerminalViewProps) {
+export function TerminalView({ sessionId, active, onSessionExit }: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const terminalRef = useRef<{ term: Terminal; fitAddon: FitAddon } | null>(null)
   const {
     joinTerminal,
     leaveTerminal,
@@ -41,18 +43,7 @@ export function TerminalView({ sessionId, active }: TerminalViewProps) {
     const fitAddon = new FitAddon()
     term.loadAddon(fitAddon)
     term.open(container)
-
-    const fit = () => {
-      fitAddon.fit()
-      resizeTerminal(sessionId, term.cols, term.rows)
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-      if (active) {
-        fit()
-      }
-    })
-    resizeObserver.observe(container)
+    terminalRef.current = { term, fitAddon }
 
     joinTerminal(sessionId)
 
@@ -63,6 +54,7 @@ export function TerminalView({ sessionId, active }: TerminalViewProps) {
 
     const unsubscribeExit = subscribeTerminalExit(sessionId, (exitCode) => {
       term.writeln(`\r\n[Process exited with code ${exitCode}]`)
+      onSessionExit?.(sessionId, exitCode)
     })
 
     const dataDisposable = term.onData((data) => {
@@ -74,24 +66,19 @@ export function TerminalView({ sessionId, active }: TerminalViewProps) {
       resizeTerminal(sessionId, cols, rows)
     })
 
-    if (active) {
-      requestAnimationFrame(fit)
-      term.focus()
-    }
-
     return () => {
       dataDisposable.dispose()
       resizeDisposable.dispose()
       unsubscribeOutput()
       unsubscribeExit()
       leaveTerminal(sessionId)
-      resizeObserver.disconnect()
       term.dispose()
+      terminalRef.current = null
     }
   }, [
-    active,
     joinTerminal,
     leaveTerminal,
+    onSessionExit,
     resizeTerminal,
     sendTerminalInput,
     sessionId,
@@ -100,17 +87,31 @@ export function TerminalView({ sessionId, active }: TerminalViewProps) {
   ])
 
   useEffect(() => {
-    if (active) {
-      requestAnimationFrame(() => {
-        const container = containerRef.current
-        if (!container) {
-          return
-        }
-        const textarea = container.querySelector('textarea')
-        textarea?.focus()
-      })
+    const container = containerRef.current
+    const terminal = terminalRef.current
+    if (!container || !terminal) {
+      return
     }
-  }, [active])
+
+    const fit = () => {
+      if (!active) {
+        return
+      }
+
+      terminal.fitAddon.fit()
+      resizeTerminal(sessionId, terminal.term.cols, terminal.term.rows)
+    }
+
+    const resizeObserver = new ResizeObserver(() => fit())
+    resizeObserver.observe(container)
+
+    if (active) {
+      requestAnimationFrame(fit)
+      terminal.term.focus()
+    }
+
+    return () => resizeObserver.disconnect()
+  }, [active, resizeTerminal, sessionId])
 
   return (
     <div

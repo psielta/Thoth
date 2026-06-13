@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Terminal as TerminalIcon, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { closeTerminal, createTerminal, listTerminals } from '@/api/terminals'
 import { queryKeys } from '@/api/query-keys'
 import { Button } from '@/components/ui/button'
@@ -41,6 +41,18 @@ export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   })
+
+  const removeSession = useCallback(
+    (sessionId: string) => {
+      queryClient.setQueryData(queryKeys.terminals.forPrompt(promptId), (current: typeof sessions | undefined) =>
+        (current ?? []).filter((session) => session.id !== sessionId),
+      )
+      if (resolvedActiveId === sessionId) {
+        setActiveSessionId(null)
+      }
+    },
+    [promptId, queryClient, resolvedActiveId],
+  )
 
   const closeMutation = useMutation({
     mutationFn: (sessionId: string) => closeTerminal(sessionId),
@@ -95,7 +107,12 @@ export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
       </div>
 
       {sessions.map((session) => (
-        <TerminalView key={session.id} sessionId={session.id} active={session.id === resolvedActiveId} />
+        <TerminalView
+          key={session.id}
+          sessionId={session.id}
+          active={session.id === resolvedActiveId}
+          onSessionExit={removeSession}
+        />
       ))}
     </div>
   )

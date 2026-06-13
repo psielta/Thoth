@@ -50,6 +50,26 @@ public sealed class CreateTerminalSessionHandlerTests
     }
 
     [Fact]
+    public async Task Handle_passes_prompt_content_for_claude_plan_launch()
+    {
+        var context = new FakeApplicationDbContext();
+        var directory = SeedWorkingDirectory(context, "D:/repo");
+        var prompt = SeedPrompt(context, directory.Id, parentPromptId: null, content: "Planeje @arquivo.md com café");
+
+        var coordinator = new RecordingTerminalCoordinator();
+        var handler = new CreateTerminalSessionHandler(context, new FakeCurrentUser(), coordinator);
+
+        await handler.Handle(
+            new CreateTerminalSessionCommand(prompt.Id, null, TerminalAgentLaunch.ClaudePlan),
+            CancellationToken.None);
+
+        coordinator.LastCreate.Should().NotBeNull();
+        var command = System.Text.Encoding.UTF8.GetString(coordinator.LastCreate!.Value.InitialInput!);
+        command.Should().Contain("--permission-mode plan $p\r");
+        command.Should().Contain(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(prompt.Content)));
+    }
+
+    [Fact]
     public async Task Handle_uses_prompt_workspace_for_root_prompts()
     {
         var context = new FakeApplicationDbContext();
@@ -80,7 +100,11 @@ public sealed class CreateTerminalSessionHandlerTests
         return directory;
     }
 
-    private static Prompt SeedPrompt(FakeApplicationDbContext context, Guid workingDirectoryId, Guid? parentPromptId)
+    private static Prompt SeedPrompt(
+        FakeApplicationDbContext context,
+        Guid workingDirectoryId,
+        Guid? parentPromptId,
+        string content = "Content")
     {
         var prompt = new Prompt
         {
@@ -88,7 +112,7 @@ public sealed class CreateTerminalSessionHandlerTests
             WorkingDirectoryId = workingDirectoryId,
             ParentPromptId = parentPromptId,
             Title = "Prompt",
-            Content = "Content",
+            Content = content,
             TargetAgent = TargetAgent.ClaudeCode,
             Kind = PromptKind.General,
             Status = PromptStatus.Ready,

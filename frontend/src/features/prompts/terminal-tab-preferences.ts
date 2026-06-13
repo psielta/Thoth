@@ -26,6 +26,7 @@ export const TERMINAL_TAB_COLORS = [
 
 const AGENT_TAB_DEFAULTS: Record<TerminalAgentLaunch, TerminalTabPreference> = {
   Claude: { name: 'Claude', color: '#8761b9' },
+  ClaudePlan: { name: 'Claude Plan', color: '#5b4b8a' },
   Codex: { name: 'Codex', color: '#16c60c' },
   Grok: { name: 'Grok', color: '#ff8c00' },
 }

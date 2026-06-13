@@ -26,7 +26,10 @@ public sealed class CreateTerminalSessionHandler(
 
         var directory = ResolveWorkspaceDirectory(context, prompt, currentUser.UserId);
 
-        var initialInput = TerminalAgentLaunchCommands.ResolveInitialInput(request.AgentLaunch);
+        var promptContent = request.AgentLaunch == TerminalAgentLaunch.ClaudePlan
+            ? prompt.Content
+            : null;
+        var initialInput = TerminalAgentLaunchCommands.ResolveInitialInput(request.AgentLaunch, promptContent);
 
         return await terminalCoordinator.CreateAsync(
             prompt.Id,

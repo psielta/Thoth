@@ -1,5 +1,5 @@
 import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom'
-import { Bot, ChevronDown, Code2, Loader2, Sparkles } from 'lucide-react'
+import { Bot, ChevronDown, Code2, Loader2, Map, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { TerminalAgentLaunch } from '@/api/schemas'
@@ -19,6 +19,13 @@ const AGENT_OPTIONS: Array<{
     description: 'Inicia Claude Code com esforco maximo',
     command: 'claude --dangerously-skip-permissions --effort max',
     icon: Bot,
+  },
+  {
+    id: 'ClaudePlan',
+    label: 'Planejar no Claude',
+    description: 'Abre Claude Code em modo plan com o prompt atual',
+    command: 'claude --dangerously-skip-permissions --effort max --permission-mode plan',
+    icon: Map,
   },
   {
     id: 'Codex',

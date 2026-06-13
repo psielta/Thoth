@@ -38,7 +38,9 @@ public sealed class TerminalAgentLaunchCommandsTests
 
         staged.Should().NotBeNull();
         var launch = Encoding.UTF8.GetString(staged!.Launch);
-        launch.Should().Contain("claude --effort max --permission-mode plan --settings $s\r");
+        launch.Should().Contain("[System.IO.File]::WriteAllText($p, $s");
+        launch.Should().Contain("claude --effort max --permission-mode plan --settings $p\r");
+        launch.Should().NotContain("--settings $s");
         launch.Should().NotContain("--dangerously-skip-permissions");
         launch.Should().Contain(Convert.ToBase64String(Encoding.UTF8.GetBytes(
             """{"permissions":{"defaultMode":"plan","allow":["Read","Glob","Grep","LS","WebFetch","WebSearch","Task","Skill","Agent(Plan)","NotebookRead","TodoRead","Bash"]}}""")));

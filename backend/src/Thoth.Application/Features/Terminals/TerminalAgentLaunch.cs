@@ -76,7 +76,10 @@ public static class TerminalAgentLaunchCommands
     {
         var settingsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(ClaudePlanSettingsJson));
         return
-            $"$s = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{settingsBase64}')); claude {ClaudePlanFlags} --settings $s\r";
+            "$s = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + settingsBase64 + "')); " +
+            "$p = Join-Path $env:TEMP ('thoth-claude-plan-{0}.json' -f [guid]::NewGuid().ToString()); " +
+            "[System.IO.File]::WriteAllText($p, $s, [System.Text.UTF8Encoding]::new($false)); " +
+            $"claude {ClaudePlanFlags} --settings $p\r";
     }
 
     internal static string BuildClaudePlanPromptSubmission(string? promptContent)

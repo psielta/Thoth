@@ -19,7 +19,9 @@ export function ActorBadge({ actor, highlight }: { actor: WorkflowActor; highlig
       ? 'bg-info-soft text-info-foreground'
       : actor === 'Codex'
         ? 'bg-success-soft text-success-foreground'
-        : 'bg-muted text-muted-foreground'
+        : actor === 'Grok'
+          ? 'bg-warning-soft text-warning-foreground'
+          : 'bg-muted text-muted-foreground'
 
   return (
     <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${tone}`}>

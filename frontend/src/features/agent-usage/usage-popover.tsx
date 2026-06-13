@@ -14,10 +14,11 @@ import {
 type UsagePopoverProps = {
   claude: AgentUsageInfo
   codex: AgentUsageInfo
+  grok: AgentUsageInfo
   capturedAtUtc: string
 }
 
-export function UsagePopover({ claude, codex, capturedAtUtc }: UsagePopoverProps) {
+export function UsagePopover({ claude, codex, grok, capturedAtUtc }: UsagePopoverProps) {
   return (
     <div className="grid gap-3">
       <div className="flex items-center justify-between gap-3 border-b border-muted pb-2">
@@ -26,6 +27,7 @@ export function UsagePopover({ claude, codex, capturedAtUtc }: UsagePopoverProps
       </div>
       <AgentUsageSection info={claude} />
       <AgentUsageSection info={codex} />
+      <AgentUsageSection info={grok} />
     </div>
   )
 }

@@ -13,7 +13,8 @@ public sealed class GetAgentUsageHandlerTests
         var expected = new AgentUsageDto(
             new DateTimeOffset(2026, 5, 31, 12, 0, 0, TimeSpan.Zero),
             new AgentUsageInfo("Claude", AgentUsageStatus.Ok, null, null, "max", Array.Empty<AgentUsageWindow>()),
-            new AgentUsageInfo("Codex", AgentUsageStatus.NoData, null, "No snapshot", null, Array.Empty<AgentUsageWindow>()));
+            new AgentUsageInfo("Codex", AgentUsageStatus.NoData, null, "No snapshot", null, Array.Empty<AgentUsageWindow>()),
+            new AgentUsageInfo("Grok", AgentUsageStatus.NoData, null, "No budget configured.", null, Array.Empty<AgentUsageWindow>()));
         var handler = new GetAgentUsageHandler(new FakeAgentUsageReader(expected));
 
         var result = await handler.Handle(new GetAgentUsageQuery(), CancellationToken.None);

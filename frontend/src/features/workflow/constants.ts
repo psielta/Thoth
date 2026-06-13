@@ -11,12 +11,14 @@ export const ACTOR_LABELS: Record<WorkflowActor, string> = {
   ClaudeCode: 'Claude',
   Codex: 'Codex',
   Human: 'Você',
+  Grok: 'Grok',
 }
 
 export const ACTOR_OPTIONS = [
   { value: 'ClaudeCode', label: ACTOR_LABELS.ClaudeCode },
   { value: 'Codex', label: ACTOR_LABELS.Codex },
   { value: 'Human', label: ACTOR_LABELS.Human },
+  { value: 'Grok', label: ACTOR_LABELS.Grok },
 ] satisfies Array<{ value: WorkflowActor; label: string }>
 
 export const WORKFLOW_STATUS_LABELS: Record<PromptWorkflowStatus, string> = {

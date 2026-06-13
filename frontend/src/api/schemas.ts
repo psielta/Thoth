@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const targetAgentSchema = z.enum(['ClaudeCode', 'Codex'])
+export const targetAgentSchema = z.enum(['ClaudeCode', 'Codex', 'Grok'])
 export const promptKindSchema = z.enum(['General', 'Planning'])
 export const promptStatusSchema = z.enum(['Draft', 'Ready', 'Archived'])
 export const futureTaskStatusSchema = z.enum(['Open', 'InProgress', 'Done', 'Archived'])
@@ -258,7 +258,7 @@ export const linkedDocumentListSchema = z.array(linkedDocumentSchema)
 export const linkedDocumentVersionListSchema = z.array(linkedDocumentVersionSchema)
 export const promptTemplateListSchema = z.array(promptTemplateSchema)
 
-export const workflowActorSchema = z.enum(['ClaudeCode', 'Codex', 'Human'])
+export const workflowActorSchema = z.enum(['ClaudeCode', 'Codex', 'Human', 'Grok'])
 export const promptWorkflowStatusSchema = z.enum(['Active', 'Done'])
 export const workflowEventTypeSchema = z.enum([
   'WorkflowStarted',
@@ -324,6 +324,7 @@ export const agentUsageSchema = z.object({
   capturedAtUtc: z.string(),
   claude: agentUsageInfoSchema,
   codex: agentUsageInfoSchema,
+  grok: agentUsageInfoSchema,
 })
 
 export type AgentUsageStatus = z.infer<typeof agentUsageStatusSchema>

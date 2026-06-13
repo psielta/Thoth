@@ -7,6 +7,7 @@ namespace Thoth.Infrastructure.AgentUsage;
 public sealed class AgentUsageReader(
     IClaudeUsageReader claudeUsageReader,
     ICodexUsageReader codexUsageReader,
+    IGrokUsageReader grokUsageReader,
     IDateTimeProvider dateTimeProvider,
     IOptions<AgentUsageOptions> options)
     : IAgentUsageReader
@@ -18,15 +19,17 @@ public sealed class AgentUsageReader(
             return new AgentUsageDto(
                 dateTimeProvider.UtcNow,
                 AgentUsageInfo.Disabled("Claude"),
-                AgentUsageInfo.Disabled("Codex"));
+                AgentUsageInfo.Disabled("Codex"),
+                AgentUsageInfo.Disabled("Grok"));
         }
 
         var claudeTask = ReadSafeAsync("Claude", claudeUsageReader.ReadAsync, cancellationToken);
         var codexTask = ReadSafeAsync("Codex", codexUsageReader.ReadAsync, cancellationToken);
+        var grokTask = ReadSafeAsync("Grok", grokUsageReader.ReadAsync, cancellationToken);
 
-        await Task.WhenAll(claudeTask, codexTask);
+        await Task.WhenAll(claudeTask, codexTask, grokTask);
 
-        return new AgentUsageDto(dateTimeProvider.UtcNow, claudeTask.Result, codexTask.Result);
+        return new AgentUsageDto(dateTimeProvider.UtcNow, claudeTask.Result, codexTask.Result, grokTask.Result);
     }
 
     private static async Task<AgentUsageInfo> ReadSafeAsync(

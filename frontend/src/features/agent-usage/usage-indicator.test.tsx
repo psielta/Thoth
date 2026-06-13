@@ -77,6 +77,14 @@ const usage: AgentUsage = {
       },
     ],
   },
+  grok: {
+    agent: 'Grok',
+    status: 'NoData',
+    httpStatusCode: null,
+    statusDetail: 'No budget configured.',
+    plan: null,
+    windows: [],
+  },
 }
 
 function renderIndicator(data: AgentUsage = usage) {

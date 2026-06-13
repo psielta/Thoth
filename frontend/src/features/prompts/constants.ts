@@ -12,6 +12,7 @@ import {
 export const AGENT_LABELS: Record<TargetAgent, string> = {
   ClaudeCode: 'Claude Code',
   Codex: 'Codex',
+  Grok: 'Grok',
 }
 
 export const KIND_LABELS: Record<PromptKind, string> = {
@@ -34,6 +35,7 @@ export const STATUS_BADGE_VARIANTS: Record<PromptStatus, BadgeProps['variant']> 
 export const AGENT_OPTIONS = [
   { value: 'Codex', label: AGENT_LABELS.Codex },
   { value: 'ClaudeCode', label: AGENT_LABELS.ClaudeCode },
+  { value: 'Grok', label: AGENT_LABELS.Grok },
 ] satisfies Array<{ value: TargetAgent; label: string }>
 
 export const KIND_OPTIONS = [

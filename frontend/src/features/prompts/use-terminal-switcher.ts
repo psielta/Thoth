@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  directionFromSwitcherNavigateKey,
+  isTerminalSwitcherOpenShortcut,
+  isTerminalSwitcherQuickCycleShortcut,
+} from './terminal-switcher-shortcuts'
 
 type UseTerminalSwitcherOptions = {
   enabled: boolean
@@ -23,26 +28,6 @@ function moveHighlight(sessionIds: string[], currentId: string | null, direction
   return sessionIds[nextIndex] ?? null
 }
 
-function directionFromCycleKey(key: string, shiftKey: boolean): 1 | -1 | null {
-  if (key === 'PageUp' || key === 'ArrowLeft' || key === 'ArrowUp') {
-    return -1
-  }
-
-  if (key === 'PageDown' || key === 'ArrowRight' || key === 'ArrowDown') {
-    return 1
-  }
-
-  if (key === 'Tab') {
-    return shiftKey ? -1 : 1
-  }
-
-  return null
-}
-
-function isCtrlCycleKey(key: string) {
-  return key === 'PageDown' || key === 'PageUp' || key === 'ArrowRight' || key === 'ArrowLeft'
-}
-
 export function useTerminalSwitcher({
   enabled,
   sessionIds,
@@ -51,11 +36,22 @@ export function useTerminalSwitcher({
 }: UseTerminalSwitcherOptions) {
   const [open, setOpen] = useState(false)
   const [highlightedSessionId, setHighlightedSessionId] = useState<string | null>(null)
-  const ctrlPressedRef = useRef(false)
-  const pendingSelectionRef = useRef<string | null>(null)
+
+  const closeSwitcher = useCallback(
+    (applySelection: boolean) => {
+      setOpen(false)
+      setHighlightedSessionId((current) => {
+        if (applySelection && current) {
+          onSelectSession(current)
+        }
+        return null
+      })
+    },
+    [onSelectSession],
+  )
 
   const highlightNext = useCallback(
-    (direction: 1 | -1) => {
+    (direction: 1 | -1, openOverlay: boolean) => {
       const baseId = open ? highlightedSessionId ?? activeSessionId : activeSessionId
       const nextId = moveHighlight(sessionIds, baseId, direction)
 
@@ -63,32 +59,21 @@ export function useTerminalSwitcher({
         return
       }
 
-      pendingSelectionRef.current = nextId
-      setHighlightedSessionId(nextId)
-      setOpen(true)
+      if (openOverlay) {
+        setHighlightedSessionId(nextId)
+        setOpen(true)
+        return
+      }
+
+      onSelectSession(nextId)
     },
-    [activeSessionId, highlightedSessionId, open, sessionIds],
+    [activeSessionId, highlightedSessionId, onSelectSession, open, sessionIds],
   )
 
-  const closeSwitcher = useCallback((applySelection: boolean) => {
-    if (applySelection && pendingSelectionRef.current) {
-      onSelectSession(pendingSelectionRef.current)
-    }
-
-    pendingSelectionRef.current = null
-    setOpen(false)
-    setHighlightedSessionId(null)
-  }, [onSelectSession])
-
-  useEffect(() => {
-    if (!enabled || sessionIds.length < 2) {
-      return
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Control') {
-        ctrlPressedRef.current = true
-        return
+  const handleKeyboardEvent = useCallback(
+    (event: KeyboardEvent): boolean => {
+      if (!enabled || sessionIds.length < 2) {
+        return false
       }
 
       if (open) {
@@ -96,66 +81,64 @@ export function useTerminalSwitcher({
           event.preventDefault()
           event.stopPropagation()
           closeSwitcher(true)
-          return
+          return true
         }
 
         if (event.key === 'Escape') {
           event.preventDefault()
           event.stopPropagation()
           closeSwitcher(false)
-          return
+          return true
         }
 
-        const overlayDirection = directionFromCycleKey(event.key, event.shiftKey)
+        const overlayDirection = directionFromSwitcherNavigateKey(event.key, event.shiftKey)
         if (overlayDirection !== null && !event.ctrlKey && !event.altKey && !event.metaKey) {
           event.preventDefault()
           event.stopPropagation()
-          highlightNext(overlayDirection)
-          return
+          highlightNext(overlayDirection, true)
+          return true
         }
       }
 
-      if (!event.ctrlKey || event.altKey || event.metaKey || !isCtrlCycleKey(event.key)) {
-        return
+      const quickCycleDirection = isTerminalSwitcherQuickCycleShortcut(event)
+      if (quickCycleDirection !== null) {
+        event.preventDefault()
+        event.stopPropagation()
+        highlightNext(quickCycleDirection, false)
+        return true
       }
 
-      event.preventDefault()
-      event.stopPropagation()
+      if (isTerminalSwitcherOpenShortcut(event)) {
+        event.preventDefault()
+        event.stopPropagation()
+        highlightNext(1, true)
+        return true
+      }
 
-      const direction = directionFromCycleKey(event.key, event.shiftKey) ?? 1
-      highlightNext(direction)
+      return false
+    },
+    [closeSwitcher, enabled, highlightNext, open, sessionIds.length],
+  )
+
+  useEffect(() => {
+    if (!enabled || sessionIds.length < 2) {
+      return
     }
 
-    const onKeyUp = (event: KeyboardEvent) => {
-      if (event.key !== 'Control') {
-        return
-      }
-
-      ctrlPressedRef.current = false
-      if (open) {
-        closeSwitcher(true)
-      }
+    const onKeyDown = (event: KeyboardEvent) => {
+      handleKeyboardEvent(event)
     }
 
-    const onBlur = () => {
-      if (open && !ctrlPressedRef.current) {
-        closeSwitcher(true)
-      }
-    }
-
-    document.addEventListener('keydown', onKeyDown, true)
-    document.addEventListener('keyup', onKeyUp, true)
-    window.addEventListener('blur', onBlur)
+    window.addEventListener('keydown', onKeyDown, true)
 
     return () => {
-      document.removeEventListener('keydown', onKeyDown, true)
-      document.removeEventListener('keyup', onKeyUp, true)
-      window.removeEventListener('blur', onBlur)
+      window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [closeSwitcher, enabled, highlightNext, open, sessionIds.length])
+  }, [enabled, handleKeyboardEvent, sessionIds.length])
 
   return {
     switcherOpen: open,
     highlightedSessionId: highlightedSessionId ?? activeSessionId ?? sessionIds[0] ?? null,
+    handleKeyboardEvent,
   }
 }

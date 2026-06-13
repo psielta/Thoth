@@ -7,7 +7,7 @@ describe('useTerminalSwitcher', () => {
     vi.restoreAllMocks()
   })
 
-  it('opens switcher on Ctrl+PageDown and selects on Control release', () => {
+  it('opens switcher on Ctrl+` and selects on Enter', () => {
     const onSelectSession = vi.fn()
     const { result } = renderHook(() =>
       useTerminalSwitcher({
@@ -19,8 +19,8 @@ describe('useTerminalSwitcher', () => {
     )
 
     act(() => {
-      document.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'PageDown', ctrlKey: true, bubbles: true }),
+      result.current.handleKeyboardEvent(
+        new KeyboardEvent('keydown', { key: '`', code: 'Backquote', ctrlKey: true, bubbles: true }),
       )
     })
 
@@ -28,7 +28,33 @@ describe('useTerminalSwitcher', () => {
     expect(result.current.highlightedSessionId).toBe('b')
 
     act(() => {
-      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Control', bubbles: true }))
+      result.current.handleKeyboardEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+
+    expect(onSelectSession).toHaveBeenCalledWith('b')
+    expect(result.current.switcherOpen).toBe(false)
+  })
+
+  it('switches directly on Ctrl+Alt+ArrowRight', () => {
+    const onSelectSession = vi.fn()
+    const { result } = renderHook(() =>
+      useTerminalSwitcher({
+        enabled: true,
+        sessionIds: ['a', 'b', 'c'],
+        activeSessionId: 'a',
+        onSelectSession,
+      }),
+    )
+
+    act(() => {
+      result.current.handleKeyboardEvent(
+        new KeyboardEvent('keydown', {
+          key: 'ArrowRight',
+          ctrlKey: true,
+          altKey: true,
+          bubbles: true,
+        }),
+      )
     })
 
     expect(onSelectSession).toHaveBeenCalledWith('b')
@@ -47,22 +73,21 @@ describe('useTerminalSwitcher', () => {
     )
 
     act(() => {
-      document.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'PageDown', ctrlKey: true, bubbles: true }),
+      result.current.handleKeyboardEvent(
+        new KeyboardEvent('keydown', { key: '`', code: 'Backquote', ctrlKey: true, bubbles: true }),
       )
     })
 
     act(() => {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }))
+      result.current.handleKeyboardEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }))
     })
 
     expect(result.current.highlightedSessionId).toBe('c')
 
     act(() => {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      result.current.handleKeyboardEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     })
 
     expect(onSelectSession).toHaveBeenCalledWith('c')
-    expect(result.current.switcherOpen).toBe(false)
   })
 })

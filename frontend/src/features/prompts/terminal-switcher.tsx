@@ -2,6 +2,7 @@ import { Terminal as TerminalIcon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { resolveTerminalTabLabel, type TerminalTabPreference } from './terminal-tab-preferences'
+import { TERMINAL_SWITCHER_CYCLE_LABEL, TERMINAL_SWITCHER_OPEN_LABEL } from './terminal-switcher-shortcuts'
 
 export type TerminalSwitcherItem = {
   sessionId: string
@@ -34,8 +35,8 @@ export function TerminalSwitcher({ items, highlightedSessionId }: TerminalSwitch
         <div className="border-b border-border px-4 py-3">
           <p className="text-sm font-medium text-foreground">Alternar terminal</p>
           <p className="text-xs text-muted-foreground">
-            Segure Ctrl e use Page Down/Up ou setas para navegar. Solte Ctrl para abrir. Com o painel aberto, Tab
-            tambem funciona.
+            {TERMINAL_SWITCHER_OPEN_LABEL} abre este painel. Use Tab ou setas para navegar, Enter para abrir e Esc
+            para cancelar. {TERMINAL_SWITCHER_CYCLE_LABEL} alterna direto.
           </p>
         </div>
 

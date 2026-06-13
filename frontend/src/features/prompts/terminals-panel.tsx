@@ -66,7 +66,7 @@ export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
     [resolvedActiveId, sessions],
   )
 
-  const { switcherOpen, highlightedSessionId } = useTerminalSwitcher({
+  const { switcherOpen, highlightedSessionId, handleKeyboardEvent } = useTerminalSwitcher({
     enabled: sessions.length > 0,
     sessionIds,
     activeSessionId: resolvedActiveId,
@@ -228,6 +228,7 @@ export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
               fontSize={fontSize}
               onZoom={adjustFontSize}
               onSessionExit={removeSession}
+              onKeyboardShortcut={session.id === resolvedActiveId ? handleKeyboardEvent : undefined}
             />
           ))}
         </div>

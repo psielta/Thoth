@@ -16,6 +16,7 @@ type TerminalViewProps = {
   fontSize: number
   onZoom?: (delta: number) => void
   onSessionExit?: (sessionId: string, exitCode: number) => void
+  onKeyboardShortcut?: (event: KeyboardEvent) => boolean
 }
 
 function scheduleTerminalFit(
@@ -40,10 +41,18 @@ function scheduleTerminalFit(
   })
 }
 
-export function TerminalView({ sessionId, active, fontSize, onZoom, onSessionExit }: TerminalViewProps) {
+export function TerminalView({
+  sessionId,
+  active,
+  fontSize,
+  onZoom,
+  onSessionExit,
+  onKeyboardShortcut,
+}: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const terminalRef = useRef<{ term: Terminal; fitAddon: FitAddon } | null>(null)
   const onZoomRef = useRef(onZoom)
+  const onKeyboardShortcutRef = useRef(onKeyboardShortcut)
   const activeRef = useRef(active)
   const {
     joinTerminal,
@@ -56,8 +65,9 @@ export function TerminalView({ sessionId, active, fontSize, onZoom, onSessionExi
 
   useEffect(() => {
     onZoomRef.current = onZoom
+    onKeyboardShortcutRef.current = onKeyboardShortcut
     activeRef.current = active
-  }, [active, onZoom])
+  }, [active, onKeyboardShortcut, onZoom])
 
   useEffect(() => {
     const container = containerRef.current
@@ -128,6 +138,19 @@ export function TerminalView({ sessionId, active, fontSize, onZoom, onSessionExi
     const dataDisposable = term.onData((data) => {
       const bytes = new TextEncoder().encode(data)
       sendTerminalInput(sessionId, bytesToBase64(bytes))
+    })
+
+    term.attachCustomKeyEventHandler((event) => {
+      if (!activeRef.current || event.type !== 'keydown') {
+        return true
+      }
+
+      const handler = onKeyboardShortcutRef.current
+      if (!handler) {
+        return true
+      }
+
+      return !handler(event)
     })
 
     const onWheel = (event: WheelEvent) => {

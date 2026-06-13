@@ -17,6 +17,14 @@ public sealed class GetFileGitContentValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    [Fact]
+    public void Rejects_null_hash()
+    {
+        var result = _validator.Validate(new GetFileGitContentQuery(Guid.CreateVersion7(), "src/app.ts", null!));
+
+        result.IsValid.Should().BeFalse();
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("abcdef")]

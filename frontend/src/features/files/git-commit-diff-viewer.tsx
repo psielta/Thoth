@@ -115,7 +115,14 @@ export function GitCommitDiffViewer({
           </div>
         ) : null}
 
-        {!isLoading && !error && !isBinary ? (
+        {!isLoading && !error && !isBinary && truncated ? (
+          <div className="flex h-full min-h-48 flex-col items-center justify-center gap-2 px-4 text-center text-sm text-muted-foreground">
+            <AlertTriangle className="h-5 w-5 text-warning-solid" />
+            <p>Arquivo truncado para visualizacao. Abra no editor local para ver o conteudo completo.</p>
+          </div>
+        ) : null}
+
+        {!isLoading && !error && !isBinary && !truncated ? (
           <Suspense
             fallback={
               <div className="flex h-full min-h-48 items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -144,11 +151,6 @@ export function GitCommitDiffViewer({
         ) : null}
       </div>
 
-      {truncated ? (
-        <div className="border-t border-border bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
-          Arquivo truncado para visualizacao. Abra no editor local para ver o conteudo completo.
-        </div>
-      ) : null}
     </section>
   )
 }

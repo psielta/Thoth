@@ -98,4 +98,20 @@ describe('GitCommitDiffViewer', () => {
     expect(await screen.findByText('Arquivo binario. Visualizacao de diff indisponivel.')).toBeInTheDocument()
     expect(screen.queryByTestId('diff-editor')).not.toBeInTheDocument()
   })
+
+  it('short-circuits truncated content', async () => {
+    vi.mocked(gitApi.getGitCommitContent).mockResolvedValue({
+      content: '',
+      exists: true,
+      isBinary: false,
+      truncated: true,
+    })
+
+    renderViewer()
+
+    expect(
+      await screen.findByText('Arquivo truncado para visualizacao. Abra no editor local para ver o conteudo completo.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByTestId('diff-editor')).not.toBeInTheDocument()
+  })
 })

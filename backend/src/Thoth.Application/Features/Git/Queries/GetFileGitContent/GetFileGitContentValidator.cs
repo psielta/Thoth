@@ -8,6 +8,6 @@ public sealed class GetFileGitContentValidator : AbstractValidator<GetFileGitCon
     {
         RuleFor(query => query.WorkingDirectoryId).NotEmpty();
         RuleFor(query => query.Path).NotEmpty().MaximumLength(1024);
-        RuleFor(query => query.Hash).Matches(@"\A[0-9a-fA-F]{7,40}\z");
+        RuleFor(query => query.Hash).NotEmpty().Matches(@"\A[0-9a-fA-F]{7,40}\z");
     }
 }

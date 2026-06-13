@@ -1,5 +1,10 @@
 import { api } from './client'
-import { terminalAgentLaunchSchema, terminalCapabilitiesSchema, terminalSessionSchema } from './schemas'
+import {
+  terminalAgentLaunchSchema,
+  terminalCapabilitiesSchema,
+  terminalGroupSchema,
+  terminalSessionSchema,
+} from './schemas'
 import type { TerminalAgentLaunch } from './schemas'
 import { z } from 'zod'
 
@@ -11,6 +16,11 @@ export async function getTerminalCapabilities() {
 export async function listTerminals(promptId: string) {
   const data = await api.get(`prompts/${promptId}/terminals`).json<unknown>()
   return z.array(terminalSessionSchema).parse(data)
+}
+
+export async function listAllTerminals() {
+  const data = await api.get('terminals').json<unknown>()
+  return z.array(terminalGroupSchema).parse(data)
 }
 
 type CreateTerminalOptions = {

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TerminaisRouteImport } from './routes/terminais'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotasRouteImport } from './routes/notas'
 import { Route as FilesRouteImport } from './routes/files'
@@ -24,6 +25,11 @@ import { Route as WorkspacesWorkspaceIdTasksTaskNumberRouteImport } from './rout
 import { Route as WorkspacesWorkspaceIdPromptsNewRouteImport } from './routes/workspaces/$workspaceId/prompts/new'
 import { Route as WorkspacesWorkspaceIdPromptsPromptIdRouteImport } from './routes/workspaces/$workspaceId/prompts/$promptId'
 
+const TerminaisRoute = TerminaisRouteImport.update({
+  id: '/terminais',
+  path: '/terminais',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/files': typeof FilesRoute
   '/notas': typeof NotasRoute
   '/settings': typeof SettingsRoute
+  '/terminais': typeof TerminaisRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/workspaces/': typeof WorkspacesIndexRoute
   '/workspaces/$workspaceId/diagrams': typeof WorkspacesWorkspaceIdDiagramsRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/files': typeof FilesRoute
   '/notas': typeof NotasRoute
   '/settings': typeof SettingsRoute
+  '/terminais': typeof TerminaisRoute
   '/workspaces': typeof WorkspacesIndexRoute
   '/workspaces/$workspaceId/diagrams': typeof WorkspacesWorkspaceIdDiagramsRoute
   '/workspaces/$workspaceId/files': typeof WorkspacesWorkspaceIdFilesRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/files': typeof FilesRoute
   '/notas': typeof NotasRoute
   '/settings': typeof SettingsRoute
+  '/terminais': typeof TerminaisRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/workspaces/': typeof WorkspacesIndexRoute
   '/workspaces/$workspaceId/diagrams': typeof WorkspacesWorkspaceIdDiagramsRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/notas'
     | '/settings'
+    | '/terminais'
     | '/workspaces/$workspaceId'
     | '/workspaces/'
     | '/workspaces/$workspaceId/diagrams'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/notas'
     | '/settings'
+    | '/terminais'
     | '/workspaces'
     | '/workspaces/$workspaceId/diagrams'
     | '/workspaces/$workspaceId/files'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/files'
     | '/notas'
     | '/settings'
+    | '/terminais'
     | '/workspaces/$workspaceId'
     | '/workspaces/'
     | '/workspaces/$workspaceId/diagrams'
@@ -206,12 +218,20 @@ export interface RootRouteChildren {
   FilesRoute: typeof FilesRoute
   NotasRoute: typeof NotasRoute
   SettingsRoute: typeof SettingsRoute
+  TerminaisRoute: typeof TerminaisRoute
   WorkspacesWorkspaceIdRoute: typeof WorkspacesWorkspaceIdRouteWithChildren
   WorkspacesIndexRoute: typeof WorkspacesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terminais': {
+      id: '/terminais'
+      path: '/terminais'
+      fullPath: '/terminais'
+      preLoaderRoute: typeof TerminaisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -346,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   FilesRoute: FilesRoute,
   NotasRoute: NotasRoute,
   SettingsRoute: SettingsRoute,
+  TerminaisRoute: TerminaisRoute,
   WorkspacesWorkspaceIdRoute: WorkspacesWorkspaceIdRouteWithChildren,
   WorkspacesIndexRoute: WorkspacesIndexRoute,
 }

@@ -598,3 +598,13 @@ export const terminalCapabilitiesSchema = z.object({
   enabled: z.boolean(),
 })
 export type TerminalCapabilities = z.infer<typeof terminalCapabilitiesSchema>
+
+export const terminalGroupSchema = z.object({
+  promptId: z.string().uuid(),
+  promptTitle: z.string(),
+  workingDirectoryId: z.string().uuid(),
+  workingDirectoryName: z.string(),
+  isArchived: z.boolean(),
+  terminals: z.array(terminalSessionSchema),
+})
+export type TerminalGroup = z.infer<typeof terminalGroupSchema>

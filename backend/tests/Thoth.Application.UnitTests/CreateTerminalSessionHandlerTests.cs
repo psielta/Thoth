@@ -205,6 +205,18 @@ public sealed class CreateTerminalSessionHandlerTests
                 DateTimeOffset.UtcNow));
         }
 
+        public Task<TerminalSessionDescriptor> CreateGenericAsync(
+            Guid ownerId,
+            string? cwd,
+            string shell,
+            byte[]? initialInput,
+            CancellationToken cancellationToken,
+            byte[]? followUpInput = null) =>
+            throw new NotSupportedException();
+
+        public IReadOnlyList<TerminalSessionDescriptor> ListForOwner(Guid ownerId) =>
+            Array.Empty<TerminalSessionDescriptor>();
+
         public void WriteInput(Guid sessionId, byte[] input)
         {
         }

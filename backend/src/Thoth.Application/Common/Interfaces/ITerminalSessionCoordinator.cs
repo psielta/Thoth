@@ -12,6 +12,14 @@ public interface ITerminalSessionCoordinator
         CancellationToken cancellationToken,
         byte[]? followUpInput = null);
 
+    Task<TerminalSessionDescriptor> CreateGenericAsync(
+        Guid ownerId,
+        string? cwd,
+        string shell,
+        byte[]? initialInput,
+        CancellationToken cancellationToken,
+        byte[]? followUpInput = null);
+
     void WriteInput(Guid sessionId, byte[] input);
 
     void Resize(Guid sessionId, ushort cols, ushort rows);
@@ -25,6 +33,8 @@ public interface ITerminalSessionCoordinator
     void ReleaseConnection(string connectionId);
 
     IReadOnlyList<TerminalSessionDescriptor> ListForPrompt(Guid promptId);
+
+    IReadOnlyList<TerminalSessionDescriptor> ListForOwner(Guid ownerId);
 
     IReadOnlyList<TerminalSessionDescriptor> ListAll();
 

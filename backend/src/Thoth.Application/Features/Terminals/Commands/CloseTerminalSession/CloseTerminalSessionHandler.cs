@@ -16,7 +16,17 @@ public sealed class CloseTerminalSessionHandler(
         var session = terminalCoordinator.TryGetSession(request.SessionId)
             ?? throw new NotFoundException("Terminal session was not found.");
 
-        _ = PromptMutationHelpers.GetPrompt(context, session.PromptId, currentUser.UserId);
+        if (session.PromptId is { } promptId)
+        {
+            // Prompt-scoped session: ownership flows through the prompt.
+            _ = PromptMutationHelpers.GetPrompt(context, promptId, currentUser.UserId);
+        }
+        else if (terminalCoordinator.ListForOwner(currentUser.UserId).All(item => item.Id != request.SessionId))
+        {
+            // Generic session: it must belong to the current user.
+            throw new NotFoundException("Terminal session was not found.");
+        }
+
         await terminalCoordinator.CloseAsync(request.SessionId, cancellationToken);
     }
 }

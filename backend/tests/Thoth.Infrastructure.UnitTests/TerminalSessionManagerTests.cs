@@ -52,6 +52,32 @@ public sealed class TerminalSessionManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateGenericAsync_registers_ownerless_session_listed_for_owner()
+    {
+        var ownerId = Guid.CreateVersion7();
+        var descriptor = await _manager.CreateGenericAsync(ownerId, _root, string.Empty, null, CancellationToken.None);
+
+        descriptor.PromptId.Should().BeNull();
+        descriptor.Cwd.Should().Be(
+            Path.GetFullPath(_root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        _manager.ListForOwner(ownerId).Should().ContainSingle(item => item.Id == descriptor.Id);
+    }
+
+    [Fact]
+    public async Task ListForOwner_excludes_other_owners_and_prompt_sessions()
+    {
+        var ownerId = Guid.CreateVersion7();
+        var otherOwnerId = Guid.CreateVersion7();
+        var promptId = Guid.CreateVersion7();
+
+        var mine = await _manager.CreateGenericAsync(ownerId, _root, string.Empty, null, CancellationToken.None);
+        await _manager.CreateGenericAsync(otherOwnerId, _root, string.Empty, null, CancellationToken.None);
+        await _manager.CreateAsync(promptId, _root, string.Empty, null, CancellationToken.None);
+
+        _manager.ListForOwner(ownerId).Should().ContainSingle().Which.Id.Should().Be(mine.Id);
+    }
+
+    [Fact]
     public async Task CreateAsync_delivers_initial_input_to_pty()
     {
         var promptId = Guid.CreateVersion7();

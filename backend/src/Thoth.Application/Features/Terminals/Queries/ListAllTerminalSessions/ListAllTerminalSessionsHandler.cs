@@ -23,7 +23,8 @@ public sealed class ListAllTerminalSessionsHandler(
 
         // Group the in-memory sessions by prompt; terminals within a prompt are ordered by creation.
         var sessionsByPrompt = sessions
-            .GroupBy(session => session.PromptId)
+            .Where(session => session.PromptId.HasValue)
+            .GroupBy(session => session.PromptId!.Value)
             .ToDictionary(
                 group => group.Key,
                 group => (IReadOnlyList<TerminalSessionDescriptor>)group

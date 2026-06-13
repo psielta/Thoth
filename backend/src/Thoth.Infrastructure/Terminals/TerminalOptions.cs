@@ -6,7 +6,9 @@ public sealed class TerminalOptions
     public bool AllowRemoteConnections { get; set; }
     public string[] AllowedShells { get; set; } = ["pwsh.exe", "powershell.exe"];
     public string DefaultShell { get; set; } = "pwsh.exe";
+    public string DefaultWorkingDirectory { get; set; } = string.Empty;
     public int MaxSessionsPerPrompt { get; set; } = 8;
+    public int MaxGenericSessionsPerOwner { get; set; } = 8;
     public int MaxTotalSessions { get; set; } = 32;
     public int OrphanTimeoutSeconds { get; set; } = 72 * 60 * 60;
     public int OutputFlushMilliseconds { get; set; } = 25;

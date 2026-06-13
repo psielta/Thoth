@@ -3,7 +3,8 @@ namespace Thoth.Infrastructure.Terminals;
 internal sealed class TerminalSession
 {
     public required Guid Id { get; init; }
-    public required Guid PromptId { get; init; }
+    public required Guid? PromptId { get; init; }
+    public Guid? OwnerId { get; init; }
     public required string Shell { get; init; }
     public required string Cwd { get; init; }
     public required DateTimeOffset CreatedAtUtc { get; init; }

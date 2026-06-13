@@ -155,6 +155,18 @@ public sealed class ListAllTerminalSessionsHandlerTests
             byte[]? followUpInput = null) =>
             throw new NotSupportedException();
 
+        public Task<TerminalSessionDescriptor> CreateGenericAsync(
+            Guid ownerId,
+            string? cwd,
+            string shell,
+            byte[]? initialInput,
+            CancellationToken cancellationToken,
+            byte[]? followUpInput = null) =>
+            throw new NotSupportedException();
+
+        public IReadOnlyList<TerminalSessionDescriptor> ListForOwner(Guid ownerId) =>
+            sessions.Where(session => session.PromptId is null).ToList();
+
         public void WriteInput(Guid sessionId, byte[] input)
         {
         }

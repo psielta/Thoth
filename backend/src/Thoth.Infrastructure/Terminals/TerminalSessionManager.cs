@@ -30,8 +30,34 @@ public sealed class TerminalSessionManager(
     private const int ClaudePlanFollowUpDelayMs = 2000;
     private const int PtySubmitWriteGapMs = 25;
 
-    public async Task<TerminalSessionDescriptor> CreateAsync(
+    public Task<TerminalSessionDescriptor> CreateAsync(
         Guid promptId,
+        string cwd,
+        string shell,
+        byte[]? initialInput,
+        CancellationToken cancellationToken,
+        byte[]? followUpInput = null) =>
+        CreateCoreAsync(ownerId: null, promptId, cwd, shell, initialInput, cancellationToken, followUpInput);
+
+    public Task<TerminalSessionDescriptor> CreateGenericAsync(
+        Guid ownerId,
+        string? cwd,
+        string shell,
+        byte[]? initialInput,
+        CancellationToken cancellationToken,
+        byte[]? followUpInput = null) =>
+        CreateCoreAsync(
+            ownerId,
+            promptId: null,
+            ResolveGenericWorkingDirectory(cwd),
+            shell,
+            initialInput,
+            cancellationToken,
+            followUpInput);
+
+    private async Task<TerminalSessionDescriptor> CreateCoreAsync(
+        Guid? ownerId,
+        Guid? promptId,
         string cwd,
         string shell,
         byte[]? initialInput,
@@ -62,7 +88,7 @@ public sealed class TerminalSessionManager(
         }
 
         var resolvedShell = ResolveShell(shell);
-        EnsureCapacity(promptId);
+        EnsureCapacity(promptId, ownerId);
 
         var sessionId = Guid.CreateVersion7();
         IPtyConnection pty;
@@ -85,6 +111,7 @@ public sealed class TerminalSessionManager(
         {
             Id = sessionId,
             PromptId = promptId,
+            OwnerId = ownerId,
             Shell = resolvedShell,
             Cwd = canonicalCwd,
             CreatedAtUtc = DateTimeOffset.UtcNow,
@@ -100,10 +127,13 @@ public sealed class TerminalSessionManager(
             throw new ConflictException("Failed to register terminal session.");
         }
 
-        var promptSessions = _sessionsByPrompt.GetOrAdd(promptId, _ => new HashSet<Guid>());
-        lock (promptSessions)
+        if (promptId is { } indexedPromptId)
         {
-            promptSessions.Add(sessionId);
+            var promptSessions = _sessionsByPrompt.GetOrAdd(indexedPromptId, _ => new HashSet<Guid>());
+            lock (promptSessions)
+            {
+                promptSessions.Add(sessionId);
+            }
         }
 
         _ = PumpOutputAsync(session);
@@ -116,9 +146,10 @@ public sealed class TerminalSessionManager(
         }
 
         logger.LogInformation(
-            "Terminal session {SessionId} created for prompt {PromptId} shell {Shell} cwd {Cwd}",
+            "Terminal session {SessionId} created for prompt {PromptId} owner {OwnerId} shell {Shell} cwd {Cwd}",
             sessionId,
             promptId,
+            ownerId,
             resolvedShell,
             canonicalCwd);
 
@@ -269,6 +300,14 @@ public sealed class TerminalSessionManager(
             .OrderBy(descriptor => descriptor.CreatedAtUtc)
             .ToList();
     }
+
+    public IReadOnlyList<TerminalSessionDescriptor> ListForOwner(Guid ownerId) =>
+        _sessions.Values
+            .ToArray()
+            .Where(session => session.PromptId is null && session.OwnerId == ownerId)
+            .Select(ToDescriptor)
+            .OrderBy(descriptor => descriptor.CreatedAtUtc)
+            .ToList();
 
     public IReadOnlyList<TerminalSessionDescriptor> ListAll() =>
         _sessions.Values
@@ -659,14 +698,14 @@ public sealed class TerminalSessionManager(
 
     private void RemoveSessionIndexes(TerminalSession session)
     {
-        if (_sessionsByPrompt.TryGetValue(session.PromptId, out var promptSessions))
+        if (session.PromptId is { } promptId && _sessionsByPrompt.TryGetValue(promptId, out var promptSessions))
         {
             lock (promptSessions)
             {
                 promptSessions.Remove(session.Id);
                 if (promptSessions.Count == 0)
                 {
-                    _sessionsByPrompt.TryRemove(session.PromptId, out _);
+                    _sessionsByPrompt.TryRemove(promptId, out _);
                 }
             }
         }
@@ -708,26 +747,57 @@ public sealed class TerminalSessionManager(
         }
     }
 
-    private void EnsureCapacity(Guid promptId)
+    private void EnsureCapacity(Guid? promptId, Guid? ownerId)
     {
         if (_sessions.Count >= _options.MaxTotalSessions)
         {
             throw new ForbiddenException("Maximum total terminal sessions reached.");
         }
 
-        if (_sessionsByPrompt.TryGetValue(promptId, out var promptSessions))
+        if (promptId is { } scopedPromptId)
         {
-            int count;
-            lock (promptSessions)
+            if (_sessionsByPrompt.TryGetValue(scopedPromptId, out var promptSessions))
             {
-                count = promptSessions.Count;
+                int count;
+                lock (promptSessions)
+                {
+                    count = promptSessions.Count;
+                }
+
+                if (count >= _options.MaxSessionsPerPrompt)
+                {
+                    throw new ForbiddenException("Maximum terminal sessions per prompt reached.");
+                }
             }
 
-            if (count >= _options.MaxSessionsPerPrompt)
+            return;
+        }
+
+        if (ownerId is { } scopedOwnerId)
+        {
+            var genericCount = _sessions.Values.Count(
+                session => session.PromptId is null && session.OwnerId == scopedOwnerId);
+            if (genericCount >= _options.MaxGenericSessionsPerOwner)
             {
-                throw new ForbiddenException("Maximum terminal sessions per prompt reached.");
+                throw new ForbiddenException("Maximum generic terminal sessions reached.");
             }
         }
+    }
+
+    private string ResolveGenericWorkingDirectory(string? cwd)
+    {
+        if (!string.IsNullOrWhiteSpace(cwd))
+        {
+            return cwd;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_options.DefaultWorkingDirectory) &&
+            Directory.Exists(_options.DefaultWorkingDirectory))
+        {
+            return _options.DefaultWorkingDirectory;
+        }
+
+        return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     }
 
     private string ResolveShell(string shell)

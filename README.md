@@ -25,6 +25,7 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 - Renderizacao de Markdown versionado no navegador com historico navegavel.
 - Navegador de arquivos do diretorio de trabalho: arvore lazy-loaded e busca por nome, disponivel na aba `Arquivos` do workspace e em uma pagina global `Arquivos` no header, com seletor de diretorio cuja ultima escolha e persistida no navegador.
 - Visualizador de codigo somente leitura baseado no Monaco Editor, com realce de sintaxe, tema sincronizado com o app e atualizacao em tempo real via SignalR quando o arquivo muda no disco.
+- Terminais PowerShell integrados na aba `Terminais` do prompt: multiplas sessoes por tarefa com diretorio inicial no workspace, lancamento rapido de Claude/Codex/Grok, abas nomeadas e coloridas persistidas no `localStorage` do navegador, alternancia entre sessoes com `Ctrl+`` (overlay) ou `Ctrl+Alt+←/→` e zoom de fonte.
 - Templates de prompts para fluxo de revisao, implementacao, rebase e merge de planos, com atualizacao automatica da fase da tarefa pai quando aplicavel.
 - Indicadores no header para limites atuais de Claude Code e Codex, lendo as fontes locais dos agentes e sincronizando atualizacoes via SignalR.
 - **Assistente IA com Gemini:** refinamento de prompts, chat de suporte e configuracao de modelo diretamente na tela de criacao e edicao.
@@ -45,6 +46,7 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 - Entity Framework Core 10 com PostgreSQL via Npgsql.
 - Newtonsoft.Json integrado ao ASP.NET Core.
 - SignalR para eventos em tempo real.
+- Terminais pseudo-TTY no Windows via ConPTY, com sessoes PowerShell por prompt e I/O em tempo real pelo hub SignalR.
 - Leitura local de uso dos agentes: Claude via OAuth da instalacao local e API de uso da Anthropic; Codex via snapshots `rate_limits` dos JSONL em `~/.codex/sessions`.
 - Integracao com a Gemini API via `HttpClient` tipado: refinamento de prompts, chat com streaming SSE e context caching de dois niveis (instrucao de sistema e historico de sessao).
 - Leitura segura de contexto do workspace para IA, restrita a arquivos Markdown conhecidos na raiz canonica do diretorio.
@@ -59,6 +61,7 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 - React Hook Form e Zod para formularios e contratos de API.
 - TipTap para editor Markdown com mencoes de arquivo.
 - Monaco Editor (`@monaco-editor/react`) para o visualizador de arquivos do workspace com realce de sintaxe.
+- xterm.js (`@xterm/xterm`) para terminais PowerShell embutidos na aba `Terminais` do prompt.
 - Tailwind CSS 4 e componentes no estilo shadcn/ui.
 - SignalR client para atualizacoes em tempo real.
 - `react-markdown` com `remark-gfm` para renderizacao de respostas do assistente IA.
@@ -117,6 +120,7 @@ O backend segue um fluxo orientado a casos de uso. Controllers chamam MediatR, h
 17. O painel de **Configuracao** do drawer permite escolher o modelo Gemini, ajustar a temperatura e definir o nivel de raciocinio. As configuracoes sao salvas por usuario.
 18. Em cada workspace, o usuario pode ativar o **Contexto de IA** para injetar `README.md`, `CLAUDE.md` e `AGENT.md` nas instrucoes de sistema do Gemini durante o refinamento e o chat.
 19. A qualquer momento, o usuario pode navegar e visualizar os arquivos do diretorio de trabalho pela pagina global `Arquivos` no header ou pela aba `Arquivos` do workspace, com busca por nome e visualizacao somente leitura no Monaco Editor.
+20. Na aba `Terminais` do prompt, o usuario abre uma ou mais sessoes PowerShell no workspace, renomeia e colore abas (preferencias salvas no navegador), alterna entre elas com `Ctrl+`` ou `Ctrl+Alt+←/→` e pode iniciar Claude, Codex ou Grok pelo menu ao lado de `Novo terminal`.
 
 ## Como Executar
 
@@ -285,6 +289,8 @@ npm audit --audit-level=moderate
 - O contexto de IA do workspace e opt-in por diretorio de trabalho e le apenas `README.md`, `CLAUDE.md` e `AGENT.md` da raiz canonica. Arquivos ausentes, vazios, inacessiveis ou grandes demais sao ignorados sem falhar a chamada de IA.
 - Contexto especifico de workspace nao entra no cache global de system instruction do Gemini; quando usado no chat, ele e embutido no cache de sessao e protegido por hash para evitar reutilizar contexto antigo.
 - O nivel de raciocinio padrao e `high`; usuarios podem reduzir para `medium` ou `low` na aba Configuracao do drawer de IA.
+- Nome e cor das abas de terminal sao metadados locais do navegador (`localStorage`), indexados por prompt e sessao; reiniciar a API recria os IDs de sessao e exige reconfigurar as abas.
+- Atalhos de alternancia de terminal usam combinacoes compativeis com o Chrome (`Ctrl+``, `Ctrl+Alt+←/→`); `Ctrl+Tab` e reservado pelo navegador e nao pode ser interceptado pela aplicacao web.
 
 ## Documentacao para Agentes
 

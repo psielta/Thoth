@@ -7,45 +7,40 @@ import {
   writeTerminalTabPreferences,
 } from './terminal-tab-preferences'
 
-function loadPreferences(promptId: string, sessionIds: string[]) {
-  return pruneTerminalTabPreferences(readTerminalTabPreferences(promptId), sessionIds)
-}
-
 export function useTerminalTabPreferences(promptId: string, sessionIds: string[]) {
   const [storedPromptId, setStoredPromptId] = useState(promptId)
   const [preferences, setPreferences] = useState<TerminalTabPreferencesMap>(() =>
-    loadPreferences(promptId, sessionIds),
+    readTerminalTabPreferences(promptId),
   )
 
   if (storedPromptId !== promptId) {
     setStoredPromptId(promptId)
-    setPreferences(loadPreferences(promptId, sessionIds))
+    setPreferences(readTerminalTabPreferences(promptId))
   }
 
-  const visiblePreferences = useMemo(
-    () => pruneTerminalTabPreferences(preferences, sessionIds),
-    [preferences, sessionIds],
-  )
+  const visiblePreferences = useMemo(() => {
+    if (sessionIds.length === 0) {
+      return preferences
+    }
+
+    return pruneTerminalTabPreferences(preferences, sessionIds)
+  }, [preferences, sessionIds])
 
   const setSessionPreference = useCallback(
     (sessionId: string, patch: TerminalTabPreference) => {
       setPreferences((current) => {
-        const merged = {
+        const next = {
           ...current,
           [sessionId]: {
             ...current[sessionId],
             ...patch,
           },
         }
-        const next = pruneTerminalTabPreferences(
-          merged,
-          sessionIds.includes(sessionId) ? sessionIds : [...sessionIds, sessionId],
-        )
         writeTerminalTabPreferences(promptId, next)
         return next
       })
     },
-    [promptId, sessionIds],
+    [promptId],
   )
 
   const removeSessionPreference = useCallback(

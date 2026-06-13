@@ -72,6 +72,7 @@ export function TerminalTabButton({
             </label>
             <input
               id={`terminal-tab-name-${index}`}
+              key={`${index}-${preference?.name ?? 'default'}`}
               ref={nameInputRef}
               type="text"
               defaultValue={preference?.name ?? ''}

@@ -106,14 +106,18 @@ export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
         )}
       </div>
 
-      {sessions.map((session) => (
-        <TerminalView
-          key={session.id}
-          sessionId={session.id}
-          active={session.id === resolvedActiveId}
-          onSessionExit={removeSession}
-        />
-      ))}
+      {sessions.length > 0 ? (
+        <div className="relative h-[min(70vh,640px)] w-full overflow-hidden rounded-md border border-border bg-[#0f1117]">
+          {sessions.map((session) => (
+            <TerminalView
+              key={session.id}
+              sessionId={session.id}
+              active={session.id === resolvedActiveId}
+              onSessionExit={removeSession}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -24,7 +24,7 @@ const AGENT_OPTIONS: Array<{
     id: 'ClaudePlan',
     label: 'Planejar no Claude',
     description: 'Abre Claude Code em modo plan com o prompt atual',
-    command: 'claude --dangerously-skip-permissions --effort max --permission-mode plan',
+    command: 'claude --effort max --permission-mode plan',
     icon: Map,
   },
   {

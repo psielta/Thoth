@@ -65,7 +65,8 @@ public sealed class CreateTerminalSessionHandlerTests
 
         coordinator.LastCreate.Should().NotBeNull();
         var command = System.Text.Encoding.UTF8.GetString(coordinator.LastCreate!.Value.InitialInput!);
-        command.Should().Contain("--permission-mode plan $p\r");
+        command.Should().Contain("claude --effort max --permission-mode plan $p\r");
+        command.Should().NotContain("--dangerously-skip-permissions");
         command.Should().Contain(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(prompt.Content)));
     }
 

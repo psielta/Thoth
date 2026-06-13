@@ -13,6 +13,7 @@ public enum TerminalAgentLaunch
 public static class TerminalAgentLaunchCommands
 {
     private const string ClaudeBaseFlags = "--dangerously-skip-permissions --effort max";
+    private const string ClaudePlanFlags = "--effort max --permission-mode plan";
 
     public static bool TryParse(string? value, out TerminalAgentLaunch agent)
     {
@@ -44,6 +45,6 @@ public static class TerminalAgentLaunchCommands
         var content = promptContent ?? string.Empty;
         var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(content));
         return
-            $"$p = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{base64}')); claude {ClaudeBaseFlags} --permission-mode plan $p\r";
+            $"$p = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{base64}')); claude {ClaudePlanFlags} $p\r";
     }
 }

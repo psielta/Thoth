@@ -39,7 +39,8 @@ public sealed class TerminalAgentLaunchCommandsTests
         input.Should().NotBeNull();
         var command = Encoding.UTF8.GetString(input!);
         command.Should().StartWith("$p = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('");
-        command.Should().Contain("--permission-mode plan $p\r");
+        command.Should().Contain("claude --effort max --permission-mode plan $p\r");
+        command.Should().NotContain("--dangerously-skip-permissions");
 
         var base64 = ExtractBase64Payload(command);
         Encoding.UTF8.GetString(Convert.FromBase64String(base64)).Should().Be(prompt);
@@ -52,7 +53,8 @@ public sealed class TerminalAgentLaunchCommandsTests
 
         input.Should().NotBeNull();
         var command = Encoding.UTF8.GetString(input!);
-        command.Should().Contain("--permission-mode plan $p\r");
+        command.Should().Contain("claude --effort max --permission-mode plan $p\r");
+        command.Should().NotContain("--dangerously-skip-permissions");
         var base64 = ExtractBase64Payload(command);
         Encoding.UTF8.GetString(Convert.FromBase64String(base64)).Should().BeEmpty();
     }

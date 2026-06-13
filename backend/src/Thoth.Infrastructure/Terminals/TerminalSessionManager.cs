@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -26,12 +27,16 @@ public sealed class TerminalSessionManager(
     private readonly ConcurrentDictionary<Guid, HashSet<Guid>> _sessionsByPrompt = new();
     private readonly ConcurrentDictionary<string, HashSet<Guid>> _sessionsByConnection = new(StringComparer.Ordinal);
 
+    private const int ClaudePlanFollowUpDelayMs = 2000;
+    private const int PtySubmitWriteGapMs = 25;
+
     public async Task<TerminalSessionDescriptor> CreateAsync(
         Guid promptId,
         string cwd,
         string shell,
         byte[]? initialInput,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        byte[]? followUpInput = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -105,7 +110,9 @@ public sealed class TerminalSessionManager(
 
         if (initialInput is { Length: > 0 })
         {
-            _ = DeliverInitialInputAsync(session, initialInput);
+            _ = followUpInput is { Length: > 0 }
+                ? DeliverStagedInitialInputAsync(session, initialInput, followUpInput)
+                : DeliverInitialInputAsync(session, initialInput);
         }
 
         logger.LogInformation(
@@ -386,9 +393,7 @@ public sealed class TerminalSessionManager(
                 return;
             }
 
-            session.LastActivityUtc = DateTimeOffset.UtcNow;
-            session.Pty.WriterStream.Write(input, 0, input.Length);
-            session.Pty.WriterStream.Flush();
+            await WritePtyInputAsync(session, input);
         }
         catch (Exception exception)
         {
@@ -397,6 +402,95 @@ public sealed class TerminalSessionManager(
                 "Failed to deliver initial input to terminal session {SessionId}",
                 session.Id);
         }
+    }
+
+    private async Task DeliverStagedInitialInputAsync(
+        TerminalSession session,
+        byte[] launchInput,
+        byte[] followUpInput)
+    {
+        try
+        {
+            await Task.Delay(500);
+            if (!_sessions.ContainsKey(session.Id))
+            {
+                return;
+            }
+
+            await WritePtyInputAsync(session, launchInput);
+            await Task.Delay(ClaudePlanFollowUpDelayMs);
+            if (!_sessions.ContainsKey(session.Id))
+            {
+                return;
+            }
+
+            await WritePtySubmissionAsync(session, followUpInput);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(
+                exception,
+                "Failed to deliver staged initial input to terminal session {SessionId}",
+                session.Id);
+        }
+    }
+
+    private async Task WritePtySubmissionAsync(TerminalSession session, byte[] input)
+    {
+        if (input.Length == 0)
+        {
+            return;
+        }
+
+        var hasTerminator = input[^1] == (byte)'\r';
+        var textBytes = hasTerminator ? input[..^1] : input;
+        if (textBytes.Length == 0)
+        {
+            if (hasTerminator)
+            {
+                await WritePtyInputAsync(session, [(byte)'\r']);
+            }
+
+            return;
+        }
+
+        var text = Encoding.UTF8.GetString(textBytes);
+        if (text[0] is '/' or '#')
+        {
+            await WritePtyInputAsync(session, Encoding.UTF8.GetBytes(text[..1]));
+            await Task.Delay(PtySubmitWriteGapMs);
+            if (text.Length > 1)
+            {
+                await WritePtyInputAsync(session, Encoding.UTF8.GetBytes(text[1..]));
+                await Task.Delay(PtySubmitWriteGapMs);
+            }
+
+            if (hasTerminator)
+            {
+                await WritePtyInputAsync(session, [(byte)'\r']);
+            }
+
+            return;
+        }
+
+        await WritePtyInputAsync(session, textBytes);
+        if (hasTerminator)
+        {
+            await Task.Delay(PtySubmitWriteGapMs);
+            await WritePtyInputAsync(session, [(byte)'\r']);
+        }
+    }
+
+    private async Task WritePtyInputAsync(TerminalSession session, byte[] input)
+    {
+        if (input.Length == 0)
+        {
+            return;
+        }
+
+        session.LastActivityUtc = DateTimeOffset.UtcNow;
+        await session.Pty.WriterStream.WriteAsync(input);
+        await session.Pty.WriterStream.FlushAsync();
     }
 
     private async Task PumpOutputAsync(TerminalSession session)

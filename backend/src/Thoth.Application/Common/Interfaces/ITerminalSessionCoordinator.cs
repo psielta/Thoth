@@ -9,7 +9,8 @@ public interface ITerminalSessionCoordinator
         string cwd,
         string shell,
         byte[]? initialInput,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        byte[]? followUpInput = null);
 
     void WriteInput(Guid sessionId, byte[] input);
 

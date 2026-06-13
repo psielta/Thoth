@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Thoth.Application.Features.Terminals;
 
@@ -10,10 +11,14 @@ public enum TerminalAgentLaunch
     Grok,
 }
 
+public sealed record TerminalStagedInitialInput(byte[] Launch, byte[]? FollowUp = null);
+
 public static class TerminalAgentLaunchCommands
 {
     private const string ClaudeBaseFlags = "--dangerously-skip-permissions --effort max";
     private const string ClaudePlanFlags = "--effort max --permission-mode plan";
+    private const string ClaudePlanSettingsJson =
+        """{"permissions":{"defaultMode":"plan","allow":["Read","Glob","Grep","LS","WebFetch","WebSearch","Task","Skill","Agent(Plan)","NotebookRead","TodoRead","Bash"]}}""";
 
     public static bool TryParse(string? value, out TerminalAgentLaunch agent)
     {
@@ -28,10 +33,20 @@ public static class TerminalAgentLaunchCommands
 
     public static byte[]? ResolveInitialInput(TerminalAgentLaunch? agent, string? promptContent = null)
     {
+        if (agent is null)
+        {
+            return null;
+        }
+
+        if (agent == TerminalAgentLaunch.ClaudePlan)
+        {
+            var staged = ResolveClaudePlanStagedInput(promptContent);
+            return staged?.Launch;
+        }
+
         var command = agent switch
         {
             TerminalAgentLaunch.Claude => $"claude {ClaudeBaseFlags}\r",
-            TerminalAgentLaunch.ClaudePlan => BuildClaudePlanPowerShellCommand(promptContent),
             TerminalAgentLaunch.Codex => "codex --yolo\r",
             TerminalAgentLaunch.Grok => "grok --always-approve\r",
             _ => null,
@@ -40,11 +55,43 @@ public static class TerminalAgentLaunchCommands
         return command is null ? null : Encoding.UTF8.GetBytes(command);
     }
 
-    internal static string BuildClaudePlanPowerShellCommand(string? promptContent)
+    public static byte[]? ResolveFollowUpInput(TerminalAgentLaunch? agent, string? promptContent = null)
     {
-        var content = promptContent ?? string.Empty;
-        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(content));
+        if (agent != TerminalAgentLaunch.ClaudePlan)
+        {
+            return null;
+        }
+
+        return ResolveClaudePlanStagedInput(promptContent)?.FollowUp;
+    }
+
+    public static TerminalStagedInitialInput? ResolveClaudePlanStagedInput(string? promptContent)
+    {
+        return new TerminalStagedInitialInput(
+            Encoding.UTF8.GetBytes(BuildClaudePlanLaunchPowerShellCommand()),
+            Encoding.UTF8.GetBytes(BuildClaudePlanPromptSubmission(promptContent)));
+    }
+
+    internal static string BuildClaudePlanLaunchPowerShellCommand()
+    {
+        var settingsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(ClaudePlanSettingsJson));
         return
-            $"$p = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{base64}')); claude {ClaudePlanFlags} $p\r";
+            $"$s = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{settingsBase64}')); claude {ClaudePlanFlags} --settings $s\r";
+    }
+
+    internal static string BuildClaudePlanPromptSubmission(string? promptContent)
+    {
+        var flattened = FlattenPromptForClaudeCli(promptContent);
+        return string.IsNullOrEmpty(flattened) ? "/plan\r" : $"/plan {flattened}\r";
+    }
+
+    public static string FlattenPromptForClaudeCli(string? promptContent)
+    {
+        if (string.IsNullOrWhiteSpace(promptContent))
+        {
+            return string.Empty;
+        }
+
+        return Regex.Replace(promptContent, "\r\n|\r|\n", " ").Trim();
     }
 }

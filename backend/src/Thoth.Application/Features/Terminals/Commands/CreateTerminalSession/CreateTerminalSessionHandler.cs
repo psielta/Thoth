@@ -30,13 +30,15 @@ public sealed class CreateTerminalSessionHandler(
             ? prompt.Content
             : null;
         var initialInput = TerminalAgentLaunchCommands.ResolveInitialInput(request.AgentLaunch, promptContent);
+        var followUpInput = TerminalAgentLaunchCommands.ResolveFollowUpInput(request.AgentLaunch, promptContent);
 
         return await terminalCoordinator.CreateAsync(
             prompt.Id,
             directory.AbsolutePath,
             request.Shell ?? string.Empty,
             initialInput,
-            cancellationToken);
+            cancellationToken,
+            followUpInput);
     }
 
     private static Domain.WorkingDirectories.WorkingDirectory ResolveWorkspaceDirectory(

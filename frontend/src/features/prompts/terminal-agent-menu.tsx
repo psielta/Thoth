@@ -23,8 +23,8 @@ const AGENT_OPTIONS: Array<{
   {
     id: 'ClaudePlan',
     label: 'Planejar no Claude',
-    description: 'Abre Claude Code em modo plan com o prompt atual',
-    command: 'claude --effort max --permission-mode plan',
+    description: 'Abre Claude Code em modo plan e envia o prompt com /plan',
+    command: 'claude --effort max --permission-mode plan --settings …',
     icon: Map,
   },
   {

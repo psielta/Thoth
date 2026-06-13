@@ -383,7 +383,8 @@ public sealed class UpdatePromptArchivalTests
             string cwd,
             string shell,
             byte[]? initialInput,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            byte[]? followUpInput = null) =>
             throw new NotSupportedException();
 
         public void WriteInput(Guid sessionId, byte[] input)

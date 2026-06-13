@@ -64,10 +64,13 @@ public sealed class CreateTerminalSessionHandlerTests
             CancellationToken.None);
 
         coordinator.LastCreate.Should().NotBeNull();
-        var command = System.Text.Encoding.UTF8.GetString(coordinator.LastCreate!.Value.InitialInput!);
-        command.Should().Contain("claude --effort max --permission-mode plan $p\r");
-        command.Should().NotContain("--dangerously-skip-permissions");
-        command.Should().Contain(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(prompt.Content)));
+        var launch = System.Text.Encoding.UTF8.GetString(coordinator.LastCreate!.Value.InitialInput!);
+        launch.Should().Contain("claude --effort max --permission-mode plan --settings $s\r");
+        launch.Should().NotContain("--dangerously-skip-permissions");
+
+        var followUp = System.Text.Encoding.UTF8.GetString(coordinator.LastCreate.Value.FollowUpInput!);
+        followUp.Should().StartWith("/plan ");
+        followUp.Should().Contain("Planeje @arquivo.md com café");
     }
 
     [Fact]
@@ -183,16 +186,17 @@ public sealed class CreateTerminalSessionHandlerTests
 
     private sealed class RecordingTerminalCoordinator : ITerminalSessionCoordinator
     {
-        public (Guid PromptId, string Cwd, string Shell, byte[]? InitialInput)? LastCreate { get; private set; }
+        public (Guid PromptId, string Cwd, string Shell, byte[]? InitialInput, byte[]? FollowUpInput)? LastCreate { get; private set; }
 
         public Task<TerminalSessionDescriptor> CreateAsync(
             Guid promptId,
             string cwd,
             string shell,
             byte[]? initialInput,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            byte[]? followUpInput = null)
         {
-            LastCreate = (promptId, cwd, shell, initialInput);
+            LastCreate = (promptId, cwd, shell, initialInput, followUpInput);
             return Task.FromResult(new TerminalSessionDescriptor(
                 Guid.CreateVersion7(),
                 promptId,

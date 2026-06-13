@@ -30,40 +30,35 @@ public sealed class TerminalAgentLaunchCommandsTests
     }
 
     [Fact]
-    public void ResolveInitialInput_for_claude_plan_includes_plan_mode_and_prompt()
+    public void ResolveClaudePlanStagedInput_launches_with_settings_and_plan_prefixed_prompt()
     {
         const string prompt = "Planeje a feature\r\ncom \"aspas\" e café ☕";
 
-        var input = TerminalAgentLaunchCommands.ResolveInitialInput(TerminalAgentLaunch.ClaudePlan, prompt);
+        var staged = TerminalAgentLaunchCommands.ResolveClaudePlanStagedInput(prompt);
 
-        input.Should().NotBeNull();
-        var command = Encoding.UTF8.GetString(input!);
-        command.Should().StartWith("$p = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('");
-        command.Should().Contain("claude --effort max --permission-mode plan $p\r");
-        command.Should().NotContain("--dangerously-skip-permissions");
+        staged.Should().NotBeNull();
+        var launch = Encoding.UTF8.GetString(staged!.Launch);
+        launch.Should().Contain("claude --effort max --permission-mode plan --settings $s\r");
+        launch.Should().NotContain("--dangerously-skip-permissions");
+        launch.Should().Contain(Convert.ToBase64String(Encoding.UTF8.GetBytes(
+            """{"permissions":{"defaultMode":"plan","allow":["Read","Glob","Grep","LS","WebFetch","WebSearch","Task","Skill","Agent(Plan)","NotebookRead","TodoRead","Bash"]}}""")));
 
-        var base64 = ExtractBase64Payload(command);
-        Encoding.UTF8.GetString(Convert.FromBase64String(base64)).Should().Be(prompt);
+        var followUp = Encoding.UTF8.GetString(staged.FollowUp!);
+        followUp.Should().Be("/plan Planeje a feature com \"aspas\" e café ☕\r");
     }
 
     [Fact]
-    public void ResolveInitialInput_for_claude_plan_handles_empty_prompt()
+    public void ResolveFollowUpInput_for_claude_plan_handles_empty_prompt()
     {
-        var input = TerminalAgentLaunchCommands.ResolveInitialInput(TerminalAgentLaunch.ClaudePlan, string.Empty);
+        var followUp = TerminalAgentLaunchCommands.ResolveFollowUpInput(TerminalAgentLaunch.ClaudePlan, string.Empty);
 
-        input.Should().NotBeNull();
-        var command = Encoding.UTF8.GetString(input!);
-        command.Should().Contain("claude --effort max --permission-mode plan $p\r");
-        command.Should().NotContain("--dangerously-skip-permissions");
-        var base64 = ExtractBase64Payload(command);
-        Encoding.UTF8.GetString(Convert.FromBase64String(base64)).Should().BeEmpty();
+        followUp.Should().NotBeNull();
+        Encoding.UTF8.GetString(followUp!).Should().Be("/plan\r");
     }
 
-    private static string ExtractBase64Payload(string command)
+    [Fact]
+    public void FlattenPromptForClaudeCli_collapses_newlines_to_spaces()
     {
-        const string prefix = "[Convert]::FromBase64String('";
-        var start = command.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length;
-        var end = command.IndexOf("')", start, StringComparison.Ordinal);
-        return command[start..end];
+        TerminalAgentLaunchCommands.FlattenPromptForClaudeCli("linha1\nlinha2").Should().Be("linha1 linha2");
     }
 }

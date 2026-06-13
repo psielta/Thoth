@@ -30,7 +30,7 @@ public sealed class TerminalAgentLaunchCommandsTests
     }
 
     [Fact]
-    public void ResolveClaudePlanStagedInput_launches_with_settings_and_plan_prefixed_prompt()
+    public void ResolveClaudePlanStagedInput_launches_with_settings_and_plain_prompt()
     {
         const string prompt = "Planeje a feature\r\ncom \"aspas\" e café ☕";
 
@@ -46,16 +46,15 @@ public sealed class TerminalAgentLaunchCommandsTests
             """{"permissions":{"defaultMode":"plan","allow":["Read","Glob","Grep","LS","WebFetch","WebSearch","Task","Skill","Agent(Plan)","NotebookRead","TodoRead","Bash"]}}""")));
 
         var followUp = Encoding.UTF8.GetString(staged.FollowUp!);
-        followUp.Should().Be("/plan Planeje a feature com \"aspas\" e café ☕\r");
+        followUp.Should().Be("Planeje a feature com \"aspas\" e café ☕\r");
+        followUp.Should().NotStartWith("/plan");
     }
 
     [Fact]
-    public void ResolveFollowUpInput_for_claude_plan_handles_empty_prompt()
+    public void ResolveFollowUpInput_for_claude_plan_skips_empty_prompt()
     {
-        var followUp = TerminalAgentLaunchCommands.ResolveFollowUpInput(TerminalAgentLaunch.ClaudePlan, string.Empty);
-
-        followUp.Should().NotBeNull();
-        Encoding.UTF8.GetString(followUp!).Should().Be("/plan\r");
+        TerminalAgentLaunchCommands.ResolveFollowUpInput(TerminalAgentLaunch.ClaudePlan, string.Empty)
+            .Should().BeNull();
     }
 
     [Fact]

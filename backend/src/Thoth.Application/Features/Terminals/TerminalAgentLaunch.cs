@@ -67,9 +67,10 @@ public static class TerminalAgentLaunchCommands
 
     public static TerminalStagedInitialInput? ResolveClaudePlanStagedInput(string? promptContent)
     {
+        var followUp = BuildClaudePlanPromptSubmission(promptContent);
         return new TerminalStagedInitialInput(
             Encoding.UTF8.GetBytes(BuildClaudePlanLaunchPowerShellCommand()),
-            Encoding.UTF8.GetBytes(BuildClaudePlanPromptSubmission(promptContent)));
+            followUp is null ? null : Encoding.UTF8.GetBytes(followUp));
     }
 
     internal static string BuildClaudePlanLaunchPowerShellCommand()
@@ -82,10 +83,10 @@ public static class TerminalAgentLaunchCommands
             $"claude {ClaudePlanFlags} --settings $p\r";
     }
 
-    internal static string BuildClaudePlanPromptSubmission(string? promptContent)
+    internal static string? BuildClaudePlanPromptSubmission(string? promptContent)
     {
         var flattened = FlattenPromptForClaudeCli(promptContent);
-        return string.IsNullOrEmpty(flattened) ? "/plan\r" : $"/plan {flattened}\r";
+        return string.IsNullOrEmpty(flattened) ? null : $"{flattened}\r";
     }
 
     public static string FlattenPromptForClaudeCli(string? promptContent)

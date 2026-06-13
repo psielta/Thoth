@@ -69,7 +69,7 @@ public sealed class CreateTerminalSessionHandlerTests
         launch.Should().NotContain("--dangerously-skip-permissions");
 
         var followUp = System.Text.Encoding.UTF8.GetString(coordinator.LastCreate.Value.FollowUpInput!);
-        followUp.Should().StartWith("/plan ");
+        followUp.Should().NotStartWith("/plan");
         followUp.Should().Contain("Planeje @arquivo.md com café");
     }
 

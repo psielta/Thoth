@@ -42,7 +42,26 @@ function Stop-ServiceByName {
     }
 }
 
+function Stop-ProcessByName {
+    param([string]$Name)
+
+    $processes = Get-Process -Name $Name -ErrorAction SilentlyContinue
+    if (-not $processes) {
+        Write-SetupLog "Processo $Name nao encontrado."
+        return
+    }
+
+    foreach ($process in $processes) {
+        Write-SetupLog "Encerrando processo $Name (PID $($process.Id))."
+        Stop-Process -Id $process.Id -Force
+    }
+}
+
 Write-SetupLog "Inicio da preparacao do setup do Thoth."
+# Versoes antigas rodavam como servico LocalSystem; versoes novas rodam como processos
+# do usuario (Thoth.Desktop inicia Thoth.Api). Encerra ambos para liberar os arquivos.
 Stop-ServiceByName -Name "PromptTasks"
+Stop-ProcessByName -Name "Thoth.Desktop"
+Stop-ProcessByName -Name "Thoth.Api"
 Write-SetupLog "Preparacao do setup do Thoth concluida."
 exit 0

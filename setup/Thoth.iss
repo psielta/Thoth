@@ -343,7 +343,7 @@ begin
 
   Content :=
     '{' + #13#10 +
-    '  "Urls": "http://0.0.0.0:8091",' + #13#10 +
+    '  "Urls": "http://127.0.0.1:8091",' + #13#10 +
     '  "ConnectionStrings": {' + #13#10 +
     '    "DefaultConnection": "' + JsonEscape(BuildConnectionString()) + '"' + #13#10 +
     '  },' + #13#10 +
@@ -391,29 +391,31 @@ begin
   Result := Command;
 end;
 
-function ServiceBinPath(): String;
-begin
-  Result := '\"' + ExpandConstant('{app}\PromptTasks\Thoth.Api.exe') + '\" --environment Production';
-end;
-
-procedure ConfigureServiceAndFirewall();
+procedure RemoveLegacyServiceAndFirewall();
 var
   Sc: String;
   Netsh: String;
 begin
+  // A API agora roda como o usuario (iniciada pelo Thoth.Desktop), nao mais como
+  // servico LocalSystem. Remove o servico/regra de firewall de versoes antigas.
   Sc := ExpandConstant('{sys}\sc.exe');
   Netsh := ExpandConstant('{sys}\netsh.exe');
 
   ExecCommand(Sc, ScParameters('stop PromptTasks'), False);
-  ExecCommand(Sc, ScParameters('create PromptTasks binPath= "' + ServiceBinPath() + '" start= auto DisplayName= "Thoth"'), False);
-  ExecCommand(Sc, ScParameters('config PromptTasks binPath= "' + ServiceBinPath() + '" start= auto DisplayName= "Thoth"'), True);
-  ExecCommand(Sc, ScParameters('description PromptTasks "Thoth production service."'), True);
-  ExecCommand(Sc, ScParameters('failure PromptTasks reset= 60 actions= restart/5000/restart/10000/restart/30000'), True);
-
+  ExecCommand(Sc, ScParameters('delete PromptTasks'), False);
   ExecCommand(Netsh, 'advfirewall firewall delete rule name="Prompt Tasks (8091)"', False);
-  ExecCommand(Netsh, 'advfirewall firewall add rule name="Prompt Tasks (8091)" dir=in action=allow protocol=TCP localport=8091', True);
+end;
 
-  ExecCommand(Sc, ScParameters('start PromptTasks'), True);
+procedure GrantLogFolderAccess();
+var
+  Icacls: String;
+  LogRoot: String;
+begin
+  // A API roda como o usuario (nao LocalSystem); garante que ela consiga gravar os logs
+  // em %ProgramData%\PromptTasks. *S-1-5-32-545 = grupo Usuarios; M = modify; (OI)(CI) = herda.
+  Icacls := ExpandConstant('{sys}\icacls.exe');
+  LogRoot := ExpandConstant('{commonappdata}\PromptTasks');
+  ExecCommand(Icacls, '"' + LogRoot + '" /grant *S-1-5-32-545:(OI)(CI)M /T', False);
 end;
 
 procedure LoadExistingConfigDefaults();
@@ -593,6 +595,7 @@ begin
   if CurStep = ssPostInstall then
   begin
     WriteProductionConfig();
-    ConfigureServiceAndFirewall();
+    RemoveLegacyServiceAndFirewall();
+    GrantLogFolderAccess();
   end;
 end;

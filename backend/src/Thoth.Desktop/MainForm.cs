@@ -36,7 +36,6 @@ internal sealed class MainForm : Form
 
         webView = new WebView2
         {
-            AllowExternalDrop = false,
             Dock = DockStyle.Fill,
             Visible = false
         };

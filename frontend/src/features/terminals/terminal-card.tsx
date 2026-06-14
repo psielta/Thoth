@@ -18,6 +18,8 @@ type TerminalCardProps = {
   session: TerminalSession
   index: number
   workspaceId: string
+  /** Prompt usado no link "Abrir no prompt"; sempre o prompt do grupo (o pai). */
+  linkPromptId: string
   preference?: TerminalTabPreference
   isExpanded: boolean
   fontSize: number
@@ -32,6 +34,7 @@ export function TerminalCard({
   session,
   index,
   workspaceId,
+  linkPromptId,
   preference,
   isExpanded,
   fontSize,
@@ -44,6 +47,7 @@ export function TerminalCard({
   const label = resolveTerminalTabLabel(preference, index)
   const accentColor = preference?.color ?? null
   const shellName = session.shell.split(/[\\/]/).pop() ?? session.shell
+  const childTitle = session.ownerPromptTitle ?? null
 
   return (
     <div
@@ -59,6 +63,16 @@ export function TerminalCard({
           {shellName}
         </Badge>
       </div>
+
+      {session.isChild ? (
+        <Badge
+          variant="blue"
+          className="w-fit max-w-full"
+          title={childTitle ? `Filho: ${childTitle}` : 'Terminal de prompt filho'}
+        >
+          <span className="truncate">{childTitle ? `Filho: ${childTitle}` : 'Filho'}</span>
+        </Badge>
+      ) : null}
 
       <div className="grid gap-1 text-xs text-muted-foreground">
         <span className="truncate font-mono" title={session.cwd}>
@@ -80,7 +94,7 @@ export function TerminalCard({
         </Button>
         <Link
           to="/workspaces/$workspaceId/prompts/$promptId"
-          params={{ workspaceId, promptId: session.promptId }}
+          params={{ workspaceId, promptId: linkPromptId }}
           search={{ tab: 'terminals' }}
         >
           <Button type="button" size="sm" variant="ghost">

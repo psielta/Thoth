@@ -68,6 +68,9 @@ export function TerminalsPage() {
 
   const addSessionToCache = useCallback(
     (session: TerminalSession) => {
+      // A criacao a partir do grupo sempre usa group.promptId (o pai), entao a nova sessao casa
+      // pelo promptId e entra como propria. Sessoes de filho nunca chegam por aqui; ainda assim, o
+      // invalidateQueries(all()) em handleSessionCreated reconcilia qualquer caso de borda.
       queryClient.setQueryData<TerminalGroup[]>(queryKeys.terminals.all(), (current) =>
         (current ?? []).map((group) =>
           group.promptId === session.promptId

@@ -6,7 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TerminalsPage } from './terminals-page'
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children }: { children?: ReactNode }) => <a>{children}</a>,
+  Link: ({ children, params }: { children?: ReactNode; params?: { promptId?: string } }) => (
+    <a data-prompt-id={params?.promptId}>{children}</a>
+  ),
 }))
 
 vi.mock('@/features/prompts/terminal-view', () => ({
@@ -42,6 +44,23 @@ const sampleGroup = {
       shell: 'pwsh.exe',
       cwd: 'D:/repo',
       createdAtUtc: '2026-06-13T12:00:00Z',
+    },
+  ],
+}
+
+const childPromptId = '44444444-4444-4444-8444-444444444444'
+const groupWithChild = {
+  ...sampleGroup,
+  terminals: [
+    sampleGroup.terminals[0],
+    {
+      id: '55555555-5555-4555-8555-555555555555',
+      promptId: childPromptId,
+      shell: 'pwsh.exe',
+      cwd: 'D:/repo',
+      createdAtUtc: '2026-06-13T13:00:00Z',
+      isChild: true,
+      ownerPromptTitle: 'Revisar PR #42',
     },
   ],
 }
@@ -87,6 +106,23 @@ describe('TerminalsPage', () => {
     expect(await screen.findByText('Refatorar auth')).toBeInTheDocument()
     expect(screen.getByText('Terminal 1')).toBeInTheDocument()
     expect(screen.getByText(/1 terminal em 1 prompt/i)).toBeInTheDocument()
+  })
+
+  it('nests child-prompt terminals under the parent group with a Filho label', async () => {
+    getTerminalCapabilities.mockResolvedValue({ enabled: true })
+    listAllTerminals.mockResolvedValue([groupWithChild])
+    const { container } = renderPage()
+
+    expect(await screen.findByText('Refatorar auth')).toBeInTheDocument()
+    expect(screen.getByText('Filho: Revisar PR #42')).toBeInTheDocument()
+    // A contagem soma terminais proprios + de filhos no mesmo grupo (pai).
+    expect(screen.getByText(/2 terminais em 1 prompt/i)).toBeInTheDocument()
+
+    // "Abrir no prompt" sempre aponta para o pai; nunca para a rota do filho.
+    const links = Array.from(container.querySelectorAll('a[data-prompt-id]'))
+    expect(links.length).toBeGreaterThan(0)
+    expect(links.every((link) => link.getAttribute('data-prompt-id') === groupWithChild.promptId)).toBe(true)
+    expect(links.some((link) => link.getAttribute('data-prompt-id') === childPromptId)).toBe(false)
   })
 
   it('closes a terminal from a card', async () => {

@@ -40,6 +40,14 @@ export function CreateAgentTerminalDialog({ prompt, onCancel, onCreated }: Creat
         queryKeys.terminals.forPrompt(prompt.id),
         (current: TerminalSession[] | undefined) => [...(current ?? []), session],
       )
+      // O terminal pertence ao filho, mas tambem aparece no painel/grupo do pai. Atualiza essas
+      // visoes: o painel "Terminais" do pai e a lista global em /terminais.
+      if (prompt.parentPromptId) {
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.terminals.forPrompt(prompt.parentPromptId),
+        })
+      }
+      void queryClient.invalidateQueries({ queryKey: queryKeys.terminals.all() })
       onCreated(prompt.id, session)
     },
     onError: (error) => toast.error(getErrorMessage(error)),

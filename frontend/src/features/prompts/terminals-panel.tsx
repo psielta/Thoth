@@ -167,6 +167,8 @@ export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
                 isActive={isActive}
                 preference={preferences[session.id]}
                 closeDisabled={closeMutation.isPending}
+                isChild={session.isChild}
+                childTitle={session.ownerPromptTitle}
                 onActivate={() => setActiveSessionId(session.id)}
                 onClose={() => closeMutation.mutate(session.id)}
                 onPreferenceChange={(patch) => setSessionPreference(session.id, patch)}

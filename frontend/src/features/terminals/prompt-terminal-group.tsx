@@ -113,12 +113,16 @@ export function PromptTerminalGroup({
               session={session}
               index={index}
               workspaceId={group.workingDirectoryId}
+              // "Abrir no prompt" sempre aponta para o prompt do grupo (o pai): clicar em filho nao
+              // deve navegar para a rota de edicao do filho.
+              linkPromptId={group.promptId}
               preference={preferences[session.id]}
               isExpanded={expandedSessionId === session.id}
               fontSize={fontSize}
               closeDisabled={closeDisabled}
               onToggleExpand={() => onToggleExpand(session.id)}
-              onClose={() => onCloseSession(session.id, group.promptId)}
+              // Invalida o cache do dono real do terminal (o filho, quando isChild).
+              onClose={() => onCloseSession(session.id, session.promptId)}
               onSessionExit={onSessionExit}
               onAdjustFontSize={onAdjustFontSize}
             />

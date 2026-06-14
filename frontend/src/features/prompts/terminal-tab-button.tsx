@@ -1,5 +1,6 @@
 import { Settings2, Terminal as TerminalIcon, X } from 'lucide-react'
 import { useRef } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Popover } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
@@ -16,6 +17,10 @@ type TerminalTabButtonProps = {
   isActive: boolean
   preference?: TerminalTabPreference
   closeDisabled?: boolean
+  /** Verdadeiro quando a aba representa um terminal de um prompt filho. */
+  isChild?: boolean
+  /** Titulo do prompt filho dono do terminal, exibido na aba quando isChild. */
+  childTitle?: string | null
   onActivate: () => void
   onClose: () => void
   onPreferenceChange: (patch: TerminalTabPreference) => void
@@ -26,6 +31,8 @@ export function TerminalTabButton({
   isActive,
   preference,
   closeDisabled,
+  isChild = false,
+  childTitle,
   onActivate,
   onClose,
   onPreferenceChange,
@@ -33,6 +40,9 @@ export function TerminalTabButton({
   const nameInputRef = useRef<HTMLInputElement>(null)
   const label = resolveTerminalTabLabel(preference, index)
   const accentColor = preference?.color ?? null
+  // Para abas de filho sem nome custom, mostra o titulo do filho em vez de "Terminal N".
+  const hasCustomName = Boolean(preference?.name?.trim())
+  const displayLabel = isChild && !hasCustomName && childTitle ? childTitle : label
 
   const saveName = () => {
     const sanitized = sanitizeTerminalTabName(nameInputRef.current?.value ?? '')
@@ -54,14 +64,22 @@ export function TerminalTabButton({
             : undefined
         }
         onClick={onActivate}
-        title={label}
+        title={isChild && childTitle ? childTitle : label}
       >
         <TerminalIcon className="h-4 w-4 shrink-0" />
-        <span className="max-w-[9rem] truncate">{label}</span>
+        {isChild ? (
+          <Badge
+            variant="blue"
+            className="shrink-0 px-1 py-0 text-[0.625rem] font-semibold uppercase leading-tight"
+          >
+            Filho
+          </Badge>
+        ) : null}
+        <span className="max-w-[9rem] truncate">{displayLabel}</span>
       </Button>
 
       <Popover
-        ariaLabel={`Configurar aba ${label}`}
+        ariaLabel={`Configurar aba ${displayLabel}`}
         triggerClassName="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         trigger={<Settings2 className="h-3.5 w-3.5" />}
       >
@@ -120,7 +138,7 @@ export function TerminalTabButton({
         type="button"
         size="icon"
         variant="ghost"
-        aria-label={`Fechar ${label}`}
+        aria-label={`Fechar ${displayLabel}`}
         onClick={onClose}
         disabled={closeDisabled}
       >

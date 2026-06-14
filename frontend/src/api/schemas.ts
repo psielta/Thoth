@@ -582,6 +582,10 @@ export const terminalSessionSchema = z.object({
   shell: z.string(),
   cwd: z.string(),
   createdAtUtc: z.string(),
+  // Verdadeiro quando o terminal pertence a um prompt filho do prompt/grupo exibido.
+  isChild: z.boolean().optional().default(false),
+  // Titulo do prompt filho dono do terminal (para o badge "Filho").
+  ownerPromptTitle: z.string().nullable().optional(),
 })
 export type TerminalSession = z.infer<typeof terminalSessionSchema>
 

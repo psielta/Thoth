@@ -18,7 +18,6 @@ import { Route as WorkspacesIndexRouteImport } from './routes/workspaces/index'
 import { Route as WorkspacesWorkspaceIdRouteImport } from './routes/workspaces/$workspaceId'
 import { Route as WorkspacesWorkspaceIdIndexRouteImport } from './routes/workspaces/$workspaceId/index'
 import { Route as WorkspacesWorkspaceIdFutureTasksRouteImport } from './routes/workspaces/$workspaceId/future-tasks'
-import { Route as WorkspacesWorkspaceIdFilesRouteImport } from './routes/workspaces/$workspaceId/files'
 import { Route as WorkspacesWorkspaceIdDiagramsRouteImport } from './routes/workspaces/$workspaceId/diagrams'
 import { Route as WorkspacesWorkspaceIdTasksTaskNumberRouteImport } from './routes/workspaces/$workspaceId/tasks/$taskNumber'
 import { Route as WorkspacesWorkspaceIdPromptsNewRouteImport } from './routes/workspaces/$workspaceId/prompts/new'
@@ -71,12 +70,6 @@ const WorkspacesWorkspaceIdFutureTasksRoute =
     path: '/future-tasks',
     getParentRoute: () => WorkspacesWorkspaceIdRoute,
   } as any)
-const WorkspacesWorkspaceIdFilesRoute =
-  WorkspacesWorkspaceIdFilesRouteImport.update({
-    id: '/files',
-    path: '/files',
-    getParentRoute: () => WorkspacesWorkspaceIdRoute,
-  } as any)
 const WorkspacesWorkspaceIdDiagramsRoute =
   WorkspacesWorkspaceIdDiagramsRouteImport.update({
     id: '/diagrams',
@@ -111,7 +104,6 @@ export interface FileRoutesByFullPath {
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/workspaces/': typeof WorkspacesIndexRoute
   '/workspaces/$workspaceId/diagrams': typeof WorkspacesWorkspaceIdDiagramsRoute
-  '/workspaces/$workspaceId/files': typeof WorkspacesWorkspaceIdFilesRoute
   '/workspaces/$workspaceId/future-tasks': typeof WorkspacesWorkspaceIdFutureTasksRoute
   '/workspaces/$workspaceId/': typeof WorkspacesWorkspaceIdIndexRoute
   '/workspaces/$workspaceId/prompts/$promptId': typeof WorkspacesWorkspaceIdPromptsPromptIdRoute
@@ -126,7 +118,6 @@ export interface FileRoutesByTo {
   '/terminais': typeof TerminaisRoute
   '/workspaces': typeof WorkspacesIndexRoute
   '/workspaces/$workspaceId/diagrams': typeof WorkspacesWorkspaceIdDiagramsRoute
-  '/workspaces/$workspaceId/files': typeof WorkspacesWorkspaceIdFilesRoute
   '/workspaces/$workspaceId/future-tasks': typeof WorkspacesWorkspaceIdFutureTasksRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdIndexRoute
   '/workspaces/$workspaceId/prompts/$promptId': typeof WorkspacesWorkspaceIdPromptsPromptIdRoute
@@ -143,7 +134,6 @@ export interface FileRoutesById {
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/workspaces/': typeof WorkspacesIndexRoute
   '/workspaces/$workspaceId/diagrams': typeof WorkspacesWorkspaceIdDiagramsRoute
-  '/workspaces/$workspaceId/files': typeof WorkspacesWorkspaceIdFilesRoute
   '/workspaces/$workspaceId/future-tasks': typeof WorkspacesWorkspaceIdFutureTasksRoute
   '/workspaces/$workspaceId/': typeof WorkspacesWorkspaceIdIndexRoute
   '/workspaces/$workspaceId/prompts/$promptId': typeof WorkspacesWorkspaceIdPromptsPromptIdRoute
@@ -161,7 +151,6 @@ export interface FileRouteTypes {
     | '/workspaces/$workspaceId'
     | '/workspaces/'
     | '/workspaces/$workspaceId/diagrams'
-    | '/workspaces/$workspaceId/files'
     | '/workspaces/$workspaceId/future-tasks'
     | '/workspaces/$workspaceId/'
     | '/workspaces/$workspaceId/prompts/$promptId'
@@ -176,7 +165,6 @@ export interface FileRouteTypes {
     | '/terminais'
     | '/workspaces'
     | '/workspaces/$workspaceId/diagrams'
-    | '/workspaces/$workspaceId/files'
     | '/workspaces/$workspaceId/future-tasks'
     | '/workspaces/$workspaceId'
     | '/workspaces/$workspaceId/prompts/$promptId'
@@ -192,7 +180,6 @@ export interface FileRouteTypes {
     | '/workspaces/$workspaceId'
     | '/workspaces/'
     | '/workspaces/$workspaceId/diagrams'
-    | '/workspaces/$workspaceId/files'
     | '/workspaces/$workspaceId/future-tasks'
     | '/workspaces/$workspaceId/'
     | '/workspaces/$workspaceId/prompts/$promptId'
@@ -275,13 +262,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspacesWorkspaceIdFutureTasksRouteImport
       parentRoute: typeof WorkspacesWorkspaceIdRoute
     }
-    '/workspaces/$workspaceId/files': {
-      id: '/workspaces/$workspaceId/files'
-      path: '/files'
-      fullPath: '/workspaces/$workspaceId/files'
-      preLoaderRoute: typeof WorkspacesWorkspaceIdFilesRouteImport
-      parentRoute: typeof WorkspacesWorkspaceIdRoute
-    }
     '/workspaces/$workspaceId/diagrams': {
       id: '/workspaces/$workspaceId/diagrams'
       path: '/diagrams'
@@ -315,7 +295,6 @@ declare module '@tanstack/react-router' {
 
 interface WorkspacesWorkspaceIdRouteChildren {
   WorkspacesWorkspaceIdDiagramsRoute: typeof WorkspacesWorkspaceIdDiagramsRoute
-  WorkspacesWorkspaceIdFilesRoute: typeof WorkspacesWorkspaceIdFilesRoute
   WorkspacesWorkspaceIdFutureTasksRoute: typeof WorkspacesWorkspaceIdFutureTasksRoute
   WorkspacesWorkspaceIdIndexRoute: typeof WorkspacesWorkspaceIdIndexRoute
   WorkspacesWorkspaceIdPromptsPromptIdRoute: typeof WorkspacesWorkspaceIdPromptsPromptIdRoute
@@ -325,7 +304,6 @@ interface WorkspacesWorkspaceIdRouteChildren {
 
 const WorkspacesWorkspaceIdRouteChildren: WorkspacesWorkspaceIdRouteChildren = {
   WorkspacesWorkspaceIdDiagramsRoute: WorkspacesWorkspaceIdDiagramsRoute,
-  WorkspacesWorkspaceIdFilesRoute: WorkspacesWorkspaceIdFilesRoute,
   WorkspacesWorkspaceIdFutureTasksRoute: WorkspacesWorkspaceIdFutureTasksRoute,
   WorkspacesWorkspaceIdIndexRoute: WorkspacesWorkspaceIdIndexRoute,
   WorkspacesWorkspaceIdPromptsPromptIdRoute:

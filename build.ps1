@@ -14,6 +14,7 @@ $stageDir = Join-Path $repoRoot "build\publish"
 # {app}\PromptTasks do instalador, preservado para upgrades de instalacoes existentes.
 $publishDir = Join-Path $stageDir "PromptTasks"
 $distDir = Join-Path $repoRoot "dist"
+$webView2BootstrapperUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
 
 function Assert-InRepoPath {
     param(
@@ -228,6 +229,32 @@ function Publish-Backend {
     Invoke-Checked -Executable "dotnet" -ArgumentList $publishArgs -FailureMessage "Falha no dotnet publish do backend"
 }
 
+function Publish-Desktop {
+    param(
+        [string]$ResolvedVersion,
+        [string]$Revision
+    )
+
+    $csproj = Join-Path $repoRoot "backend\src\Thoth.Desktop\Thoth.Desktop.csproj"
+    if (-not (Test-Path -LiteralPath $csproj)) {
+        throw "Csproj nao encontrado: $csproj"
+    }
+
+    $publishArgs = @(
+        "publish",
+        $csproj,
+        "-c", "Release",
+        "-r", "win-x64",
+        "--self-contained",
+        "-o", $publishDir,
+        "-p:Version=$ResolvedVersion",
+        "-p:InformationalVersion=$ResolvedVersion+$Revision",
+        "-p:SourceRevisionId=$Revision"
+    )
+
+    Invoke-Checked -Executable "dotnet" -ArgumentList $publishArgs -FailureMessage "Falha no dotnet publish do desktop"
+}
+
 function Copy-FrontendToPublish {
     $frontendDist = Join-Path $repoRoot "frontend\dist"
     $wwwroot = Join-Path $publishDir "wwwroot"
@@ -238,6 +265,20 @@ function Copy-FrontendToPublish {
 
     New-Item -ItemType Directory -Force -Path $wwwroot | Out-Null
     Copy-Item -Path (Join-Path $frontendDist "*") -Destination $wwwroot -Recurse -Force
+}
+
+function Download-WebView2Bootstrapper {
+    $bootstrapperPath = Join-Path $stageDir "MicrosoftEdgeWebview2Setup.exe"
+
+    Invoke-WebRequest -Uri $webView2BootstrapperUrl -OutFile $bootstrapperPath
+    if (-not (Test-Path -LiteralPath $bootstrapperPath)) {
+        throw "Bootstrapper do WebView2 nao encontrado: $bootstrapperPath"
+    }
+
+    $length = (Get-Item -LiteralPath $bootstrapperPath).Length
+    if ($length -le 0) {
+        throw "Bootstrapper do WebView2 foi baixado vazio: $bootstrapperPath"
+    }
 }
 
 function Compile-Iss {
@@ -275,7 +316,10 @@ if (-not $SkipPublish) {
     Publish-Frontend
     Publish-Backend -ResolvedVersion $resolvedVersion -Revision $sourceRevision
     Copy-FrontendToPublish
+    Publish-Desktop -ResolvedVersion $resolvedVersion -Revision $sourceRevision
 }
+
+Download-WebView2Bootstrapper
 
 $iscc = Find-Iscc
 Write-Host "Inno Setup: $iscc" -ForegroundColor DarkGray

@@ -42,23 +42,32 @@ Compression=lzma2/ultra
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayName=Thoth
-UninstallDisplayIcon={app}\PromptTasks\Thoth.Api.exe
+UninstallDisplayIcon={app}\PromptTasks\Thoth.Desktop.exe
 CloseApplications=no
 RestartApplications=no
 
 [Languages]
 Name: "brazilian"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
+[Tasks]
+Name: "desktopicon"; Description: "Criar atalho na area de trabalho"; GroupDescription: "Atalhos:"; Flags: unchecked
+
 [Files]
 Source: "{#MyStageDir}\PromptTasks\*"; DestDir: "{app}\PromptTasks"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "{#MyStageDir}\MicrosoftEdgeWebview2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "scripts\Stop-PromptTasksService.ps1"; Flags: dontcopy
+
+[Icons]
+Name: "{group}\Thoth"; Filename: "{app}\PromptTasks\Thoth.Desktop.exe"; WorkingDir: "{app}\PromptTasks"
+Name: "{commondesktop}\Thoth"; Filename: "{app}\PromptTasks\Thoth.Desktop.exe"; WorkingDir: "{app}\PromptTasks"; Tasks: desktopicon
 
 [InstallDelete]
 ; Remove binarios da era PromptTasks.* em upgrades; o publish atual gera apenas Thoth.*.
 Type: files; Name: "{app}\PromptTasks\PromptTasks.*"
 
 [Run]
-Filename: "http://localhost:8091"; Description: "Abrir Thoth"; Flags: postinstall nowait skipifsilent shellexec
+Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Instalando Microsoft Edge WebView2 Runtime..."; Flags: runhidden waituntilterminated; Check: ShouldInstallWebView2Runtime
+Filename: "{app}\PromptTasks\Thoth.Desktop.exe"; Description: "Abrir Thoth"; Flags: postinstall nowait skipifsilent
 
 [UninstallRun]
 Filename: "{sys}\sc.exe"; Parameters: "stop PromptTasks"; Flags: runhidden; RunOnceId: "StopPromptTasks"
@@ -251,6 +260,32 @@ begin
     Result := 'true'
   else
     Result := 'false';
+end;
+
+function HasWebView2RuntimeRegistryValue(RootKey: Integer; SubkeyName: String): Boolean;
+var
+  Version: String;
+begin
+  Result :=
+    RegQueryStringValue(RootKey, SubkeyName, 'pv', Version) and
+    (Trim(Version) <> '') and
+    (CompareText(Trim(Version), '0.0.0.0') <> 0);
+end;
+
+function IsWebView2RuntimeInstalled(): Boolean;
+begin
+  Result :=
+    HasWebView2RuntimeRegistryValue(HKLM32, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}') or
+    HasWebView2RuntimeRegistryValue(HKLM64, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}') or
+    HasWebView2RuntimeRegistryValue(HKCU, 'Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}') or
+    HasWebView2RuntimeRegistryValue(HKLM32, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F1A94E9A-A1C7-4B7B-9BEA-68C752C3C2B1}') or
+    HasWebView2RuntimeRegistryValue(HKLM64, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F1A94E9A-A1C7-4B7B-9BEA-68C752C3C2B1}') or
+    HasWebView2RuntimeRegistryValue(HKCU, 'Software\Microsoft\EdgeUpdate\Clients\{F1A94E9A-A1C7-4B7B-9BEA-68C752C3C2B1}');
+end;
+
+function ShouldInstallWebView2Runtime(): Boolean;
+begin
+  Result := not IsWebView2RuntimeInstalled();
 end;
 
 function DefaultProfilePath(RelativePath: String): String;

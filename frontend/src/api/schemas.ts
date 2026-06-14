@@ -605,6 +605,15 @@ export const terminalCapabilitiesSchema = z.object({
 })
 export type TerminalCapabilities = z.infer<typeof terminalCapabilitiesSchema>
 
+export const terminalOutputHistorySchema = z.object({
+  sessionId: z.string().uuid(),
+  startOffset: z.number(),
+  endOffset: z.number(),
+  dataBase64: z.string(),
+  isTruncated: z.boolean(),
+})
+export type TerminalOutputHistory = z.infer<typeof terminalOutputHistorySchema>
+
 export const terminalGroupSchema = z.object({
   promptId: z.string().uuid(),
   promptTitle: z.string(),

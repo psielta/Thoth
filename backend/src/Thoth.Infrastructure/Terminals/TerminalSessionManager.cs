@@ -319,6 +319,31 @@ public sealed class TerminalSessionManager(
     public TerminalSessionDescriptor? TryGetSession(Guid sessionId) =>
         _sessions.TryGetValue(sessionId, out var session) ? ToDescriptor(session) : null;
 
+    public TerminalOutputHistoryDto? GetOutputHistory(Guid sessionId)
+    {
+        if (!_sessions.TryGetValue(sessionId, out var session))
+        {
+            return null;
+        }
+
+        byte[] data;
+        long startOffset;
+        long endOffset;
+        lock (session.Gate)
+        {
+            data = session.OutputHistory.ToArray();
+            startOffset = session.OutputHistoryStartOffset;
+            endOffset = session.OutputBytesWritten;
+        }
+
+        return new TerminalOutputHistoryDto(
+            session.Id,
+            startOffset,
+            endOffset,
+            Convert.ToBase64String(data),
+            startOffset > 0);
+    }
+
     public Task KillForPromptAsync(Guid promptId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -389,6 +414,7 @@ public sealed class TerminalSessionManager(
                 var notifier = scope.ServiceProvider.GetRequiredService<ITerminalNotifier>();
                 await notifier.TerminalOutputAsync(
                     chunk.SessionId,
+                    chunk.StartOffset,
                     Convert.ToBase64String(chunk.Data),
                     stoppingToken);
             }
@@ -555,10 +581,17 @@ public sealed class TerminalSessionManager(
                 }
 
                 session.LastActivityUtc = DateTimeOffset.UtcNow;
+                var data = buffer.AsSpan(0, bytesRead).ToArray();
 
                 lock (session.Gate)
                 {
-                    session.OutputBuffer.AddRange(buffer.AsSpan(0, bytesRead).ToArray());
+                    if (session.OutputBuffer.Count == 0)
+                    {
+                        session.OutputBufferStartOffset = session.OutputBytesWritten;
+                    }
+
+                    AppendOutputHistory(session, data);
+                    session.OutputBuffer.AddRange(data);
                 }
 
                 ScheduleFlush(session);
@@ -601,9 +634,40 @@ public sealed class TerminalSessionManager(
         }, null, dueTime, Timeout.InfiniteTimeSpan);
     }
 
+    private void AppendOutputHistory(TerminalSession session, byte[] data)
+    {
+        session.OutputBytesWritten += data.Length;
+
+        var maxHistoryBytes = Math.Max(_options.MaxOutputHistoryBytes, 0);
+        if (maxHistoryBytes == 0)
+        {
+            session.OutputHistory.Clear();
+            session.OutputHistoryStartOffset = session.OutputBytesWritten;
+            return;
+        }
+
+        if (data.Length >= maxHistoryBytes)
+        {
+            session.OutputHistory.Clear();
+            session.OutputHistory.AddRange(data[^maxHistoryBytes..]);
+            session.OutputHistoryStartOffset = session.OutputBytesWritten - session.OutputHistory.Count;
+            return;
+        }
+
+        session.OutputHistory.AddRange(data);
+
+        var overflow = session.OutputHistory.Count - maxHistoryBytes;
+        if (overflow > 0)
+        {
+            session.OutputHistory.RemoveRange(0, overflow);
+            session.OutputHistoryStartOffset += overflow;
+        }
+    }
+
     private void FlushOutput(TerminalSession session)
     {
         byte[] data;
+        long startOffset;
         lock (session.Gate)
         {
             if (session.OutputBuffer.Count == 0)
@@ -612,15 +676,18 @@ public sealed class TerminalSessionManager(
             }
 
             var length = Math.Min(session.OutputBuffer.Count, _options.MaxOutputChunkBytes);
+            startOffset = session.OutputBufferStartOffset;
             data = session.OutputBuffer.GetRange(0, length).ToArray();
             session.OutputBuffer.RemoveRange(0, length);
+            session.OutputBufferStartOffset += length;
         }
 
-        if (!_outputQueue.Writer.TryWrite(new TerminalOutputChunk(session.Id, data)))
+        if (!_outputQueue.Writer.TryWrite(new TerminalOutputChunk(session.Id, startOffset, data)))
         {
             lock (session.Gate)
             {
                 session.OutputBuffer.InsertRange(0, data);
+                session.OutputBufferStartOffset = startOffset;
             }
 
             ScheduleFlush(session);
@@ -905,5 +972,5 @@ public sealed class TerminalSessionManager(
     private static TerminalSessionDescriptor ToDescriptor(TerminalSession session) =>
         new(session.Id, session.PromptId, session.Shell, session.Cwd, session.CreatedAtUtc);
 
-    private sealed record TerminalOutputChunk(Guid SessionId, byte[] Data);
+    private sealed record TerminalOutputChunk(Guid SessionId, long StartOffset, byte[] Data);
 }

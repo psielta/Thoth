@@ -3,6 +3,7 @@ import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import './terminal-view.css'
 import { useEffect, useRef } from 'react'
+import { getTerminalOutputHistory } from '@/api/terminals'
 import { base64ToBytes, bytesToBase64 } from '@/lib/base64'
 import { cn } from '@/lib/utils'
 import { usePromptHub } from '@/realtime/prompt-hub'
@@ -111,6 +112,28 @@ export function TerminalView({
     term.loadAddon(fitAddon)
     term.open(container)
     terminalRef.current = { term, fitAddon }
+    let disposed = false
+    let outputEndOffset = 0
+    let historyLoaded = false
+    const pendingOutput: Array<{ startOffset: number; dataBase64: string }> = []
+
+    const writeOutput = (startOffset: number, dataBase64: string) => {
+      const bytes = base64ToBytes(dataBase64)
+      const endOffset = startOffset + bytes.length
+      if (endOffset <= outputEndOffset) {
+        return
+      }
+
+      const bytesToWrite = startOffset < outputEndOffset ? bytes.slice(outputEndOffset - startOffset) : bytes
+      term.write(bytesToWrite)
+      outputEndOffset = endOffset
+    }
+
+    const flushPendingOutput = () => {
+      for (const chunk of pendingOutput.splice(0)) {
+        writeOutput(chunk.startOffset, chunk.dataBase64)
+      }
+    }
 
     const notifyBackendResize = (cols: number, rows: number) => {
       if (!activeRef.current) {
@@ -124,11 +147,35 @@ export function TerminalView({
       scheduleTerminalFit(fitAddon, term, { notifyBackend: true, onSized: notifyBackendResize })
     }
 
+    const unsubscribeOutput = subscribeTerminalOutput(sessionId, (startOffset, dataBase64) => {
+      if (!historyLoaded) {
+        pendingOutput.push({ startOffset, dataBase64 })
+        return
+      }
+
+      writeOutput(startOffset, dataBase64)
+    })
+
     joinTerminal(sessionId)
 
-    const unsubscribeOutput = subscribeTerminalOutput(sessionId, (dataBase64) => {
-      term.write(base64ToBytes(dataBase64))
-    })
+    void getTerminalOutputHistory(sessionId)
+      .then((history) => {
+        if (disposed) {
+          return
+        }
+
+        writeOutput(history.startOffset, history.dataBase64)
+        historyLoaded = true
+        flushPendingOutput()
+      })
+      .catch(() => {
+        if (disposed) {
+          return
+        }
+
+        historyLoaded = true
+        flushPendingOutput()
+      })
 
     const unsubscribeExit = subscribeTerminalExit(sessionId, (exitCode) => {
       term.writeln(`\r\n[Process exited with code ${exitCode}]`)
@@ -169,6 +216,7 @@ export function TerminalView({
     container.addEventListener('wheel', onWheel, { passive: false })
 
     return () => {
+      disposed = true
       container.removeEventListener('wheel', onWheel)
       dataDisposable.dispose()
       unsubscribeOutput()

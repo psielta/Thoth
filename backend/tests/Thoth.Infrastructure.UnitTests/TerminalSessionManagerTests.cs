@@ -34,7 +34,8 @@ public sealed class TerminalSessionManagerTests : IDisposable
                 MaxTotalSessions = 4,
                 OrphanTimeoutSeconds = 4,
                 OutputFlushMilliseconds = 10,
-                MaxOutputChunkBytes = 1024
+                MaxOutputChunkBytes = 1024,
+                MaxOutputHistoryBytes = 8
             }),
             NullLogger<TerminalSessionManager>.Instance);
     }
@@ -99,6 +100,61 @@ public sealed class TerminalSessionManagerTests : IDisposable
         _manager.WriteInput(descriptor.Id, input);
 
         _ptyFactory.LastWritten.Should().BeEquivalentTo(input);
+    }
+
+    [Fact]
+    public async Task GetOutputHistory_returns_bytes_already_read_from_pty()
+    {
+        var promptId = Guid.CreateVersion7();
+        var descriptor = await _manager.CreateAsync(promptId, _root, string.Empty, null, CancellationToken.None);
+        var output = "abcdef"u8.ToArray();
+
+        _ptyFactory.LastConnection!.EmitOutput(output);
+
+        var history = await WaitForHistoryAsync(descriptor.Id, output.Length);
+        history.StartOffset.Should().Be(0);
+        history.EndOffset.Should().Be(output.Length);
+        history.IsTruncated.Should().BeFalse();
+        Convert.FromBase64String(history.DataBase64).Should().BeEquivalentTo(output);
+    }
+
+    [Fact]
+    public async Task GetOutputHistory_truncates_oldest_bytes_when_limit_is_exceeded()
+    {
+        var promptId = Guid.CreateVersion7();
+        var descriptor = await _manager.CreateAsync(promptId, _root, string.Empty, null, CancellationToken.None);
+        var output = "1234567890"u8.ToArray();
+
+        _ptyFactory.LastConnection!.EmitOutput(output);
+
+        var history = await WaitForHistoryAsync(descriptor.Id, output.Length);
+        history.StartOffset.Should().Be(2);
+        history.EndOffset.Should().Be(10);
+        history.IsTruncated.Should().BeTrue();
+        Convert.FromBase64String(history.DataBase64).Should().BeEquivalentTo("34567890"u8.ToArray());
+    }
+
+    [Fact]
+    public async Task ProcessOutputQueueAsync_notifies_output_with_start_offset()
+    {
+        await _manager.StartAsync(CancellationToken.None);
+
+        try
+        {
+            var promptId = Guid.CreateVersion7();
+            var descriptor = await _manager.CreateAsync(promptId, _root, string.Empty, null, CancellationToken.None);
+            var output = "hello"u8.ToArray();
+
+            _ptyFactory.LastConnection!.EmitOutput(output);
+
+            var notified = await WaitForOutputNotificationAsync(descriptor.Id);
+            notified.StartOffset.Should().Be(0);
+            Convert.FromBase64String(notified.DataBase64).Should().BeEquivalentTo(output);
+        }
+        finally
+        {
+            await _manager.StopAsync(CancellationToken.None);
+        }
     }
 
     [Fact]
@@ -192,6 +248,37 @@ public sealed class TerminalSessionManagerTests : IDisposable
         }
     }
 
+    private async Task<TerminalOutputHistoryDto> WaitForHistoryAsync(Guid sessionId, long minEndOffset)
+    {
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            var history = _manager.GetOutputHistory(sessionId);
+            if (history is not null && history.EndOffset >= minEndOffset)
+            {
+                return history;
+            }
+
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException("Terminal output history was not populated in time.");
+    }
+
+    private async Task<(Guid SessionId, long StartOffset, string DataBase64)> WaitForOutputNotificationAsync(Guid sessionId)
+    {
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            if (_notifier.Outputs.TryDequeue(out var output) && output.SessionId == sessionId)
+            {
+                return output;
+            }
+
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException("Terminal output notification was not emitted in time.");
+    }
+
     public void Dispose()
     {
         _manager.Dispose();
@@ -205,6 +292,7 @@ public sealed class TerminalSessionManagerTests : IDisposable
     {
         public byte[] LastWritten { get; set; } = [];
         public int KilledCount { get; set; }
+        public FakePtyConnection? LastConnection { get; private set; }
 
         public Task<IPtyConnection> CreateAsync(
             string shell,
@@ -214,18 +302,20 @@ public sealed class TerminalSessionManagerTests : IDisposable
             CancellationToken cancellationToken)
         {
             var connection = new FakePtyConnection(this);
+            LastConnection = connection;
             return Task.FromResult<IPtyConnection>(connection);
         }
     }
 
     private sealed class FakePtyConnection(FakePtyConnectionFactory factory) : IPtyConnection
     {
+        private readonly ProducerConsumerStream _reader = new();
         private readonly CapturingWriteStream _writer = new(factory);
         private bool _killed;
 
         public int ProcessId => 4242;
 
-        public Stream ReaderStream { get; } = new MemoryStream();
+        public Stream ReaderStream => _reader;
 
         public Stream WriterStream => _writer;
 
@@ -247,11 +337,117 @@ public sealed class TerminalSessionManagerTests : IDisposable
             Exited?.Invoke(this, 0);
         }
 
+        public void EmitOutput(byte[] data) => _reader.WriteOutput(data);
+
         public ValueTask DisposeAsync()
         {
+            _reader.Complete();
+            _reader.Dispose();
             _writer.Dispose();
-            ReaderStream.Dispose();
             return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class ProducerConsumerStream : Stream
+    {
+        private readonly SemaphoreSlim _signal = new(0);
+        private readonly Queue<byte> _buffer = new();
+        private bool _completed;
+        private bool _disposed;
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+        public void WriteOutput(byte[] data)
+        {
+            lock (_buffer)
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                foreach (var item in data)
+                {
+                    _buffer.Enqueue(item);
+                }
+            }
+
+            _signal.Release();
+        }
+
+        public void Complete()
+        {
+            lock (_buffer)
+            {
+                if (_completed || _disposed)
+                {
+                    return;
+                }
+
+                _completed = true;
+            }
+
+            _signal.Release();
+        }
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> destination, CancellationToken cancellationToken = default)
+        {
+            while (true)
+            {
+                lock (_buffer)
+                {
+                    if (_buffer.Count > 0)
+                    {
+                        var count = Math.Min(destination.Length, _buffer.Count);
+                        for (var index = 0; index < count; index++)
+                        {
+                            destination.Span[index] = _buffer.Dequeue();
+                        }
+
+                        return count;
+                    }
+
+                    if (_completed)
+                    {
+                        return 0;
+                    }
+                }
+
+                await _signal.WaitAsync(cancellationToken);
+            }
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            ReadAsync(buffer.AsMemory(offset, count)).AsTask().GetAwaiter().GetResult();
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                lock (_buffer)
+                {
+                    _completed = true;
+                    _disposed = true;
+                }
+
+                _signal.Dispose();
+            }
+
+            base.Dispose(disposing);
         }
     }
 
@@ -292,12 +488,12 @@ public sealed class TerminalSessionManagerTests : IDisposable
 
     private sealed class RecordingTerminalNotifier : ITerminalNotifier
     {
-        public ConcurrentQueue<(Guid SessionId, string DataBase64)> Outputs { get; } = new();
+        public ConcurrentQueue<(Guid SessionId, long StartOffset, string DataBase64)> Outputs { get; } = new();
         public ConcurrentQueue<(Guid SessionId, int ExitCode)> Exits { get; } = new();
 
-        public Task TerminalOutputAsync(Guid sessionId, string dataBase64, CancellationToken cancellationToken)
+        public Task TerminalOutputAsync(Guid sessionId, long startOffset, string dataBase64, CancellationToken cancellationToken)
         {
-            Outputs.Enqueue((sessionId, dataBase64));
+            Outputs.Enqueue((sessionId, startOffset, dataBase64));
             return Task.CompletedTask;
         }
 

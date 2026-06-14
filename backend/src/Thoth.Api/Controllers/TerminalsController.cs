@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Thoth.Api.Common;
+using Thoth.Application.Common.Interfaces;
 using Thoth.Application.Common.Models;
 using Thoth.Application.Features.Terminals;
 using Thoth.Application.Features.Terminals.Commands.CloseTerminalSession;
@@ -15,7 +16,10 @@ using Thoth.Infrastructure.Terminals;
 namespace Thoth.Api.Controllers;
 
 [ApiController]
-public sealed class TerminalsController(ISender sender, IOptions<TerminalOptions> terminalOptions) : ControllerBase
+public sealed class TerminalsController(
+    ISender sender,
+    ITerminalSessionCoordinator terminalCoordinator,
+    IOptions<TerminalOptions> terminalOptions) : ControllerBase
 {
     [HttpGet("api/terminals/capabilities")]
     public ActionResult<TerminalCapabilitiesResponse> GetCapabilities()
@@ -94,6 +98,14 @@ public sealed class TerminalsController(ISender sender, IOptions<TerminalOptions
     {
         TerminalAccessGuard.EnsureAccess(terminalOptions, HttpContext.Connection.RemoteIpAddress);
         return Ok(await sender.Send(new ListGenericTerminalSessionsQuery(), cancellationToken));
+    }
+
+    [HttpGet("api/terminals/{sessionId:guid}/output-history")]
+    public ActionResult<TerminalOutputHistoryDto> GetOutputHistory(Guid sessionId)
+    {
+        TerminalAccessGuard.EnsureAccess(terminalOptions, HttpContext.Connection.RemoteIpAddress);
+        var result = terminalCoordinator.GetOutputHistory(sessionId);
+        return result is null ? NotFound() : Ok(result);
     }
 
     [HttpDelete("api/terminals/{sessionId:guid}")]

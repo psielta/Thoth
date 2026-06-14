@@ -14,5 +14,9 @@ internal sealed class TerminalSession
     public DateTimeOffset LastActivityUtc { get; set; }
     public CancellationTokenSource OutputPumpCts { get; } = new();
     public List<byte> OutputBuffer { get; } = [];
+    public long OutputBufferStartOffset { get; set; }
+    public List<byte> OutputHistory { get; } = [];
+    public long OutputHistoryStartOffset { get; set; }
+    public long OutputBytesWritten { get; set; }
     public Timer? FlushTimer { get; set; }
 }

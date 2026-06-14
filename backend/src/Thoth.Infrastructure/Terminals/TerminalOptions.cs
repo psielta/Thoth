@@ -13,5 +13,6 @@ public sealed class TerminalOptions
     public int OrphanTimeoutSeconds { get; set; } = 72 * 60 * 60;
     public int OutputFlushMilliseconds { get; set; } = 25;
     public int MaxOutputChunkBytes { get; set; } = 8 * 1024;
+    public int MaxOutputHistoryBytes { get; set; } = 4 * 1024 * 1024;
     public int MaxInputBytes { get; set; } = 64 * 1024;
 }

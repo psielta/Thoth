@@ -40,5 +40,7 @@ public interface ITerminalSessionCoordinator
 
     TerminalSessionDescriptor? TryGetSession(Guid sessionId);
 
+    TerminalOutputHistoryDto? GetOutputHistory(Guid sessionId);
+
     Task KillForPromptAsync(Guid promptId, CancellationToken cancellationToken);
 }

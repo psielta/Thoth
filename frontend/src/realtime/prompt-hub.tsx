@@ -22,7 +22,7 @@ type FileSubscription = {
   count: number
 }
 
-type TerminalOutputHandler = (dataBase64: string) => void
+type TerminalOutputHandler = (startOffset: number, dataBase64: string) => void
 type TerminalExitHandler = (exitCode: number) => void
 
 type PromptHubContextValue = {
@@ -184,9 +184,9 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       queryClient.setQueryData(queryKeys.agentUsage.current(), usage)
     })
 
-    connection.on('TerminalOutput', (sessionId: string, dataBase64: string) => {
+    connection.on('TerminalOutput', (sessionId: string, startOffset: number, dataBase64: string) => {
       const handlers = terminalOutputHandlersRef.current.get(sessionId)
-      handlers?.forEach((handler) => handler(dataBase64))
+      handlers?.forEach((handler) => handler(startOffset, dataBase64))
     })
 
     connection.on('TerminalExited', (sessionId: string, exitCode: number) => {

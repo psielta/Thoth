@@ -127,6 +127,8 @@ public sealed class CreateGenericTerminalSessionHandlerTests
 
         public TerminalSessionDescriptor? TryGetSession(Guid sessionId) => null;
 
+        public TerminalOutputHistoryDto? GetOutputHistory(Guid sessionId) => null;
+
         public Task KillForPromptAsync(Guid promptId, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

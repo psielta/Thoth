@@ -4,6 +4,7 @@ import {
   terminalAgentLaunchSchema,
   terminalCapabilitiesSchema,
   terminalGroupSchema,
+  terminalOutputHistorySchema,
   terminalSessionSchema,
 } from './schemas'
 import type { TerminalAgentLaunch } from './schemas'
@@ -27,6 +28,11 @@ export async function listAllTerminals() {
 export async function listGenericTerminals() {
   const data = await api.get('terminals/generic').json<unknown>()
   return z.array(genericTerminalSessionSchema).parse(data)
+}
+
+export async function getTerminalOutputHistory(sessionId: string) {
+  const data = await api.get(`terminals/${sessionId}/output-history`).json<unknown>()
+  return terminalOutputHistorySchema.parse(data)
 }
 
 type CreateTerminalOptions = {

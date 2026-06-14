@@ -197,6 +197,8 @@ public sealed class ListAllTerminalSessionsHandlerTests
         public TerminalSessionDescriptor? TryGetSession(Guid sessionId) =>
             sessions.FirstOrDefault(session => session.Id == sessionId);
 
+        public TerminalOutputHistoryDto? GetOutputHistory(Guid sessionId) => null;
+
         public Task KillForPromptAsync(Guid promptId, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 

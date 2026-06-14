@@ -80,7 +80,7 @@ public sealed class GetWorkflowBoardHandler(IApplicationDbContext context, ICurr
             .GroupBy(document => document.PromptId)
             .ToDictionary(group => group.Key, group => group.First());
 
-        var result = new List<TaskSummaryDto>();
+        var result = new List<RankedTaskSummary>();
         foreach (var prompt in prompts)
         {
             workflows.TryGetValue(prompt.Id, out var workflow);
@@ -95,36 +95,42 @@ public sealed class GetWorkflowBoardHandler(IApplicationDbContext context, ICurr
                 ? workflow.UpdatedAtUtc
                 : prompt.UpdatedAtUtc;
 
-            result.Add(new TaskSummaryDto(
-                prompt.Id,
-                prompt.WorkingDirectoryId,
-                workingDirectoryNames.GetValueOrDefault(prompt.WorkingDirectoryId, string.Empty),
-                prompt.TaskNumber,
-                prompt.Title,
-                prompt.Status,
-                workflow?.Status,
-                workflow?.CurrentPhaseId,
-                workflow?.CurrentPhaseName,
-                workflow?.CurrentPhaseColor,
-                workflow?.CurrentActor,
-                workflow?.EnteredCurrentPhaseAtUtc,
-                workflow?.CurrentPhaseIteration ?? 1,
-                workflow?.ReviewVerdictSourcePhaseName,
-                updatedAtUtc,
-                promptsWithChildren.Contains(prompt.Id),
-                linkedDocument is not null,
-                linkedDocument?.Id,
-                linkedDocument?.PullRequestReference,
-                prompt.RowVersion.ToString(CultureInfo.InvariantCulture),
-                workflow is null || !phasesByWorkflowId.TryGetValue(workflow.Id, out var phases)
-                    ? Array.Empty<WorkflowPhaseDto>()
-                    : phases,
-                workflow is null ? null : workflow.RowVersion.ToString(CultureInfo.InvariantCulture)));
+            result.Add(new RankedTaskSummary(
+                prompt.BoardRank,
+                new TaskSummaryDto(
+                    prompt.Id,
+                    prompt.WorkingDirectoryId,
+                    workingDirectoryNames.GetValueOrDefault(prompt.WorkingDirectoryId, string.Empty),
+                    prompt.TaskNumber,
+                    prompt.Title,
+                    prompt.Status,
+                    workflow?.Status,
+                    workflow?.CurrentPhaseId,
+                    workflow?.CurrentPhaseName,
+                    workflow?.CurrentPhaseColor,
+                    workflow?.CurrentActor,
+                    workflow?.EnteredCurrentPhaseAtUtc,
+                    workflow?.CurrentPhaseIteration ?? 1,
+                    workflow?.ReviewVerdictSourcePhaseName,
+                    updatedAtUtc,
+                    promptsWithChildren.Contains(prompt.Id),
+                    linkedDocument is not null,
+                    linkedDocument?.Id,
+                    linkedDocument?.PullRequestReference,
+                    prompt.RowVersion.ToString(CultureInfo.InvariantCulture),
+                    workflow is null || !phasesByWorkflowId.TryGetValue(workflow.Id, out var phases)
+                        ? Array.Empty<WorkflowPhaseDto>()
+                        : phases,
+                    workflow is null ? null : workflow.RowVersion.ToString(CultureInfo.InvariantCulture))));
         }
 
         IReadOnlyList<TaskSummaryDto> ordered = result
-            .OrderByDescending(summary => summary.UpdatedAtUtc)
+            .OrderBy(item => item.BoardRank)
+            .ThenByDescending(item => item.Summary.UpdatedAtUtc)
+            .Select(item => item.Summary)
             .ToList();
         return Task.FromResult(ordered);
     }
+
+    private sealed record RankedTaskSummary(double BoardRank, TaskSummaryDto Summary);
 }

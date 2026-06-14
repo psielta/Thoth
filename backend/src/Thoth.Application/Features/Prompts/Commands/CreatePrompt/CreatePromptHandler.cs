@@ -82,6 +82,10 @@ public sealed class CreatePromptHandler(
         // Root prompts are tasks: start their workflow atomically so a task always has a timeline.
         var workflow = TryStartWorkflow(prompt);
         var parentWorkflow = TryAdvanceParentWorkflow(parentPrompt, request.SourceTemplateKey, dateTimeProvider.UtcNow);
+        if (parentPrompt is not null && parentWorkflow is not null)
+        {
+            await PromptMutationHelpers.ResetBoardRankAsync(context, parentPrompt.Id, cancellationToken);
+        }
 
         // A future task that becomes a prompt starts progressing; Done/Archived are left untouched.
         if (futureTask is not null && futureTask.Status == FutureTaskStatus.Open)

@@ -3,6 +3,7 @@ using Thoth.Application.Common.Exceptions;
 using Thoth.Application.Common.Interfaces;
 using Thoth.Application.Common.Mappings;
 using Thoth.Application.Common.Models;
+using Thoth.Application.Features.Prompts;
 using Thoth.Domain.Workflows;
 
 namespace Thoth.Application.Features.Workflow.Commands.StartWorkflow;
@@ -73,6 +74,7 @@ public sealed class StartWorkflowHandler(
             null,
             now);
 
+        await PromptMutationHelpers.ResetBoardRankAsync(context, prompt.Id, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
         var dto = workflow.ToDto(snapshot, new[] { startedEvent });

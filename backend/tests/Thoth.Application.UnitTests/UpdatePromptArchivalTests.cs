@@ -274,6 +274,8 @@ public sealed class UpdatePromptArchivalTests
 
         public Task PromptDeletedAsync(Guid promptId, Guid workingDirectoryId, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+
+        public Task BoardReorderedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class FakeLinkedDocumentNotifier : ILinkedDocumentNotifier

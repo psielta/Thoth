@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Thoth.Application.Common.Models;
 using Thoth.Application.Features.Prompts.Commands.CreatePrompt;
 using Thoth.Application.Features.Prompts.Commands.DeletePrompt;
+using Thoth.Application.Features.Prompts.Commands.ReorderBoardColumn;
 using Thoth.Application.Features.Prompts.Commands.UpdatePrompt;
 using Thoth.Application.Features.Prompts.Commands.UpdatePromptStatus;
 using Thoth.Application.Features.Prompts.Queries.GetPrompt;
@@ -89,6 +90,15 @@ public sealed class PromptsController(ISender sender) : ControllerBase
         CancellationToken cancellationToken) =>
         Ok(await sender.Send(new UpdatePromptStatusCommand(id, request.Status, request.RowVersion), cancellationToken));
 
+    [HttpPost("board/reorder")]
+    public async Task<IActionResult> ReorderBoardColumn(
+        ReorderBoardColumnRequest request,
+        CancellationToken cancellationToken)
+    {
+        await sender.Send(new ReorderBoardColumnCommand(request.OrderedPromptIds), cancellationToken);
+        return NoContent();
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
@@ -122,4 +132,6 @@ public sealed class PromptsController(ISender sender) : ControllerBase
         IReadOnlyList<FileMentionDto>? Mentions);
 
     public sealed record UpdatePromptStatusRequest(PromptStatus Status, string RowVersion);
+
+    public sealed record ReorderBoardColumnRequest(IReadOnlyList<Guid> OrderedPromptIds);
 }

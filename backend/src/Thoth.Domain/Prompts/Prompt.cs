@@ -17,6 +17,7 @@ public sealed class Prompt : AuditableEntity
     public PromptKind Kind { get; set; } = PromptKind.General;
     public PromptStatus Status { get; set; } = PromptStatus.Draft;
     public int CurrentVersion { get; set; } = 1;
+    public double BoardRank { get; set; }
     public uint RowVersion { get; private set; }
 
     public WorkingDirectory? WorkingDirectory { get; set; }

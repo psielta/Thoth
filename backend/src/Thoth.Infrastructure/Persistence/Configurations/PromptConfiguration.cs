@@ -17,6 +17,7 @@ public sealed class PromptConfiguration : IEntityTypeConfiguration<Prompt>
         builder.Property(prompt => prompt.TargetAgent).HasConversion<int>().IsRequired();
         builder.Property(prompt => prompt.Kind).HasConversion<int>().IsRequired();
         builder.Property(prompt => prompt.Status).HasConversion<int>().IsRequired();
+        builder.Property(prompt => prompt.BoardRank).HasDefaultValue(0d).IsRequired();
         builder.Property(prompt => prompt.CreatedAtUtc).IsRequired();
         builder.Property(prompt => prompt.UpdatedAtUtc).IsRequired();
         builder.Property(prompt => prompt.RowVersion)

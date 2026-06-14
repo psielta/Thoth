@@ -3,6 +3,7 @@ using Thoth.Application.Common.Exceptions;
 using Thoth.Application.Common.Interfaces;
 using Thoth.Application.Common.Mappings;
 using Thoth.Application.Common.Models;
+using Thoth.Application.Features.Prompts;
 using Thoth.Domain.Workflows;
 
 namespace Thoth.Application.Features.Workflow.Commands.SetPhase;
@@ -32,6 +33,7 @@ public sealed class SetPhaseHandler(
         WorkflowMutationHelpers.AppendEvent(
             context, workflow, WorkflowEventType.PhaseChanged, target, actor, NormalizeNote(request.Note), now);
 
+        await PromptMutationHelpers.ResetBoardRankAsync(context, prompt.Id, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
         var events = WorkflowMutationHelpers.LoadEvents(context, workflow.Id);

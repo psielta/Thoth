@@ -1,4 +1,6 @@
 using System.Globalization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 using Thoth.Application.Common.Exceptions;
 using Thoth.Application.Common.Interfaces;
 using Thoth.Application.Common.Models;
@@ -106,5 +108,27 @@ internal static class PromptMutationHelpers
         }
 
         return references;
+    }
+
+    public static Task ResetBoardRankAsync(
+        IApplicationDbContext context,
+        Guid promptId,
+        CancellationToken cancellationToken)
+    {
+        var query = context.Prompts.Where(prompt => prompt.Id == promptId);
+        if (query.Provider is IAsyncQueryProvider)
+        {
+            return query.ExecuteUpdateAsync(
+                setters => setters.SetProperty(prompt => prompt.BoardRank, 0d),
+                cancellationToken);
+        }
+
+        var prompt = query.FirstOrDefault();
+        if (prompt is not null)
+        {
+            prompt.BoardRank = 0d;
+        }
+
+        return Task.CompletedTask;
     }
 }

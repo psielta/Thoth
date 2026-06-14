@@ -3,6 +3,7 @@ using Thoth.Application.Common.Exceptions;
 using Thoth.Application.Common.Interfaces;
 using Thoth.Application.Common.Mappings;
 using Thoth.Application.Common.Models;
+using Thoth.Application.Features.Prompts;
 using Thoth.Domain.Workflows;
 
 namespace Thoth.Application.Features.Workflow.Commands.AddReviewVerdict;
@@ -61,6 +62,7 @@ public sealed class AddReviewVerdictHandler(
         // 3) Marca a fase de origem para o card indicar que a correcao trata aquele veredito.
         workflow.ReviewVerdictSourcePhaseName = reviewPhaseName;
 
+        await PromptMutationHelpers.ResetBoardRankAsync(context, prompt.Id, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
         var events = WorkflowMutationHelpers.LoadEvents(context, workflow.Id);

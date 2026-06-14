@@ -16,4 +16,7 @@ public sealed class SignalRPromptNotifier(IHubContext<PromptHub, IPromptClient> 
 
     public Task PromptDeletedAsync(Guid promptId, Guid workingDirectoryId, CancellationToken cancellationToken) =>
         hubContext.Clients.Group(PromptHub.GroupName(workingDirectoryId)).PromptDeleted(promptId, workingDirectoryId);
+
+    public Task BoardReorderedAsync(CancellationToken cancellationToken) =>
+        hubContext.Clients.Group(PromptHub.TasksGroupName).BoardReordered();
 }

@@ -6,9 +6,14 @@ using System.Text.Json.Serialization;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Thoth.Application.Common.Models;
+using Thoth.Domain.Prompts;
+using Thoth.Domain.Users;
+using Thoth.Domain.WorkingDirectories;
 using Thoth.Domain.Workflows;
+using Thoth.Infrastructure.Persistence;
 
 namespace Thoth.Api.IntegrationTests;
 
@@ -29,19 +34,29 @@ public sealed class PromptWorkflowApiTests(ThothApiFactory factory) : IClassFixt
         return path;
     }
 
-    private async Task<PromptDto> CreateRootPromptAsync(HttpClient client, string title)
+    private async Task<WorkingDirectoryDto> CreateWorkingDirectoryAsync(HttpClient client, string? name = null)
     {
         var createDirectory = await client.PostAsync(
             "/api/working-directories",
-            JsonContent(new { name = "repo", absolutePath = CreateWorkingDirectoryPath(), respectGitignore = true }));
+            JsonContent(new { name = name ?? "repo", absolutePath = CreateWorkingDirectoryPath(), respectGitignore = true }));
         createDirectory.StatusCode.Should().Be(HttpStatusCode.Created, await createDirectory.Content.ReadAsStringAsync());
         var directory = await createDirectory.Content.ReadFromJsonAsync<WorkingDirectoryDto>(JsonOptions);
+        return directory!;
+    }
 
+    private async Task<PromptDto> CreateRootPromptAsync(HttpClient client, string title)
+    {
+        var directory = await CreateWorkingDirectoryAsync(client);
+        return await CreateRootPromptAsync(client, directory.Id, title);
+    }
+
+    private async Task<PromptDto> CreateRootPromptAsync(HttpClient client, Guid workingDirectoryId, string title)
+    {
         var createPrompt = await client.PostAsync(
             "/api/prompts",
             JsonContent(new
             {
-                workingDirectoryId = directory!.Id,
+                workingDirectoryId,
                 title,
                 content = "conteúdo",
                 targetAgent = "Codex",
@@ -263,5 +278,152 @@ public sealed class PromptWorkflowApiTests(ThothApiFactory factory) : IClassFixt
         {
             await connection.DisposeAsync();
         }
+    }
+
+    [Fact]
+    public async Task Reorder_board_column_persists_ranks_without_touching_updated_at_and_broadcasts()
+    {
+        var client = factory.CreateClient();
+        var directory = await CreateWorkingDirectoryAsync(client, "repo-reorder");
+        factory.Clock.Set(new DateTimeOffset(2026, 6, 1, 13, 0, 0, TimeSpan.Zero));
+        var first = await CreateRootPromptAsync(client, directory.Id, "Primeiro");
+        factory.Clock.Set(new DateTimeOffset(2026, 6, 1, 13, 5, 0, TimeSpan.Zero));
+        var second = await CreateRootPromptAsync(client, directory.Id, "Segundo");
+        factory.Clock.Set(new DateTimeOffset(2026, 6, 1, 13, 10, 0, TimeSpan.Zero));
+        var third = await CreateRootPromptAsync(client, directory.Id, "Terceiro");
+        var promptIds = new[] { first.Id, second.Id, third.Id };
+
+        Dictionary<Guid, DateTimeOffset> before;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            before = await db.Prompts
+                .AsNoTracking()
+                .Where(prompt => promptIds.Contains(prompt.Id))
+                .ToDictionaryAsync(prompt => prompt.Id, prompt => prompt.UpdatedAtUtc);
+        }
+
+        var connection = new HubConnectionBuilder()
+            .WithUrl(
+                new Uri(factory.Server.BaseAddress, "/hubs/prompts"),
+                options =>
+                {
+                    options.Transports = HttpTransportType.LongPolling;
+                    options.HttpMessageHandlerFactory = _ => factory.Server.CreateHandler();
+                })
+            .AddJsonProtocol(options => options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
+            .Build();
+
+        var received = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        connection.On("BoardReordered", () => received.TrySetResult(true));
+
+        await connection.StartAsync();
+        await connection.InvokeAsync("JoinTasks");
+
+        try
+        {
+            var response = await client.PostAsync(
+                "/api/prompts/board/reorder",
+                JsonContent(new { orderedPromptIds = new[] { third.Id, first.Id, second.Id } }));
+
+            response.StatusCode.Should().Be(HttpStatusCode.NoContent, await response.Content.ReadAsStringAsync());
+            var winner = await Task.WhenAny(received.Task, Task.Delay(TimeSpan.FromSeconds(15)));
+            winner.Should().Be(received.Task, "board reorder should reach the tasks:all SignalR group");
+        }
+        finally
+        {
+            await connection.DisposeAsync();
+        }
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var after = await db.Prompts
+                .AsNoTracking()
+                .Where(prompt => promptIds.Contains(prompt.Id))
+                .ToDictionaryAsync(prompt => prompt.Id);
+
+            after[third.Id].BoardRank.Should().Be(1);
+            after[first.Id].BoardRank.Should().Be(2);
+            after[second.Id].BoardRank.Should().Be(3);
+            after.Should().OnlyContain(item => item.Value.UpdatedAtUtc == before[item.Key]);
+        }
+
+        var board = await client.GetFromJsonAsync<List<TaskSummaryDto>>(
+            $"/api/workflow/board?workingDirectoryId={directory.Id}",
+            JsonOptions);
+        board!.Select(summary => summary.PromptId).Should().Equal(third.Id, first.Id, second.Id);
+    }
+
+    [Fact]
+    public async Task Reorder_board_column_rejects_prompt_from_another_owner()
+    {
+        var client = factory.CreateClient();
+        var mine = await CreateRootPromptAsync(client, "Meu prompt");
+        var otherPromptId = Guid.CreateVersion7();
+        var otherOwnerId = Guid.CreateVersion7();
+        var otherDirectoryId = Guid.CreateVersion7();
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Users.Add(new User
+            {
+                Id = otherOwnerId,
+                DisplayName = "other",
+                IsSystem = false
+            });
+            db.WorkingDirectories.Add(new WorkingDirectory
+            {
+                Id = otherDirectoryId,
+                Name = "other-repo",
+                AbsolutePath = CreateWorkingDirectoryPath(),
+                RespectGitignore = true,
+                OwnerId = otherOwnerId
+            });
+            db.Prompts.Add(new Prompt
+            {
+                Id = otherPromptId,
+                WorkingDirectoryId = otherDirectoryId,
+                Title = "Prompt de outro usuario",
+                Content = "conteudo",
+                OwnerId = otherOwnerId,
+                Status = PromptStatus.Draft
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var response = await client.PostAsync(
+            "/api/prompts/board/reorder",
+            JsonContent(new { orderedPromptIds = new[] { mine.Id, otherPromptId } }));
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Board_orders_by_board_rank_then_updated_at_desc()
+    {
+        var client = factory.CreateClient();
+        var directory = await CreateWorkingDirectoryAsync(client, "repo-board-order");
+        factory.Clock.Set(new DateTimeOffset(2026, 6, 1, 14, 0, 0, TimeSpan.Zero));
+        var olderUnranked = await CreateRootPromptAsync(client, directory.Id, "Mais antigo sem rank");
+        factory.Clock.Set(new DateTimeOffset(2026, 6, 1, 14, 5, 0, TimeSpan.Zero));
+        var newerUnranked = await CreateRootPromptAsync(client, directory.Id, "Mais novo sem rank");
+        factory.Clock.Set(new DateTimeOffset(2026, 6, 1, 14, 10, 0, TimeSpan.Zero));
+        var ranked = await CreateRootPromptAsync(client, directory.Id, "Com rank");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.Prompts
+                .Where(prompt => prompt.Id == ranked.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(prompt => prompt.BoardRank, 2d));
+        }
+
+        var board = await client.GetFromJsonAsync<List<TaskSummaryDto>>(
+            $"/api/workflow/board?workingDirectoryId={directory.Id}",
+            JsonOptions);
+
+        board!.Select(summary => summary.PromptId).Should().Equal(newerUnranked.Id, olderUnranked.Id, ranked.Id);
     }
 }

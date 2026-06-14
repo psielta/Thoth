@@ -28,6 +28,11 @@ internal sealed class MainForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(960, 640);
         Size = new Size(1280, 800);
+        var appIcon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        if (appIcon is not null)
+        {
+            Icon = appIcon;
+        }
 
         webView = new WebView2
         {

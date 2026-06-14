@@ -62,4 +62,35 @@ public sealed class TerminalAgentLaunchCommandsTests
     {
         TerminalAgentLaunchCommands.FlattenPromptForClaudeCli("linha1\nlinha2").Should().Be("linha1 linha2");
     }
+
+    [Theory]
+    [InlineData(TerminalAgentLaunch.Claude)]
+    [InlineData(TerminalAgentLaunch.Codex)]
+    [InlineData(TerminalAgentLaunch.Grok)]
+    public void ResolveFollowUpInput_submits_flattened_prompt_for_executor_agents(TerminalAgentLaunch agent)
+    {
+        var followUp = TerminalAgentLaunchCommands.ResolveFollowUpInput(
+            agent,
+            "Revise a PR\r\ncom cuidado",
+            submitPrompt: true);
+
+        followUp.Should().NotBeNull();
+        Encoding.UTF8.GetString(followUp!).Should().Be("Revise a PR com cuidado\r");
+    }
+
+    [Theory]
+    [InlineData(TerminalAgentLaunch.Claude)]
+    [InlineData(TerminalAgentLaunch.Codex)]
+    [InlineData(TerminalAgentLaunch.Grok)]
+    public void ResolveFollowUpInput_without_submit_has_no_follow_up(TerminalAgentLaunch agent)
+    {
+        TerminalAgentLaunchCommands.ResolveFollowUpInput(agent, "Revise a PR").Should().BeNull();
+    }
+
+    [Fact]
+    public void ResolveFollowUpInput_submit_skips_empty_prompt()
+    {
+        TerminalAgentLaunchCommands.ResolveFollowUpInput(TerminalAgentLaunch.Claude, "   ", submitPrompt: true)
+            .Should().BeNull();
+    }
 }

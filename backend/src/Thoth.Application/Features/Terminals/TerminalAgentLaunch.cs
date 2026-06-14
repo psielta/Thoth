@@ -55,19 +55,31 @@ public static class TerminalAgentLaunchCommands
         return command is null ? null : Encoding.UTF8.GetBytes(command);
     }
 
-    public static byte[]? ResolveFollowUpInput(TerminalAgentLaunch? agent, string? promptContent = null)
+    public static byte[]? ResolveFollowUpInput(
+        TerminalAgentLaunch? agent,
+        string? promptContent = null,
+        bool submitPrompt = false)
     {
-        if (agent != TerminalAgentLaunch.ClaudePlan)
+        if (agent is null)
         {
             return null;
         }
 
-        return ResolveClaudePlanStagedInput(promptContent)?.FollowUp;
+        // ClaudePlan sempre envia o prompt apos lancar; os demais agentes (Claude/Codex/Grok)
+        // so enviam o conteudo quando explicitamente solicitado (submitPrompt).
+        var shouldSubmit = agent == TerminalAgentLaunch.ClaudePlan || submitPrompt;
+        if (!shouldSubmit)
+        {
+            return null;
+        }
+
+        var submission = BuildPromptSubmission(promptContent);
+        return submission is null ? null : Encoding.UTF8.GetBytes(submission);
     }
 
     public static TerminalStagedInitialInput? ResolveClaudePlanStagedInput(string? promptContent)
     {
-        var followUp = BuildClaudePlanPromptSubmission(promptContent);
+        var followUp = BuildPromptSubmission(promptContent);
         return new TerminalStagedInitialInput(
             Encoding.UTF8.GetBytes(BuildClaudePlanLaunchPowerShellCommand()),
             followUp is null ? null : Encoding.UTF8.GetBytes(followUp));
@@ -83,7 +95,7 @@ public static class TerminalAgentLaunchCommands
             $"claude {ClaudePlanFlags} --settings $p\r";
     }
 
-    internal static string? BuildClaudePlanPromptSubmission(string? promptContent)
+    internal static string? BuildPromptSubmission(string? promptContent)
     {
         var flattened = FlattenPromptForClaudeCli(promptContent);
         return string.IsNullOrEmpty(flattened) ? null : $"{flattened}\r";

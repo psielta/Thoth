@@ -26,11 +26,13 @@ public sealed class CreateTerminalSessionHandler(
 
         var directory = ResolveWorkspaceDirectory(context, prompt, currentUser.UserId);
 
-        var promptContent = request.AgentLaunch == TerminalAgentLaunch.ClaudePlan
-            ? prompt.Content
-            : null;
+        var needsContent = request.AgentLaunch == TerminalAgentLaunch.ClaudePlan || request.SubmitPrompt;
+        var promptContent = needsContent ? prompt.Content : null;
         var initialInput = TerminalAgentLaunchCommands.ResolveInitialInput(request.AgentLaunch, promptContent);
-        var followUpInput = TerminalAgentLaunchCommands.ResolveFollowUpInput(request.AgentLaunch, promptContent);
+        var followUpInput = TerminalAgentLaunchCommands.ResolveFollowUpInput(
+            request.AgentLaunch,
+            promptContent,
+            request.SubmitPrompt);
 
         return await terminalCoordinator.CreateAsync(
             prompt.Id,

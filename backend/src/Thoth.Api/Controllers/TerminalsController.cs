@@ -47,7 +47,7 @@ public sealed class TerminalsController(
         }
 
         var result = await sender.Send(
-            new CreateTerminalSessionCommand(promptId, request.Shell, agentLaunch),
+            new CreateTerminalSessionCommand(promptId, request.Shell, agentLaunch, request.SubmitPrompt ?? false),
             cancellationToken);
         return CreatedAtAction(nameof(ListForPrompt), new { promptId }, result);
     }
@@ -117,6 +117,6 @@ public sealed class TerminalsController(
     }
 }
 
-public sealed record CreateTerminalRequest(string? Shell, string? AgentLaunch);
+public sealed record CreateTerminalRequest(string? Shell, string? AgentLaunch, bool? SubmitPrompt = null);
 
 public sealed record TerminalCapabilitiesResponse(bool Enabled);

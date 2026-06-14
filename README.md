@@ -28,6 +28,7 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 - Visualizador de codigo somente leitura baseado no Monaco Editor, com realce de sintaxe, tema sincronizado com o app e atualizacao em tempo real via SignalR quando o arquivo muda no disco.
 - Terminais PowerShell integrados na aba `Terminais` do prompt: multiplas sessoes por tarefa com diretorio inicial no workspace, lancamento rapido de Claude/Codex/Grok, abas nomeadas e coloridas persistidas no `localStorage` do navegador, alternancia entre sessoes com `Ctrl+`` (overlay) ou `Ctrl+Alt+←/→` e zoom de fonte.
 - Templates de prompts para fluxo de revisao, implementacao, rebase e merge de planos, com atualizacao automatica da fase da tarefa pai quando aplicavel.
+- Terminais genericos pelo botao flutuante global podem escolher um workspace inicial antes de criar a sessao, ou cair no diretorio padrao configurado.
 - Indicadores no header para limites atuais de Claude Code e Codex, lendo as fontes locais dos agentes e sincronizando atualizacoes via SignalR.
 - **Assistente IA com Gemini:** refinamento de prompts, chat de suporte e configuracao de modelo diretamente na tela de criacao e edicao.
 - Contexto de workspace opcional na IA, lendo automaticamente `README.md`, `CLAUDE.md` e `AGENT.md` da raiz do diretorio de trabalho.
@@ -124,6 +125,8 @@ O backend segue um fluxo orientado a casos de uso. Controllers chamam MediatR, h
 20. Na aba `Terminais` do prompt, o usuario abre uma ou mais sessoes PowerShell no workspace, renomeia e colore abas (preferencias salvas no navegador), alterna entre elas com `Ctrl+`` ou `Ctrl+Alt+←/→` e pode iniciar Claude, Codex ou Grok pelo menu ao lado de `Novo terminal`.
 
 ## Como Executar
+
+No botao flutuante global de `Terminais`, o usuario pode escolher um workspace inicial para o terminal generico antes de abrir a sessao.
 
 ### Pre-requisitos
 

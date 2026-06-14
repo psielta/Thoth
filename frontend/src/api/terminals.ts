@@ -39,6 +39,7 @@ type CreateTerminalOptions = {
   shell?: string
   agentLaunch?: TerminalAgentLaunch
   submitPrompt?: boolean
+  workingDirectoryId?: string
 }
 
 export async function createTerminal(promptId: string, options: CreateTerminalOptions = {}) {
@@ -58,12 +59,15 @@ export async function createTerminal(promptId: string, options: CreateTerminalOp
 }
 
 export async function createGenericTerminal(options: CreateTerminalOptions = {}) {
-  const payload: { shell?: string; agentLaunch?: TerminalAgentLaunch } = {}
+  const payload: { shell?: string; agentLaunch?: TerminalAgentLaunch; workingDirectoryId?: string } = {}
   if (options.shell) {
     payload.shell = options.shell
   }
   if (options.agentLaunch) {
     payload.agentLaunch = terminalAgentLaunchSchema.parse(options.agentLaunch)
+  }
+  if (options.workingDirectoryId) {
+    payload.workingDirectoryId = options.workingDirectoryId
   }
 
   const data = await api.post('terminals/generic', { json: payload }).json<unknown>()

@@ -6,4 +6,5 @@ namespace Thoth.Application.Features.Terminals.Commands.CreateGenericTerminalSes
 
 public sealed record CreateGenericTerminalSessionCommand(
     string? Shell,
-    TerminalAgentLaunch? AgentLaunch) : IRequest<TerminalSessionDescriptor>;
+    TerminalAgentLaunch? AgentLaunch,
+    Guid? WorkingDirectoryId = null) : IRequest<TerminalSessionDescriptor>;

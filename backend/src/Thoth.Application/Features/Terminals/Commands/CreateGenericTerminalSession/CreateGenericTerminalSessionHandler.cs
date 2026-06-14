@@ -7,6 +7,7 @@ using Thoth.Application.Features.Terminals;
 namespace Thoth.Application.Features.Terminals.Commands.CreateGenericTerminalSession;
 
 public sealed class CreateGenericTerminalSessionHandler(
+    IApplicationDbContext context,
     ICurrentUser currentUser,
     ITerminalSessionCoordinator terminalCoordinator)
     : IRequestHandler<CreateGenericTerminalSessionCommand, TerminalSessionDescriptor>
@@ -25,10 +26,23 @@ public sealed class CreateGenericTerminalSessionHandler(
 
         var initialInput = TerminalAgentLaunchCommands.ResolveInitialInput(request.AgentLaunch);
         var followUpInput = TerminalAgentLaunchCommands.ResolveFollowUpInput(request.AgentLaunch);
+        string? cwd = null;
+        if (request.WorkingDirectoryId is { } workingDirectoryId)
+        {
+            var directory = context.WorkingDirectories
+                .FirstOrDefault(item => item.Id == workingDirectoryId && item.OwnerId == currentUser.UserId);
+
+            if (directory is null)
+            {
+                throw new NotFoundException("Working directory was not found.");
+            }
+
+            cwd = directory.AbsolutePath;
+        }
 
         return terminalCoordinator.CreateGenericAsync(
             currentUser.UserId,
-            cwd: null,
+            cwd,
             request.Shell ?? string.Empty,
             initialInput,
             cancellationToken,

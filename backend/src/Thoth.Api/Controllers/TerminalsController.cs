@@ -87,7 +87,7 @@ public sealed class TerminalsController(
         }
 
         var result = await sender.Send(
-            new CreateGenericTerminalSessionCommand(request.Shell, agentLaunch),
+            new CreateGenericTerminalSessionCommand(request.Shell, agentLaunch, request.WorkingDirectoryId),
             cancellationToken);
         return CreatedAtAction(nameof(ListGeneric), result);
     }
@@ -117,6 +117,10 @@ public sealed class TerminalsController(
     }
 }
 
-public sealed record CreateTerminalRequest(string? Shell, string? AgentLaunch, bool? SubmitPrompt = null);
+public sealed record CreateTerminalRequest(
+    string? Shell,
+    string? AgentLaunch,
+    bool? SubmitPrompt = null,
+    Guid? WorkingDirectoryId = null);
 
 public sealed record TerminalCapabilitiesResponse(bool Enabled);

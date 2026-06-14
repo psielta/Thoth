@@ -6,7 +6,9 @@ import { getErrorMessage } from '@/api/client'
 import { queryKeys } from '@/api/query-keys'
 import type { GenericTerminalSession, TerminalAgentLaunch } from '@/api/schemas'
 import { closeTerminal, createGenericTerminal, listGenericTerminals } from '@/api/terminals'
+import { listWorkingDirectories } from '@/api/working-directories'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import { TerminalAgentMenu } from '@/features/prompts/terminal-agent-menu'
 import {
   TERMINAL_FONT_SIZE_DEFAULT,
@@ -29,11 +31,12 @@ const GENERIC_TERMINAL_PREFS_SCOPE = 'generic'
 /**
  * Tab-based terminal surface for generic (promptless) terminals. Mirrors the
  * prompt TerminalsPanel but talks to the generic endpoints; the shell opens in
- * a default directory and the user navigates with `cd`.
+ * the selected workspace, or in the configured default directory when none is selected.
  */
 export function GenericTerminalsPanel() {
   const queryClient = useQueryClient()
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('')
   const [storedFontSize, setStoredFontSize] = useLocalStorage(
     TERMINAL_FONT_SIZE_STORAGE_KEY,
     String(TERMINAL_FONT_SIZE_DEFAULT),
@@ -51,8 +54,15 @@ export function GenericTerminalsPanel() {
     queryKey: queryKeys.terminals.generic(),
     queryFn: listGenericTerminals,
   })
+  const workspacesQuery = useQuery({
+    queryKey: queryKeys.workingDirectories.all,
+    queryFn: listWorkingDirectories,
+  })
 
   const sessions = useMemo(() => terminalsQuery.data ?? [], [terminalsQuery.data])
+  const workspaces = workspacesQuery.data ?? []
+  const selectedWorkspaceExists = workspaces.some((workspace) => workspace.id === selectedWorkspaceId)
+  const terminalWorkingDirectoryId = selectedWorkspaceExists ? selectedWorkspaceId : undefined
   const sessionIds = useMemo(() => sessions.map((session) => session.id), [sessions])
   const { preferences, setSessionPreference, removeSessionPreference } = useTerminalTabPreferences(
     GENERIC_TERMINAL_PREFS_SCOPE,
@@ -100,15 +110,20 @@ export function GenericTerminalsPanel() {
   )
 
   const createMutation = useMutation({
-    mutationFn: (agentLaunch?: TerminalAgentLaunch) => createGenericTerminal({ agentLaunch }),
-    onSuccess: (session, agentLaunch) => {
+    mutationFn: (input: { agentLaunch?: TerminalAgentLaunch; workingDirectoryId?: string }) =>
+      createGenericTerminal(input),
+    onSuccess: (session, input) => {
       handleCreateSuccess(session)
-      if (agentLaunch) {
-        setSessionPreference(session.id, defaultPreferenceForAgent(agentLaunch))
+      if (input.agentLaunch) {
+        setSessionPreference(session.id, defaultPreferenceForAgent(input.agentLaunch))
       }
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   })
+
+  const createTerminal = (agentLaunch?: TerminalAgentLaunch) => {
+    createMutation.mutate({ agentLaunch, workingDirectoryId: terminalWorkingDirectoryId })
+  }
 
   const removeSession = useCallback(
     (sessionId: string) => {
@@ -136,12 +151,27 @@ export function GenericTerminalsPanel() {
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
+        <Select
+          className="h-8 w-full sm:w-64"
+          value={selectedWorkspaceExists ? selectedWorkspaceId : ''}
+          onChange={(event) => setSelectedWorkspaceId(event.target.value)}
+          disabled={workspacesQuery.isLoading || createMutation.isPending}
+          aria-label="Workspace inicial do terminal"
+          title="Workspace inicial do terminal"
+        >
+          <option value="">Diretorio padrao</option>
+          {workspaces.map((workspace) => (
+            <option key={workspace.id} value={workspace.id}>
+              {workspace.name}
+            </option>
+          ))}
+        </Select>
         <div className="inline-flex items-stretch">
           <Button
             type="button"
             size="sm"
             className="rounded-r-none"
-            onClick={() => createMutation.mutate(undefined)}
+            onClick={() => createTerminal()}
             disabled={createMutation.isPending}
           >
             <Plus className="h-4 w-4" />
@@ -150,7 +180,7 @@ export function GenericTerminalsPanel() {
           <TerminalAgentMenu
             disabled={createMutation.isPending}
             hidePlan
-            onSelectAgent={(agent) => createMutation.mutate(agent)}
+            onSelectAgent={createTerminal}
           />
         </div>
         {activeSession ? (
@@ -163,7 +193,7 @@ export function GenericTerminalsPanel() {
         ) : null}
         {sessions.length === 0 ? (
           <span className="text-sm text-muted-foreground">
-            Nenhum terminal aberto. Use &quot;cd&quot; para navegar onde quiser.
+            Nenhum terminal aberto. Escolha um workspace ou use &quot;cd&quot; para navegar onde quiser.
           </span>
         ) : (
           sessions.map((session, index) => {

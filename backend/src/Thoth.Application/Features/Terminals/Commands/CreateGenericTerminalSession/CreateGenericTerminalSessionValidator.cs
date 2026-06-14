@@ -12,5 +12,8 @@ public sealed class CreateGenericTerminalSessionValidator : AbstractValidator<Cr
         RuleFor(command => command.AgentLaunch)
             .IsInEnum()
             .When(command => command.AgentLaunch.HasValue);
+        RuleFor(command => command.WorkingDirectoryId)
+            .NotEqual(Guid.Empty)
+            .When(command => command.WorkingDirectoryId.HasValue);
     }
 }

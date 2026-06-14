@@ -4,14 +4,18 @@ using Thoth.Application.Common.Interfaces;
 using Thoth.Application.Common.Models;
 using Thoth.Application.Features.Prompts;
 using Thoth.Application.Features.Terminals;
+using Thoth.Application.Features.Workflow;
 using Thoth.Domain.Prompts;
+using Thoth.Domain.Workflows;
 
 namespace Thoth.Application.Features.Terminals.Commands.CreateTerminalSession;
 
 public sealed class CreateTerminalSessionHandler(
     IApplicationDbContext context,
     ICurrentUser currentUser,
-    ITerminalSessionCoordinator terminalCoordinator)
+    ITerminalSessionCoordinator terminalCoordinator,
+    IWorkflowNotifier workflowNotifier,
+    IDateTimeProvider dateTimeProvider)
     : IRequestHandler<CreateTerminalSessionCommand, TerminalSessionDescriptor>
 {
     public async Task<TerminalSessionDescriptor> Handle(
@@ -34,13 +38,76 @@ public sealed class CreateTerminalSessionHandler(
             promptContent,
             request.SubmitPrompt);
 
-        return await terminalCoordinator.CreateAsync(
+        var descriptor = await terminalCoordinator.CreateAsync(
             prompt.Id,
             directory.AbsolutePath,
             request.Shell ?? string.Empty,
             initialInput,
             cancellationToken,
             followUpInput);
+
+        try
+        {
+            await TryEnterPlanModeAsync(prompt, request.AgentLaunch, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // Opening the terminal is the primary action; workflow sync is best-effort.
+        }
+
+        return descriptor;
+    }
+
+    private async Task TryEnterPlanModeAsync(
+        Prompt prompt,
+        TerminalAgentLaunch? agentLaunch,
+        CancellationToken cancellationToken)
+    {
+        if (agentLaunch != TerminalAgentLaunch.ClaudePlan || prompt.ParentPromptId is not null)
+        {
+            return;
+        }
+
+        var workflow = context.PromptWorkflows.FirstOrDefault(item => item.PromptId == prompt.Id);
+        if (workflow is null || workflow.Status != PromptWorkflowStatus.Active)
+        {
+            return;
+        }
+
+        var phases = WorkflowMutationHelpers.LoadPhases(context, workflow.Id);
+        var planning = phases.FirstOrDefault(phase => phase.Role == WorkflowPhaseRole.Planning)
+            ?? phases.FirstOrDefault(phase =>
+                !phase.Role.HasValue &&
+                WorkflowDefaults.ResolveRoleByName(phase.Name) == WorkflowPhaseRole.Planning);
+        if (planning is null)
+        {
+            return;
+        }
+
+        var current = phases.FirstOrDefault(phase => phase.Id == workflow.CurrentPhaseId);
+        if (current is not null && current.OrderIndex >= planning.OrderIndex)
+        {
+            return;
+        }
+
+        planning.Role ??= WorkflowPhaseRole.Planning;
+        var now = dateTimeProvider.UtcNow;
+        WorkflowMutationHelpers.EnterPhase(workflow, planning, planning.DefaultActor, now);
+        WorkflowMutationHelpers.AppendEvent(
+            context,
+            workflow,
+            WorkflowEventType.PhaseChanged,
+            planning,
+            planning.DefaultActor,
+            "Plan mode iniciado",
+            now);
+
+        await context.SaveChangesAsync(cancellationToken);
+        await workflowNotifier.TaskWorkflowChangedAsync(TaskSummaryFactory.Build(context, prompt, workflow), cancellationToken);
     }
 
     private static Domain.WorkingDirectories.WorkingDirectory ResolveWorkspaceDirectory(

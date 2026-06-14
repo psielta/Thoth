@@ -15,6 +15,7 @@ import { OpenVsCodeButton } from '@/features/workspaces/open-vscode-button'
 import { ActorBadge, PhaseBadge } from './badges'
 import {
   APPROVE_ADVANCE_BY_ROLE,
+  BOARD_PHASE_LABEL_BY_ROLE,
   IMPLEMENTATION_TEMPLATE_KEYS,
   IMPLEMENTATION_REVIEW_ACTION,
   PLANNING_REVIEW_ACTION,
@@ -68,6 +69,7 @@ export function TaskCard({
 
   const currentPhase = task.phases.find((phase) => phase.id === task.currentPhaseId)
   const currentRole = currentPhase?.role ?? null
+  const phaseBadgeName = currentRole ? BOARD_PHASE_LABEL_BY_ROLE[currentRole] ?? task.currentPhaseName : task.currentPhaseName
   const reReviewKey = currentRole ? RE_REVIEW_TEMPLATE_BY_ROLE[currentRole] : undefined
   const approveTarget = currentRole ? APPROVE_ADVANCE_BY_ROLE[currentRole] : undefined
   const planReviewAction = currentRole === 'Planning' ? PLANNING_REVIEW_ACTION : undefined
@@ -247,7 +249,7 @@ export function TaskCard({
 
       <div className="flex flex-wrap items-center gap-1.5">
         {task.currentPhaseName ? (
-          <PhaseBadge name={task.currentPhaseName} color={task.currentPhaseColor} />
+          <PhaseBadge name={phaseBadgeName ?? task.currentPhaseName} color={task.currentPhaseColor} />
         ) : (
           <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">Fluxo não iniciado</span>
         )}

@@ -183,6 +183,29 @@ describe('TaskCard', () => {
     expect(screen.getByRole('button', { name: /abrir detalhes do prompt/i })).toBeInTheDocument()
   })
 
+  it('labels the Planning phase badge as plan mode started on the board', () => {
+    renderCard(null)
+
+    expect(screen.getByText('Plan mode iniciado')).toBeInTheDocument()
+    expect(screen.queryByText('Planejamento')).not.toBeInTheDocument()
+
+    cleanup()
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    const implementationTask: TaskSummary = {
+      ...makeTask(null),
+      currentPhaseId: 'phase-2',
+      currentPhaseName: 'Implementacao',
+    }
+    render(
+      <QueryClientProvider client={client}>
+        <TaskCard task={implementationTask} />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getByText('Implementacao')).toBeInTheDocument()
+  })
+
   it('shows a re-review badge only after the first phase iteration', () => {
     renderCard(null, 2)
 

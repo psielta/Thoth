@@ -6,6 +6,7 @@ using Thoth.Application.Features.Terminals.Commands.CreateTerminalSession;
 using Thoth.Domain.Prompts;
 using Thoth.Domain.Users;
 using Thoth.Domain.WorkingDirectories;
+using Thoth.Domain.Workflows;
 
 namespace Thoth.Application.UnitTests;
 
@@ -21,7 +22,7 @@ public sealed class CreateTerminalSessionHandlerTests
         var childPrompt = SeedPrompt(context, childDirectory.Id, parentPrompt.Id);
 
         var coordinator = new RecordingTerminalCoordinator();
-        var handler = new CreateTerminalSessionHandler(context, new FakeCurrentUser(), coordinator);
+        var handler = CreateHandler(context, coordinator);
 
         await handler.Handle(new CreateTerminalSessionCommand(childPrompt.Id, null, null), CancellationToken.None);
 
@@ -38,7 +39,7 @@ public sealed class CreateTerminalSessionHandlerTests
         var prompt = SeedPrompt(context, directory.Id, parentPromptId: null);
 
         var coordinator = new RecordingTerminalCoordinator();
-        var handler = new CreateTerminalSessionHandler(context, new FakeCurrentUser(), coordinator);
+        var handler = CreateHandler(context, coordinator);
 
         await handler.Handle(
             new CreateTerminalSessionCommand(prompt.Id, null, TerminalAgentLaunch.Claude),
@@ -57,7 +58,7 @@ public sealed class CreateTerminalSessionHandlerTests
         var prompt = SeedPrompt(context, directory.Id, parentPromptId: null, content: "Planeje @arquivo.md com café");
 
         var coordinator = new RecordingTerminalCoordinator();
-        var handler = new CreateTerminalSessionHandler(context, new FakeCurrentUser(), coordinator);
+        var handler = CreateHandler(context, coordinator);
 
         await handler.Handle(
             new CreateTerminalSessionCommand(prompt.Id, null, TerminalAgentLaunch.ClaudePlan),
@@ -81,7 +82,7 @@ public sealed class CreateTerminalSessionHandlerTests
         var prompt = SeedPrompt(context, directory.Id, parentPromptId: null);
 
         var coordinator = new RecordingTerminalCoordinator();
-        var handler = new CreateTerminalSessionHandler(context, new FakeCurrentUser(), coordinator);
+        var handler = CreateHandler(context, coordinator);
 
         await handler.Handle(new CreateTerminalSessionCommand(prompt.Id, "powershell.exe", null), CancellationToken.None);
 
@@ -90,6 +91,125 @@ public sealed class CreateTerminalSessionHandlerTests
         coordinator.LastCreate.Value.Cwd.Should().Be(directory.AbsolutePath);
         coordinator.LastCreate.Value.Shell.Should().Be("powershell.exe");
     }
+
+    [Fact]
+    public async Task ClaudePlan_for_root_prompt_enters_planning_and_notifies_board()
+    {
+        var context = new FakeApplicationDbContext();
+        var directory = SeedWorkingDirectory(context, "D:/repo");
+        var prompt = SeedPrompt(context, directory.Id, parentPromptId: null);
+        var workflow = SeedWorkflow(context, prompt, WorkflowPhaseRole.PromptEngineering);
+        var coordinator = new RecordingTerminalCoordinator();
+        var notifier = new RecordingWorkflowNotifier();
+        var handler = CreateHandler(context, coordinator, notifier);
+
+        await handler.Handle(
+            new CreateTerminalSessionCommand(prompt.Id, null, TerminalAgentLaunch.ClaudePlan),
+            CancellationToken.None);
+
+        workflow.CurrentPhaseName.Should().Be("Planejamento");
+        workflow.CurrentActor.Should().Be(WorkflowActor.ClaudeCode);
+        context.PromptWorkflowEventItems.Should().ContainSingle(@event =>
+            @event.Type == WorkflowEventType.PhaseChanged &&
+            @event.Note == "Plan mode iniciado" &&
+            @event.PhaseNameSnapshot == "Planejamento");
+        notifier.Changes.Should().ContainSingle(summary =>
+            summary.PromptId == prompt.Id &&
+            summary.CurrentPhaseName == "Planejamento" &&
+            summary.CurrentActor == WorkflowActor.ClaudeCode);
+    }
+
+    [Fact]
+    public async Task Non_plan_launch_does_not_change_workflow()
+    {
+        var context = new FakeApplicationDbContext();
+        var directory = SeedWorkingDirectory(context, "D:/repo");
+        var prompt = SeedPrompt(context, directory.Id, parentPromptId: null);
+        var workflow = SeedWorkflow(context, prompt, WorkflowPhaseRole.PromptEngineering);
+        var coordinator = new RecordingTerminalCoordinator();
+        var notifier = new RecordingWorkflowNotifier();
+        var handler = CreateHandler(context, coordinator, notifier);
+
+        await handler.Handle(
+            new CreateTerminalSessionCommand(prompt.Id, null, TerminalAgentLaunch.Claude),
+            CancellationToken.None);
+
+        workflow.CurrentPhaseName.Should().Be("Engenharia de prompt");
+        context.PromptWorkflowEventItems.Should().BeEmpty();
+        notifier.Changes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ClaudePlan_does_not_regress_workflows_already_past_planning()
+    {
+        var context = new FakeApplicationDbContext();
+        var directory = SeedWorkingDirectory(context, "D:/repo");
+        var prompt = SeedPrompt(context, directory.Id, parentPromptId: null);
+        var workflow = SeedWorkflow(context, prompt, WorkflowPhaseRole.PlanReview);
+        var coordinator = new RecordingTerminalCoordinator();
+        var notifier = new RecordingWorkflowNotifier();
+        var handler = CreateHandler(context, coordinator, notifier);
+
+        await handler.Handle(
+            new CreateTerminalSessionCommand(prompt.Id, null, TerminalAgentLaunch.ClaudePlan),
+            CancellationToken.None);
+
+        workflow.CurrentPhaseName.Should().Be(
+            WorkflowDefaults.Phases.Single(phase => phase.Role == WorkflowPhaseRole.PlanReview).Name);
+        context.PromptWorkflowEventItems.Should().BeEmpty();
+        notifier.Changes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ClaudePlan_for_child_prompt_does_not_change_parent_workflow()
+    {
+        var context = new FakeApplicationDbContext();
+        var directory = SeedWorkingDirectory(context, "D:/repo");
+        var parent = SeedPrompt(context, directory.Id, parentPromptId: null);
+        var child = SeedPrompt(context, directory.Id, parent.Id);
+        var workflow = SeedWorkflow(context, parent, WorkflowPhaseRole.PromptEngineering);
+        var coordinator = new RecordingTerminalCoordinator();
+        var notifier = new RecordingWorkflowNotifier();
+        var handler = CreateHandler(context, coordinator, notifier);
+
+        await handler.Handle(
+            new CreateTerminalSessionCommand(child.Id, null, TerminalAgentLaunch.ClaudePlan),
+            CancellationToken.None);
+
+        workflow.CurrentPhaseName.Should().Be("Engenharia de prompt");
+        context.PromptWorkflowEventItems.Should().BeEmpty();
+        notifier.Changes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Workflow_update_failure_does_not_block_terminal_creation()
+    {
+        var context = new FakeApplicationDbContext { ThrowOnSave = true };
+        var directory = SeedWorkingDirectory(context, "D:/repo");
+        var prompt = SeedPrompt(context, directory.Id, parentPromptId: null);
+        SeedWorkflow(context, prompt, WorkflowPhaseRole.PromptEngineering);
+        var coordinator = new RecordingTerminalCoordinator();
+        var handler = CreateHandler(context, coordinator);
+
+        var descriptor = await handler.Handle(
+            new CreateTerminalSessionCommand(prompt.Id, null, TerminalAgentLaunch.ClaudePlan),
+            CancellationToken.None);
+
+        descriptor.PromptId.Should().Be(prompt.Id);
+        coordinator.LastCreate.Should().NotBeNull();
+    }
+
+    private static CreateTerminalSessionHandler CreateHandler(
+        FakeApplicationDbContext context,
+        RecordingTerminalCoordinator coordinator,
+        RecordingWorkflowNotifier? notifier = null,
+        FakeClock? clock = null) =>
+        new(
+            context,
+            new FakeCurrentUser(),
+            coordinator,
+            notifier ?? new RecordingWorkflowNotifier(),
+            clock ?? new FakeClock());
 
     private static WorkingDirectory SeedWorkingDirectory(FakeApplicationDbContext context, string absolutePath)
     {
@@ -129,6 +249,47 @@ public sealed class CreateTerminalSessionHandlerTests
         return prompt;
     }
 
+    private static PromptWorkflow SeedWorkflow(
+        FakeApplicationDbContext context,
+        Prompt prompt,
+        WorkflowPhaseRole currentRole)
+    {
+        var now = new DateTimeOffset(2026, 6, 1, 12, 0, 0, TimeSpan.Zero);
+        var workflow = new PromptWorkflow
+        {
+            Id = Guid.CreateVersion7(),
+            PromptId = prompt.Id,
+            Status = PromptWorkflowStatus.Active,
+            StartedAtUtc = now,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
+        };
+
+        var phases = WorkflowDefaults.Phases
+            .Select((seed, index) => new PromptWorkflowPhase
+            {
+                Id = Guid.CreateVersion7(),
+                PromptWorkflowId = workflow.Id,
+                Name = seed.Name,
+                DefaultActor = seed.DefaultActor,
+                OrderIndex = index,
+                Color = seed.Color,
+                Role = seed.Role
+            })
+            .ToList();
+        var current = phases.Single(phase => phase.Role == currentRole);
+        workflow.CurrentPhaseId = current.Id;
+        workflow.CurrentPhaseName = current.Name;
+        workflow.CurrentPhaseColor = current.Color;
+        workflow.CurrentActor = current.DefaultActor;
+        workflow.CurrentPhaseIteration = 1;
+        workflow.EnteredCurrentPhaseAtUtc = now;
+
+        context.PromptWorkflowItems.Add(workflow);
+        context.PromptWorkflowPhaseItems.AddRange(phases);
+        return workflow;
+    }
+
     private sealed class FakeApplicationDbContext : IApplicationDbContext
     {
         public List<User> UserItems { get; } = new();
@@ -138,6 +299,12 @@ public sealed class CreateTerminalSessionHandlerTests
         public List<PromptFileReference> PromptFileReferenceItems { get; } = new();
         public List<LinkedDocument> LinkedDocumentItems { get; } = new();
         public List<LinkedDocumentVersion> LinkedDocumentVersionItems { get; } = new();
+        public List<WorkflowTemplate> WorkflowTemplateItems { get; } = new();
+        public List<WorkflowTemplatePhase> WorkflowTemplatePhaseItems { get; } = new();
+        public List<PromptWorkflow> PromptWorkflowItems { get; } = new();
+        public List<PromptWorkflowPhase> PromptWorkflowPhaseItems { get; } = new();
+        public List<PromptWorkflowEvent> PromptWorkflowEventItems { get; } = new();
+        public bool ThrowOnSave { get; init; }
 
         public IQueryable<User> Users => UserItems.AsQueryable();
         public IQueryable<WorkingDirectory> WorkingDirectories => WorkingDirectoryItems.AsQueryable();
@@ -148,11 +315,11 @@ public sealed class CreateTerminalSessionHandlerTests
         public IQueryable<PromptFileReference> PromptFileReferences => PromptFileReferenceItems.AsQueryable();
         public IQueryable<LinkedDocument> LinkedDocuments => LinkedDocumentItems.AsQueryable();
         public IQueryable<LinkedDocumentVersion> LinkedDocumentVersions => LinkedDocumentVersionItems.AsQueryable();
-        public IQueryable<Thoth.Domain.Workflows.WorkflowTemplate> WorkflowTemplates => Enumerable.Empty<Thoth.Domain.Workflows.WorkflowTemplate>().AsQueryable();
-        public IQueryable<Thoth.Domain.Workflows.WorkflowTemplatePhase> WorkflowTemplatePhases => Enumerable.Empty<Thoth.Domain.Workflows.WorkflowTemplatePhase>().AsQueryable();
-        public IQueryable<Thoth.Domain.Workflows.PromptWorkflow> PromptWorkflows => Enumerable.Empty<Thoth.Domain.Workflows.PromptWorkflow>().AsQueryable();
-        public IQueryable<Thoth.Domain.Workflows.PromptWorkflowPhase> PromptWorkflowPhases => Enumerable.Empty<Thoth.Domain.Workflows.PromptWorkflowPhase>().AsQueryable();
-        public IQueryable<Thoth.Domain.Workflows.PromptWorkflowEvent> PromptWorkflowEvents => Enumerable.Empty<Thoth.Domain.Workflows.PromptWorkflowEvent>().AsQueryable();
+        public IQueryable<WorkflowTemplate> WorkflowTemplates => WorkflowTemplateItems.AsQueryable();
+        public IQueryable<WorkflowTemplatePhase> WorkflowTemplatePhases => WorkflowTemplatePhaseItems.AsQueryable();
+        public IQueryable<PromptWorkflow> PromptWorkflows => PromptWorkflowItems.AsQueryable();
+        public IQueryable<PromptWorkflowPhase> PromptWorkflowPhases => PromptWorkflowPhaseItems.AsQueryable();
+        public IQueryable<PromptWorkflowEvent> PromptWorkflowEvents => PromptWorkflowEventItems.AsQueryable();
         public IQueryable<Thoth.Domain.Ai.AiChatSession> AiChatSessions => Enumerable.Empty<Thoth.Domain.Ai.AiChatSession>().AsQueryable();
         public IQueryable<Thoth.Domain.Ai.AiChatMessage> AiChatMessages => Enumerable.Empty<Thoth.Domain.Ai.AiChatMessage>().AsQueryable();
         public IQueryable<Thoth.Domain.Ai.AiUserSettings> AiUserSettings => Enumerable.Empty<Thoth.Domain.Ai.AiUserSettings>().AsQueryable();
@@ -160,28 +327,87 @@ public sealed class CreateTerminalSessionHandlerTests
         public IQueryable<Thoth.Domain.Notebooks.Note> Notes => Enumerable.Empty<Thoth.Domain.Notebooks.Note>().AsQueryable();
         public IQueryable<Thoth.Domain.Diagrams.Diagram> Diagrams => Enumerable.Empty<Thoth.Domain.Diagrams.Diagram>().AsQueryable();
 
-        public void Add<TEntity>(TEntity entity) where TEntity : class
-        {
-        }
+        public void Add<TEntity>(TEntity entity) where TEntity : class => Route(entity, add: true);
 
         public void AddRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class
         {
+            foreach (var entity in entities)
+            {
+                Route(entity, add: true);
+            }
         }
 
-        public void Remove<TEntity>(TEntity entity) where TEntity : class
-        {
-        }
+        public void Remove<TEntity>(TEntity entity) where TEntity : class => Route(entity, add: false);
 
         public void RemoveRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class
         {
+            foreach (var entity in entities.ToList())
+            {
+                Route(entity, add: false);
+            }
         }
 
-        public Task<int> SaveChangesAsync(CancellationToken cancellationToken) => Task.FromResult(0);
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            if (ThrowOnSave)
+            {
+                throw new InvalidOperationException("Save failed.");
+            }
+
+            return Task.FromResult(1);
+        }
+
+        private void Route<TEntity>(TEntity entity, bool add) where TEntity : class
+        {
+            switch (entity)
+            {
+                case User item: Apply(UserItems, item, add); break;
+                case WorkingDirectory item: Apply(WorkingDirectoryItems, item, add); break;
+                case Prompt item: Apply(PromptItems, item, add); break;
+                case PromptVersion item: Apply(PromptVersionItems, item, add); break;
+                case PromptFileReference item: Apply(PromptFileReferenceItems, item, add); break;
+                case LinkedDocument item: Apply(LinkedDocumentItems, item, add); break;
+                case LinkedDocumentVersion item: Apply(LinkedDocumentVersionItems, item, add); break;
+                case WorkflowTemplate item: Apply(WorkflowTemplateItems, item, add); break;
+                case WorkflowTemplatePhase item: Apply(WorkflowTemplatePhaseItems, item, add); break;
+                case PromptWorkflow item: Apply(PromptWorkflowItems, item, add); break;
+                case PromptWorkflowPhase item: Apply(PromptWorkflowPhaseItems, item, add); break;
+                case PromptWorkflowEvent item: Apply(PromptWorkflowEventItems, item, add); break;
+            }
+        }
+
+        private static void Apply<T>(List<T> list, T entity, bool add)
+        {
+            if (add)
+            {
+                list.Add(entity);
+            }
+            else
+            {
+                list.Remove(entity);
+            }
+        }
     }
 
     private sealed class FakeCurrentUser : ICurrentUser
     {
         public Guid UserId => User.SystemUserId;
+    }
+
+    private sealed class FakeClock : IDateTimeProvider
+    {
+        public DateTimeOffset UtcNow => new(2026, 6, 1, 12, 30, 0, TimeSpan.Zero);
+    }
+
+    private sealed class RecordingWorkflowNotifier : IWorkflowNotifier
+    {
+        public List<TaskSummaryDto> Changes { get; } = new();
+
+        public Task TaskWorkflowChangedAsync(TaskSummaryDto summary, CancellationToken cancellationToken)
+        {
+            Changes.Add(summary);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class RecordingTerminalCoordinator : ITerminalSessionCoordinator

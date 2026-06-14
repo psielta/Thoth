@@ -43,6 +43,10 @@ export const REVIEW_TARGET_LABEL = {
   CodeReview: 'Correção da revisão',
 } satisfies Partial<Record<WorkflowPhaseRole, string>>
 
+export const BOARD_PHASE_LABEL_BY_ROLE: Partial<Record<WorkflowPhaseRole, string>> = {
+  Planning: 'Plan mode iniciado',
+}
+
 export function isReviewPhaseRole(role: WorkflowPhaseRole | null | undefined): role is 'PlanReview' | 'CodeReview' {
   return role === 'PlanReview' || role === 'CodeReview'
 }

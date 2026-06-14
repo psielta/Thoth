@@ -1,107 +1,38 @@
 using FluentAssertions;
+using Thoth.Application.Common.Exceptions;
 using Thoth.Application.Common.Interfaces;
 using Thoth.Application.Common.Models;
-using Thoth.Application.Features.Terminals.Queries.ListAllTerminalSessions;
+using Thoth.Application.Features.Terminals.Queries.ListTerminalSessions;
 using Thoth.Domain.Prompts;
 using Thoth.Domain.Users;
 using Thoth.Domain.WorkingDirectories;
 
 namespace Thoth.Application.UnitTests;
 
-public sealed class ListAllTerminalSessionsHandlerTests
+public sealed class ListTerminalSessionsHandlerTests
 {
     private static readonly Guid OtherOwnerId = Guid.CreateVersion7();
 
     [Fact]
-    public async Task Handle_returns_only_prompts_owned_by_current_user()
+    public async Task Handle_returns_only_own_terminals_when_prompt_has_no_children()
     {
         var context = new FakeApplicationDbContext();
         var directory = SeedWorkingDirectory(context, "repo");
-        var ownedPrompt = SeedPrompt(context, directory.Id, User.SystemUserId);
-        var foreignPrompt = SeedPrompt(context, directory.Id, OtherOwnerId);
-
-        var coordinator = new StubTerminalCoordinator(
-            Descriptor(ownedPrompt.Id, At(10)),
-            Descriptor(foreignPrompt.Id, At(11)));
-        var handler = new ListAllTerminalSessionsHandler(context, new FakeCurrentUser(), coordinator);
-
-        var result = await handler.Handle(new ListAllTerminalSessionsQuery(), CancellationToken.None);
-
-        result.Should().ContainSingle();
-        result[0].PromptId.Should().Be(ownedPrompt.Id);
-    }
-
-    [Fact]
-    public async Task Handle_groups_sessions_by_prompt_ordered_by_creation()
-    {
-        var context = new FakeApplicationDbContext();
-        var directory = SeedWorkingDirectory(context, "repo");
-        var promptA = SeedPrompt(context, directory.Id, User.SystemUserId);
-        var promptB = SeedPrompt(context, directory.Id, User.SystemUserId);
-
-        var olderA = Descriptor(promptA.Id, At(9));
-        var newerA = Descriptor(promptA.Id, At(12));
-        var onlyB = Descriptor(promptB.Id, At(10));
-        var coordinator = new StubTerminalCoordinator(newerA, onlyB, olderA);
-        var handler = new ListAllTerminalSessionsHandler(context, new FakeCurrentUser(), coordinator);
-
-        var result = await handler.Handle(new ListAllTerminalSessionsQuery(), CancellationToken.None);
-
-        result.Should().HaveCount(2);
-        result.Single(group => group.PromptId == promptA.Id).Terminals
-            .Select(terminal => terminal.Id).Should().ContainInOrder(olderA.Id, newerA.Id);
-        result.Single(group => group.PromptId == promptB.Id).Terminals.Should().ContainSingle();
-    }
-
-    [Fact]
-    public async Task Handle_projects_prompt_and_workspace_metadata()
-    {
-        var context = new FakeApplicationDbContext();
-        var directory = SeedWorkingDirectory(context, "my-repo");
-        var prompt = SeedPrompt(
-            context,
-            directory.Id,
-            User.SystemUserId,
-            status: PromptStatus.Archived,
-            title: "Refatorar auth");
+        var prompt = SeedPrompt(context, directory.Id, User.SystemUserId);
 
         var coordinator = new StubTerminalCoordinator(Descriptor(prompt.Id, At(10)));
-        var handler = new ListAllTerminalSessionsHandler(context, new FakeCurrentUser(), coordinator);
+        var handler = new ListTerminalSessionsHandler(context, new FakeCurrentUser(), coordinator);
 
-        var result = await handler.Handle(new ListAllTerminalSessionsQuery(), CancellationToken.None);
+        var result = await handler.Handle(new ListTerminalSessionsQuery(prompt.Id), CancellationToken.None);
 
-        var group = result.Should().ContainSingle().Subject;
-        group.PromptTitle.Should().Be("Refatorar auth");
-        group.WorkingDirectoryId.Should().Be(directory.Id);
-        group.WorkingDirectoryName.Should().Be("my-repo");
-        group.IsArchived.Should().BeTrue();
+        var terminal = result.Should().ContainSingle().Subject;
+        terminal.PromptId.Should().Be(prompt.Id);
+        terminal.IsChild.Should().BeFalse();
+        terminal.OwnerPromptTitle.Should().BeNull();
     }
 
     [Fact]
-    public async Task Handle_returns_empty_when_no_sessions()
-    {
-        var context = new FakeApplicationDbContext();
-        var handler = new ListAllTerminalSessionsHandler(context, new FakeCurrentUser(), new StubTerminalCoordinator());
-
-        var result = await handler.Handle(new ListAllTerminalSessionsQuery(), CancellationToken.None);
-
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task Handle_drops_sessions_whose_prompt_is_missing()
-    {
-        var context = new FakeApplicationDbContext();
-        var coordinator = new StubTerminalCoordinator(Descriptor(Guid.CreateVersion7(), At(10)));
-        var handler = new ListAllTerminalSessionsHandler(context, new FakeCurrentUser(), coordinator);
-
-        var result = await handler.Handle(new ListAllTerminalSessionsQuery(), CancellationToken.None);
-
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task Handle_groups_child_terminals_under_the_parent_prompt()
+    public async Task Handle_includes_child_terminals_marked_as_child()
     {
         var context = new FakeApplicationDbContext();
         var directory = SeedWorkingDirectory(context, "repo");
@@ -113,61 +44,51 @@ public sealed class ListAllTerminalSessionsHandlerTests
             title: "Revisar PR #42",
             parentPromptId: parent.Id);
 
-        var coordinator = new StubTerminalCoordinator(Descriptor(child.Id, At(10)));
-        var handler = new ListAllTerminalSessionsHandler(context, new FakeCurrentUser(), coordinator);
+        var coordinator = new StubTerminalCoordinator(
+            Descriptor(parent.Id, At(9)),
+            Descriptor(child.Id, At(11)));
+        var handler = new ListTerminalSessionsHandler(context, new FakeCurrentUser(), coordinator);
 
-        var result = await handler.Handle(new ListAllTerminalSessionsQuery(), CancellationToken.None);
+        var result = await handler.Handle(new ListTerminalSessionsQuery(parent.Id), CancellationToken.None);
 
-        var group = result.Should().ContainSingle().Subject;
-        group.PromptId.Should().Be(parent.Id);
-        group.PromptTitle.Should().Be("Plano X");
-        var terminal = group.Terminals.Should().ContainSingle().Subject;
-        terminal.IsChild.Should().BeTrue();
-        terminal.OwnerPromptTitle.Should().Be("Revisar PR #42");
+        result.Should().HaveCount(2);
+        var childTerminal = result.Single(terminal => terminal.PromptId == child.Id);
+        childTerminal.IsChild.Should().BeTrue();
+        childTerminal.OwnerPromptTitle.Should().Be("Revisar PR #42");
+        result.Single(terminal => terminal.PromptId == parent.Id).IsChild.Should().BeFalse();
     }
 
     [Fact]
-    public async Task Handle_orders_parent_own_terminals_before_child_terminals()
+    public async Task Handle_orders_own_terminals_before_child_terminals()
     {
         var context = new FakeApplicationDbContext();
         var directory = SeedWorkingDirectory(context, "repo");
-        var parent = SeedPrompt(context, directory.Id, User.SystemUserId, title: "Plano X");
-        var child = SeedPrompt(context, directory.Id, User.SystemUserId, title: "Filho", parentPromptId: parent.Id);
+        var parent = SeedPrompt(context, directory.Id, User.SystemUserId);
+        var child = SeedPrompt(context, directory.Id, User.SystemUserId, parentPromptId: parent.Id);
 
         var childTerminal = Descriptor(child.Id, At(9)); // mais antigo
         var ownTerminal = Descriptor(parent.Id, At(12)); // mais novo
         var coordinator = new StubTerminalCoordinator(childTerminal, ownTerminal);
-        var handler = new ListAllTerminalSessionsHandler(context, new FakeCurrentUser(), coordinator);
+        var handler = new ListTerminalSessionsHandler(context, new FakeCurrentUser(), coordinator);
 
-        var result = await handler.Handle(new ListAllTerminalSessionsQuery(), CancellationToken.None);
+        var result = await handler.Handle(new ListTerminalSessionsQuery(parent.Id), CancellationToken.None);
 
-        var group = result.Should().ContainSingle().Subject;
-        group.Terminals.Select(terminal => terminal.Id)
-            .Should().ContainInOrder(ownTerminal.Id, childTerminal.Id);
-        group.Terminals.Single(terminal => terminal.Id == ownTerminal.Id).IsChild.Should().BeFalse();
-        group.Terminals.Single(terminal => terminal.Id == childTerminal.Id).IsChild.Should().BeTrue();
+        result.Select(terminal => terminal.Id).Should().ContainInOrder(ownTerminal.Id, childTerminal.Id);
     }
 
     [Fact]
-    public async Task Handle_drops_child_terminal_when_parent_is_not_owned_by_current_user()
+    public async Task Handle_throws_when_prompt_not_owned_by_current_user()
     {
         var context = new FakeApplicationDbContext();
         var directory = SeedWorkingDirectory(context, "repo");
-        var foreignParent = SeedPrompt(context, directory.Id, OtherOwnerId, title: "Plano alheio");
-        // Caso defensivo: filho do usuario atual cujo pai pertence a outro usuario.
-        var child = SeedPrompt(
-            context,
-            directory.Id,
-            User.SystemUserId,
-            title: "Filho",
-            parentPromptId: foreignParent.Id);
+        var foreignPrompt = SeedPrompt(context, directory.Id, OtherOwnerId);
 
-        var coordinator = new StubTerminalCoordinator(Descriptor(child.Id, At(10)));
-        var handler = new ListAllTerminalSessionsHandler(context, new FakeCurrentUser(), coordinator);
+        var coordinator = new StubTerminalCoordinator();
+        var handler = new ListTerminalSessionsHandler(context, new FakeCurrentUser(), coordinator);
 
-        var result = await handler.Handle(new ListAllTerminalSessionsQuery(), CancellationToken.None);
+        var act = () => handler.Handle(new ListTerminalSessionsQuery(foreignPrompt.Id), CancellationToken.None);
 
-        result.Should().BeEmpty();
+        await act.Should().ThrowAsync<NotFoundException>();
     }
 
     private static DateTimeOffset At(int hour) => new(2026, 6, 13, hour, 0, 0, TimeSpan.Zero);
@@ -262,7 +183,10 @@ public sealed class ListAllTerminalSessionsHandlerTests
         }
 
         public IReadOnlyList<TerminalSessionDescriptor> ListForPrompt(Guid promptId) =>
-            sessions.Where(session => session.PromptId == promptId).ToList();
+            sessions
+                .Where(session => session.PromptId == promptId)
+                .OrderBy(session => session.CreatedAtUtc)
+                .ToList();
 
         public IReadOnlyList<TerminalSessionDescriptor> ListAll() => sessions;
 

@@ -5,4 +5,8 @@ public sealed record TerminalSessionDescriptor(
     Guid? PromptId,
     string Shell,
     string Cwd,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    // Relativo a visao: true quando o terminal pertence a um prompt filho do prompt/grupo exibido.
+    bool IsChild = false,
+    // Titulo do prompt dono (o filho) quando IsChild; usado para o badge na UI.
+    string? OwnerPromptTitle = null);

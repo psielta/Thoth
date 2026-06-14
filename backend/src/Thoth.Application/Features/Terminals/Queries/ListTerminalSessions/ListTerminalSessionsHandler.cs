@@ -16,6 +16,24 @@ public sealed class ListTerminalSessionsHandler(
         CancellationToken cancellationToken)
     {
         _ = PromptMutationHelpers.GetPrompt(context, request.PromptId, currentUser.UserId);
-        return Task.FromResult(terminalCoordinator.ListForPrompt(request.PromptId));
+
+        // Terminais proprios do prompt (ja ordenados por CreatedAtUtc pelo coordinator).
+        var own = terminalCoordinator.ListForPrompt(request.PromptId);
+
+        // Terminais dos prompts filhos sao "promovidos" para a visao do pai, marcados como filho.
+        var children = context.Prompts
+            .Where(prompt => prompt.ParentPromptId == request.PromptId && prompt.OwnerId == currentUser.UserId)
+            .Select(prompt => new { prompt.Id, prompt.Title })
+            .ToList();
+
+        var childTerminals = children
+            .SelectMany(child => terminalCoordinator.ListForPrompt(child.Id)
+                .Select(descriptor => descriptor with { IsChild = true, OwnerPromptTitle = child.Title }))
+            .OrderBy(descriptor => descriptor.CreatedAtUtc)
+            .ToList();
+
+        // Proprios primeiro, depois os filhos: mantem estavel a numeracao "Terminal N" das abas do pai.
+        IReadOnlyList<TerminalSessionDescriptor> result = own.Concat(childTerminals).ToList();
+        return Task.FromResult(result);
     }
 }

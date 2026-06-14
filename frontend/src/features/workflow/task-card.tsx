@@ -32,6 +32,7 @@ type TaskCardProps = {
   dragging?: boolean
   moveDisabled?: boolean
   onDragStart?: (task: TaskSummary, event: DragEvent<HTMLDivElement>) => void
+  onDragOverCard?: (task: TaskSummary, event: DragEvent<HTMLDivElement>) => void
   onDragEnd?: () => void
   onOpen?: (task: TaskSummary) => void
   onGenerate?: (task: TaskSummary, template: PromptTemplate) => void
@@ -49,7 +50,17 @@ function formatWorkspaceName(name: string) {
   return `${normalizedName.slice(0, WORKSPACE_NAME_MAX_LENGTH - 3).trimEnd()}...`
 }
 
-export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd, onOpen, onGenerate, onLinkPlan }: TaskCardProps) {
+export function TaskCard({
+  task,
+  dragging,
+  moveDisabled,
+  onDragStart,
+  onDragOverCard,
+  onDragEnd,
+  onOpen,
+  onGenerate,
+  onLinkPlan,
+}: TaskCardProps) {
   const queryClient = useQueryClient()
   const [showVerdict, setShowVerdict] = useState(false)
   const [showPlanReviewChoice, setShowPlanReviewChoice] = useState(false)
@@ -219,6 +230,7 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
     <div
       draggable={!moveDisabled && !isBusy}
       onDragStart={(event) => onDragStart?.(task, event)}
+      onDragOver={(event) => onDragOverCard?.(task, event)}
       onDragEnd={onDragEnd}
       className={`grid min-w-0 gap-3 rounded-lg border bg-card p-3 transition-colors ${
         isHumanTurn ? 'border-warning-solid' : 'border-border'

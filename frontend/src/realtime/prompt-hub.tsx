@@ -179,6 +179,10 @@ export function PromptHubProvider({ children }: { children: React.ReactNode }) {
       queryClient.invalidateQueries({ queryKey: queryKeys.prompts.all })
     })
 
+    connection.on('BoardReordered', () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
+    })
+
     connection.on('AgentUsageUpdated', (payload: unknown) => {
       const usage = agentUsageSchema.parse(payload)
       queryClient.setQueryData(queryKeys.agentUsage.current(), usage)

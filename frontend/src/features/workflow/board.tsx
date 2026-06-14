@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight, Columns3, Loader2, Plus, Rows3, Search, Settings2, SlidersHorizontal, X } from 'lucide-react'
 import type { DragEvent } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
 import { queryKeys } from '@/api/query-keys'
@@ -13,6 +13,7 @@ import {
   getBoard,
   getWorkflow,
   getWorkflowTemplate,
+  reorderBoardColumn,
   reopenWorkflow,
   setPhase,
   startWorkflow,
@@ -27,7 +28,7 @@ import { cn } from '@/lib/utils'
 import { usePromptHub } from '@/realtime/prompt-hub'
 import { buildColumns, type BoardColumn } from './board-columns'
 import { DropPlaceholder } from './drop-placeholder'
-import { shouldShowDropPlaceholder } from './drop-placeholder-state'
+import { computeReorderedIds, shouldShowDropPlaceholder, type DropTarget } from './drop-placeholder-state'
 import { TaskCard } from './task-card'
 import { PromptDetailDrawer } from './prompt-detail-drawer'
 import { NewPromptDrawer } from './new-prompt-drawer'
@@ -41,6 +42,11 @@ const PROMPT_STATUS_OPTIONS: Array<{ value: PromptStatus | ''; label: string }> 
 ]
 
 type BoardViewMode = 'kanban' | 'vertical'
+
+type DraggedTask = {
+  promptId: string
+  fromColumnId: string
+}
 
 const VIEW_MODE_STORAGE_KEY = 'prompt-tasks:board-view-mode'
 
@@ -62,8 +68,8 @@ export function Board() {
   const [promptStatus, setPromptStatus] = useState<PromptStatus | ''>('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [viewMode, setViewMode] = useState<BoardViewMode>(readStoredViewMode)
-  const [draggedPromptId, setDraggedPromptId] = useState<string | null>(null)
-  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null)
+  const [draggedTask, setDraggedTask] = useState<DraggedTask | null>(null)
+  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
   const boardScrollerRef = useRef<HTMLDivElement>(null)
   const [openedTask, setOpenedTask] = useState<{ promptId: string; workspaceId: string; title: string } | null>(null)
   const [generating, setGenerating] = useState<{ task: TaskSummary; template: PromptTemplate } | null>(null)
@@ -112,6 +118,7 @@ export function Board() {
   )
   const total = boardQuery.data?.length ?? 0
   const activeFiltersCount = [q.trim(), workingDirectoryId, workflowStatus, promptStatus].filter(Boolean).length
+  const draggedPromptId = draggedTask?.promptId ?? null
 
   const clearFilters = () => {
     setQ('')
@@ -128,6 +135,52 @@ export function Board() {
     }
   }
 
+  const clearDragState = () => {
+    setDraggedTask(null)
+    setDropTarget(null)
+  }
+
+  const reorderColumn = useMutation({
+    mutationFn: ({ orderedPromptIds }: { columnId: string; orderedPromptIds: string[] }) =>
+      reorderBoardColumn(orderedPromptIds),
+    onMutate: async ({ orderedPromptIds }) => {
+      const queryKey = queryKeys.workflow.board(filters)
+      await queryClient.cancelQueries({ queryKey })
+      const previous = queryClient.getQueryData<TaskSummary[]>(queryKey)
+      queryClient.setQueryData<TaskSummary[]>(queryKey, (current) => {
+        if (!current) {
+          return current
+        }
+
+        const byPromptId = new Map(current.map((task) => [task.promptId, task]))
+        const orderedTasks = orderedPromptIds
+          .map((promptId) => byPromptId.get(promptId))
+          .filter((task): task is TaskSummary => Boolean(task))
+        let nextIndex = 0
+
+        return current.map((task) => {
+          if (!orderedPromptIds.includes(task.promptId)) {
+            return task
+          }
+
+          return orderedTasks[nextIndex++] ?? task
+        })
+      })
+
+      return { previous, queryKey }
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(context.queryKey, context.previous)
+      }
+      toast.error(getErrorMessage(error))
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.workflow.all })
+      clearDragState()
+    },
+  })
+
   const moveTask = useMutation({
     mutationFn: ({ task, column }: { task: TaskSummary; column: BoardColumn }) => moveTaskToColumn(task, column),
     onSuccess: (workflow, variables) => {
@@ -138,10 +191,11 @@ export function Board() {
     },
     onError: (error) => toast.error(getErrorMessage(error)),
     onSettled: () => {
-      setDraggedPromptId(null)
-      setDragOverColumnId(null)
+      clearDragState()
     },
   })
+
+  const isBoardMutationPending = moveTask.isPending || reorderColumn.isPending
 
   const moveTaskToColumn = async (task: TaskSummary, column: BoardColumn): Promise<Workflow | null> => {
     if (column.kind === 'no-workflow') {
@@ -253,21 +307,68 @@ export function Board() {
       : setPhase(task.promptId, added.id, updated.rowVersion)
   }
 
-  const handleDragStart = (task: TaskSummary, event: DragEvent<HTMLDivElement>) => {
-    setDraggedPromptId(task.promptId)
+  const canDropOnColumn = (column: BoardColumn) =>
+    Boolean(draggedTask && (column.droppable || draggedTask.fromColumnId === column.id))
+
+  const handleDragStart = (task: TaskSummary, column: BoardColumn, event: DragEvent<HTMLDivElement>) => {
+    setDraggedTask({ promptId: task.promptId, fromColumnId: column.id })
+    setDropTarget(null)
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('application/x-prompt-task-id', task.promptId)
     event.dataTransfer.setData('text/plain', task.promptId)
   }
 
+  const handleDragOverColumn = (column: BoardColumn, event: DragEvent<HTMLDivElement>) => {
+    if (!canDropOnColumn(column) || isBoardMutationPending) {
+      return
+    }
+
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    setDropTarget({
+      columnId: column.id,
+      index: draggedTask?.fromColumnId === column.id ? column.tasks.length : 0,
+    })
+  }
+
+  const handleDragOverCard = (column: BoardColumn, index: number, event: DragEvent<HTMLDivElement>) => {
+    if (!canDropOnColumn(column) || isBoardMutationPending) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    event.dataTransfer.dropEffect = 'move'
+
+    const rect = event.currentTarget.getBoundingClientRect()
+    const insertAfter = event.clientY > rect.top + rect.height / 2
+    setDropTarget({
+      columnId: column.id,
+      index: draggedTask?.fromColumnId === column.id ? index + (insertAfter ? 1 : 0) : 0,
+    })
+  }
+
   const handleDrop = (column: BoardColumn, event: DragEvent<HTMLDivElement>) => {
     event.preventDefault()
-    setDragOverColumnId(null)
 
     const promptId = event.dataTransfer.getData('application/x-prompt-task-id') || draggedPromptId
     const task = promptId ? taskByPromptId.get(promptId) : undefined
-    if (!task || !column.droppable || moveTask.isPending) {
-      setDraggedPromptId(null)
+    const sameColumn = draggedTask?.fromColumnId === column.id
+    if (!task || isBoardMutationPending || (!column.droppable && !sameColumn)) {
+      clearDragState()
+      return
+    }
+
+    if (sameColumn) {
+      const columnIds = column.tasks.map((item) => item.promptId)
+      const targetIndex = dropTarget?.columnId === column.id ? dropTarget.index : column.tasks.length
+      const orderedPromptIds = computeReorderedIds(columnIds, task.promptId, targetIndex)
+      if (orderedPromptIds.every((id, index) => id === columnIds[index])) {
+        clearDragState()
+        return
+      }
+
+      void reorderColumn.mutate({ columnId: column.id, orderedPromptIds })
       return
     }
 
@@ -286,25 +387,27 @@ export function Board() {
   }
 
   const renderColumn = (column: BoardColumn, layout: BoardViewMode) => {
-    const showDropPlaceholder = shouldShowDropPlaceholder({
-      columnId: column.id,
-      droppable: column.droppable,
-      draggedPromptId,
-      dragOverColumnId,
-      isMoving: moveTask.isPending,
-    })
+    const acceptsDrop = canDropOnColumn(column)
+    const showDropPlaceholderAt = (placeholderIndex: number) =>
+      shouldShowDropPlaceholder({
+        columnId: column.id,
+        acceptsDrop,
+        draggedPromptId,
+        dropTarget,
+        placeholderIndex,
+        isMoving: isBoardMutationPending,
+      })
+    const hasDropPlaceholder = Boolean(
+      acceptsDrop &&
+        !isBoardMutationPending &&
+        draggedPromptId &&
+        dropTarget?.columnId === column.id,
+    )
 
     return (
       <div
         key={column.id}
-        onDragOver={(event) => {
-          if (!column.droppable || moveTask.isPending) {
-            return
-          }
-          event.preventDefault()
-          event.dataTransfer.dropEffect = 'move'
-          setDragOverColumnId(column.id)
-        }}
+        onDragOver={(event) => handleDragOverColumn(column, event)}
         onDragLeave={(event) => {
           const rect = event.currentTarget.getBoundingClientRect()
           const isStillInside =
@@ -313,7 +416,7 @@ export function Board() {
             event.clientY >= rect.top &&
             event.clientY <= rect.bottom
           if (!isStillInside) {
-            setDragOverColumnId((current) => (current === column.id ? null : current))
+            setDropTarget((current) => (current?.columnId === column.id ? null : current))
           }
         }}
         onDrop={(event) => handleDrop(column, event)}
@@ -322,8 +425,8 @@ export function Board() {
           layout === 'kanban'
             ? 'flex w-[calc(100vw-2rem)] shrink-0 flex-col sm:w-[calc((100vw-3rem)/2)] lg:w-[calc((100vw-4rem)/3)] xl:w-[18.75rem]'
             : 'grid border border-border',
-          layout === 'vertical' && !showDropPlaceholder ? 'bg-card' : null,
-          showDropPlaceholder ? 'bg-accent' : null,
+          layout === 'vertical' && !hasDropPlaceholder ? 'bg-card' : null,
+          hasDropPlaceholder ? 'bg-accent' : null,
         )}
       >
         <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2">
@@ -331,26 +434,26 @@ export function Board() {
           <span className="rounded-full bg-card px-2 py-0.5 text-xs text-muted-foreground">{column.tasks.length}</span>
         </div>
         <div className={layout === 'kanban' ? 'grid gap-2' : 'grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'}>
-          {column.tasks.map((task) => (
-            <TaskCard
-              key={task.promptId}
-              task={task}
-              dragging={draggedPromptId === task.promptId}
-              moveDisabled={moveTask.isPending}
-              onDragStart={handleDragStart}
-              onDragEnd={() => {
-                setDraggedPromptId(null)
-                setDragOverColumnId(null)
-              }}
-              onOpen={(task) =>
-                setOpenedTask({ promptId: task.promptId, workspaceId: task.workingDirectoryId, title: task.title })
-              }
-              onGenerate={(task, template) => setGenerating({ task, template })}
-              onLinkPlan={(task) => setLinkingTask(task)}
-            />
+          {column.tasks.map((task, index) => (
+            <Fragment key={task.promptId}>
+              {showDropPlaceholderAt(index) ? <DropPlaceholder layout={layout} /> : null}
+              <TaskCard
+                task={task}
+                dragging={draggedPromptId === task.promptId}
+                moveDisabled={isBoardMutationPending}
+                onDragStart={(task, event) => handleDragStart(task, column, event)}
+                onDragOverCard={(_task, event) => handleDragOverCard(column, index, event)}
+                onDragEnd={clearDragState}
+                onOpen={(task) =>
+                  setOpenedTask({ promptId: task.promptId, workspaceId: task.workingDirectoryId, title: task.title })
+                }
+                onGenerate={(task, template) => setGenerating({ task, template })}
+                onLinkPlan={(task) => setLinkingTask(task)}
+              />
+            </Fragment>
           ))}
-          {showDropPlaceholder ? <DropPlaceholder layout={layout} /> : null}
-          {column.tasks.length === 0 && !showDropPlaceholder ? (
+          {showDropPlaceholderAt(column.tasks.length) ? <DropPlaceholder layout={layout} /> : null}
+          {column.tasks.length === 0 && !hasDropPlaceholder ? (
             <p className="rounded-md border border-dashed border-border px-3 py-4 text-center text-xs text-subtle-foreground">
               Vazio
             </p>

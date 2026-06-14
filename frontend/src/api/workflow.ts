@@ -37,6 +37,10 @@ export async function getBoard(filters: WorkflowBoardFilters = {}): Promise<Task
   return taskSummaryListSchema.parse(data)
 }
 
+export async function reorderBoardColumn(orderedPromptIds: string[]): Promise<void> {
+  await api.post('prompts/board/reorder', { json: { orderedPromptIds } })
+}
+
 export async function getWorkflow(promptId: string): Promise<Workflow | null> {
   const data = await api.get(`prompts/${promptId}/workflow`).json<unknown>()
   if (data === null || data === undefined) {

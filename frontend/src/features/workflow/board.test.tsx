@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { TaskSummary } from '@/api/schemas'
 import { buildColumns } from './board-columns'
-import { shouldShowDropPlaceholder } from './drop-placeholder-state'
+import { computeReorderedIds, shouldShowDropPlaceholder } from './drop-placeholder-state'
 
 const templatePhases = [
   { name: 'Planejamento', orderIndex: 0 },
@@ -86,40 +86,54 @@ describe('buildColumns', () => {
 })
 
 describe('shouldShowDropPlaceholder', () => {
-  it('shows only for the active droppable target column while dragging', () => {
+  it('shows only for the active target column and index while dragging', () => {
     expect(
       shouldShowDropPlaceholder({
         columnId: 'phase-1',
-        droppable: true,
+        acceptsDrop: true,
         draggedPromptId: 'prompt-1',
-        dragOverColumnId: 'phase-1',
+        dropTarget: { columnId: 'phase-1', index: 2 },
+        placeholderIndex: 2,
       }),
     ).toBe(true)
 
     expect(
       shouldShowDropPlaceholder({
         columnId: 'phase-1',
-        droppable: true,
+        acceptsDrop: true,
         draggedPromptId: 'prompt-1',
-        dragOverColumnId: 'phase-2',
-      }),
-    ).toBe(false)
-
-    expect(
-      shouldShowDropPlaceholder({
-        columnId: 'no-workflow',
-        droppable: false,
-        draggedPromptId: 'prompt-1',
-        dragOverColumnId: 'no-workflow',
+        dropTarget: { columnId: 'phase-2', index: 2 },
+        placeholderIndex: 2,
       }),
     ).toBe(false)
 
     expect(
       shouldShowDropPlaceholder({
         columnId: 'phase-1',
-        droppable: true,
+        acceptsDrop: true,
+        draggedPromptId: 'prompt-1',
+        dropTarget: { columnId: 'phase-1', index: 1 },
+        placeholderIndex: 2,
+      }),
+    ).toBe(false)
+
+    expect(
+      shouldShowDropPlaceholder({
+        columnId: 'phase-1',
+        acceptsDrop: false,
+        draggedPromptId: 'prompt-1',
+        dropTarget: { columnId: 'phase-1', index: 2 },
+        placeholderIndex: 2,
+      }),
+    ).toBe(false)
+
+    expect(
+      shouldShowDropPlaceholder({
+        columnId: 'phase-1',
+        acceptsDrop: true,
         draggedPromptId: null,
-        dragOverColumnId: 'phase-1',
+        dropTarget: { columnId: 'phase-1', index: 2 },
+        placeholderIndex: 2,
       }),
     ).toBe(false)
   })
@@ -128,11 +142,30 @@ describe('shouldShowDropPlaceholder', () => {
     expect(
       shouldShowDropPlaceholder({
         columnId: 'phase-1',
-        droppable: true,
+        acceptsDrop: true,
         draggedPromptId: 'prompt-1',
-        dragOverColumnId: 'phase-1',
+        dropTarget: { columnId: 'phase-1', index: 0 },
+        placeholderIndex: 0,
         isMoving: true,
       }),
     ).toBe(false)
+  })
+})
+
+describe('computeReorderedIds', () => {
+  it('moves a card to an earlier slot', () => {
+    expect(computeReorderedIds(['a', 'b', 'c'], 'c', 0)).toEqual(['c', 'a', 'b'])
+  })
+
+  it('moves a card to a later slot while compensating for removal', () => {
+    expect(computeReorderedIds(['a', 'b', 'c', 'd'], 'b', 3)).toEqual(['a', 'c', 'b', 'd'])
+  })
+
+  it('keeps the order when dropping immediately after itself', () => {
+    expect(computeReorderedIds(['a', 'b', 'c'], 'b', 2)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('returns the original ids when the dragged card is not in the column', () => {
+    expect(computeReorderedIds(['a', 'b'], 'x', 1)).toEqual(['a', 'b'])
   })
 })

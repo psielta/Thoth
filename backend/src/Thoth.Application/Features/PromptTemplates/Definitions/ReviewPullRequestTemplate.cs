@@ -24,15 +24,15 @@ public sealed class ReviewPullRequestTemplate : IPromptTemplateDefinition
         var pullRequestReference = PullRequestTemplateHelpers.FormatPullRequestReference(context.PullRequestReference);
 
         return Task.FromResult(new RenderedPromptTemplate(
-            $"Review {pullRequestReference}: {context.DisplayName}",
+            $"Revisar {pullRequestReference}: {context.DisplayName}",
             $"""
             /review
 
-            Review the {pullRequestReference} that implements the plan `{context.AbsolutePath}`.
+            Revise o {pullRequestReference} que implementa o plano `{context.AbsolutePath}`.
 
-            Use the plan as the source of truth. Verify that the PR implements the plan completely, preserves the existing architecture, does not introduce regressions, and that the required validations were performed.
+            Use o plano como fonte da verdade. Verifique se o PR implementa o plano completamente, preserva a arquitetura existente, não introduz regressões e se as validações necessárias foram executadas.
 
-            Prioritize bugs, behavioral risks, and missing tests. Report findings with severity and concrete file/line references when possible.
+            Priorize bugs, riscos de comportamento e testes ausentes. Reporte os achados com severidade e referências concretas de arquivo/linha quando possível.
             """));
     }
 }

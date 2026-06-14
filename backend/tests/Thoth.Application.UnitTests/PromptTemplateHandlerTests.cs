@@ -100,9 +100,9 @@ public sealed class PromptTemplateHandlerTests
         result.LinkedDocumentId.Should().Be(document.Id);
         result.WorkingDirectoryId.Should().Be(prompt.WorkingDirectoryId);
         result.ParentPromptId.Should().Be(prompt.Id);
-        result.Title.Should().Be("Review plan: plan.md");
+        result.Title.Should().Be("Revisar plano: plan.md");
         result.Content.Should().Be(
-            "Given the plan \"C:/Users/psiel/.claude/plans/plan.md\", validate the plan, approve it, or point out improvements.");
+            "Dado o plano \"C:/Users/psiel/.claude/plans/plan.md\", valide o plano, aprove-o ou aponte melhorias.");
         result.TargetAgent.Should().Be(TargetAgent.Codex);
         result.Kind.Should().Be(PromptKind.Planning);
         context.SaveChangesCount.Should().Be(0);
@@ -120,8 +120,8 @@ public sealed class PromptTemplateHandlerTests
             new GeneratePromptDraftCommand(document.Id, PromptTemplateKey.ImplementPlan),
             CancellationToken.None);
 
-        result.Title.Should().Be("Implement plan: implementation.md");
-        result.Content.Should().Be("Implement the plan \"C:/plans/implementation.md\".");
+        result.Title.Should().Be("Implementar plano: implementation.md");
+        result.Content.Should().Be("Implemente o plano \"C:/plans/implementation.md\".");
         result.TargetAgent.Should().Be(TargetAgent.Codex);
         result.Kind.Should().Be(PromptKind.General);
     }
@@ -139,18 +139,18 @@ public sealed class PromptTemplateHandlerTests
             CancellationToken.None);
 
         result.TemplateKey.Should().Be(PromptTemplateKey.ReviewPlanWithParentPrompt);
-        result.Title.Should().Be("Review plan with parent prompt: plan.md");
+        result.Title.Should().Be("Revisar plano com prompt pai: plan.md");
         result.Content.Should().Be(
             """
-            I asked Claude to run plan-mode using the prompt below:
+            Pedi ao Claude para rodar o plan-mode usando o prompt abaixo:
 
             ```md
             Faca um plano para @src/main.go
             ```
 
-            It generated the plan "C:/plans/plan.md".
+            Ele gerou o plano "C:/plans/plan.md".
 
-            Given the plan "C:/plans/plan.md", validate the plan, approve it, or point out improvements.
+            Dado o plano "C:/plans/plan.md", valide o plano, aprove-o ou aponte melhorias.
             """);
         result.TargetAgent.Should().Be(TargetAgent.Codex);
         result.Kind.Should().Be(PromptKind.Planning);
@@ -169,9 +169,9 @@ public sealed class PromptTemplateHandlerTests
             CancellationToken.None);
 
         result.TemplateKey.Should().Be(PromptTemplateKey.ReReviewPlan);
-        result.Title.Should().Be("Re-review plan: reviewed-plan.md");
+        result.Title.Should().Be("Revisar plano novamente: reviewed-plan.md");
         result.Content.Should().Be(
-            "I passed the previous points to Claude to fix in the plan \"C:/plans/reviewed-plan.md\". Validate the updated plan again, approve it if correct, or point out the improvements that are still missing.");
+            "Passei os pontos anteriores para o Claude corrigir no plano \"C:/plans/reviewed-plan.md\". Valide o plano atualizado novamente, aprove-o se estiver correto ou aponte as melhorias que ainda faltam.");
         result.TargetAgent.Should().Be(TargetAgent.Codex);
         result.Kind.Should().Be(PromptKind.Planning);
     }
@@ -189,9 +189,9 @@ public sealed class PromptTemplateHandlerTests
             CancellationToken.None);
 
         result.TemplateKey.Should().Be(PromptTemplateKey.ImplementPlanInWorktree);
-        result.Title.Should().Be("Implement in worktree: worktree-plan.md");
-        result.Content.Should().Contain("Implement the plan `C:/plans/worktree-plan.md` completely in a separate worktree.");
-        result.Content.Should().Contain("open a PR");
+        result.Title.Should().Be("Implementar em worktree: worktree-plan.md");
+        result.Content.Should().Contain("Implemente o plano `C:/plans/worktree-plan.md` completamente em uma worktree separada.");
+        result.Content.Should().Contain("abra um PR");
         result.TargetAgent.Should().Be(TargetAgent.Codex);
         result.Kind.Should().Be(PromptKind.General);
     }
@@ -209,10 +209,10 @@ public sealed class PromptTemplateHandlerTests
             CancellationToken.None);
 
         result.TemplateKey.Should().Be(PromptTemplateKey.ReviewPullRequest);
-        result.Title.Should().Be("Review PR #123: pr-plan.md");
+        result.Title.Should().Be("Revisar PR #123: pr-plan.md");
         result.Content.Should().StartWith("/review");
-        result.Content.Should().Contain("Review the PR #123 that implements the plan `C:/plans/pr-plan.md`.");
-        result.Content.Should().Contain("Prioritize bugs, behavioral risks, and missing tests.");
+        result.Content.Should().Contain("Revise o PR #123 que implementa o plano `C:/plans/pr-plan.md`.");
+        result.Content.Should().Contain("Priorize bugs, riscos de comportamento e testes ausentes.");
         result.TargetAgent.Should().Be(TargetAgent.Codex);
         result.Kind.Should().Be(PromptKind.General);
     }
@@ -230,11 +230,11 @@ public sealed class PromptTemplateHandlerTests
             CancellationToken.None);
 
         result.TemplateKey.Should().Be(PromptTemplateKey.MergePullRequest);
-        result.Title.Should().Be("Merge PR #123: merge-plan.md");
-        result.Content.Should().Contain("Merge the PR #123 that implements the plan `C:/plans/merge-plan.md`.");
-        result.Content.Should().Contain("sync the local main branch with the remote");
-        result.Content.Should().Contain("remove the worktree if it exists");
-        result.Content.Should().Contain("delete the local/remote branch if they still exist and it is safe");
+        result.Title.Should().Be("Mesclar PR #123: merge-plan.md");
+        result.Content.Should().Contain("Faça o merge do PR #123 que implementa o plano `C:/plans/merge-plan.md`.");
+        result.Content.Should().Contain("sincronize o branch main local com o remoto");
+        result.Content.Should().Contain("remova a worktree se existir");
+        result.Content.Should().Contain("exclua o branch local/remoto se ainda existirem e for seguro");
         result.TargetAgent.Should().Be(TargetAgent.Codex);
         result.Kind.Should().Be(PromptKind.General);
     }
@@ -259,14 +259,14 @@ public sealed class PromptTemplateHandlerTests
             CancellationToken.None);
 
         result.TemplateKey.Should().Be(PromptTemplateKey.ReReviewPullRequest);
-        result.Title.Should().Be("Re-review PR #123: pr-plan.md");
+        result.Title.Should().Be("Revisar novamente PR #123: pr-plan.md");
         result.Content.Should().StartWith("/review");
-        result.Content.Should().Contain("Re-review the PR #123 after Codex made fixes for the previous review findings.");
-        result.Content.Should().Contain("The PR implements the plan `C:/plans/pr-plan.md`.");
-        result.Content.Should().Contain("Codex response after applying fixes:");
+        result.Content.Should().Contain("Revise novamente o PR #123 depois que o Codex corrigiu os pontos da revisão anterior.");
+        result.Content.Should().Contain("O PR implementa o plano `C:/plans/pr-plan.md`.");
+        result.Content.Should().Contain("Resposta do Codex após aplicar as correções:");
         result.Content.Should().Contain("Codex fixed the missing regression test.");
-        result.Content.Should().Contain("Treat the Codex response as a handoff, not proof.");
-        result.Content.Should().Contain("If the PR is now acceptable, say that clearly.");
+        result.Content.Should().Contain("Trate a resposta do Codex como um repasse, não como prova.");
+        result.Content.Should().Contain("Se o PR estiver aceitável agora, diga isso claramente.");
         result.TargetAgent.Should().Be(TargetAgent.Codex);
         result.Kind.Should().Be(PromptKind.General);
     }
@@ -284,10 +284,10 @@ public sealed class PromptTemplateHandlerTests
             CancellationToken.None);
 
         result.TemplateKey.Should().Be(PromptTemplateKey.RebaseCurrentBranch);
-        result.Title.Should().Be("Update branch from main: rebase-plan.md");
-        result.Content.Should().Contain("Update my current branch/worktree with the latest changes from the remote main branch using rebase.");
-        result.Content.Should().Contain("Preserve unrelated local changes.");
-        result.Content.Should().Contain("If there are conflicts, stop and tell me so we can resolve them together.");
+        result.Title.Should().Be("Atualizar branch com main: rebase-plan.md");
+        result.Content.Should().Contain("Atualize meu branch/worktree atual com as últimas alterações do branch main remoto usando rebase.");
+        result.Content.Should().Contain("Preserve as alterações locais não relacionadas.");
+        result.Content.Should().Contain("Se houver conflitos, pare e me avise para resolvermos juntos.");
         result.TargetAgent.Should().Be(TargetAgent.Codex);
         result.Kind.Should().Be(PromptKind.General);
     }
@@ -363,8 +363,8 @@ public sealed class PromptTemplateHandlerTests
             new GeneratePromptDraftCommand(document.Id, PromptTemplateKey.ReviewPullRequest),
             CancellationToken.None);
 
-        result.Title.Should().Be("Review PR #123: pr-plan.md");
-        result.Content.Should().Contain("Review the PR #123 that implements the plan `C:/plans/pr-plan.md`.");
+        result.Title.Should().Be("Revisar PR #123: pr-plan.md");
+        result.Content.Should().Contain("Revise o PR #123 que implementa o plano `C:/plans/pr-plan.md`.");
     }
 
     [Fact]

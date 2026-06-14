@@ -24,13 +24,13 @@ public sealed class MergePullRequestTemplate : IPromptTemplateDefinition
         var pullRequestReference = PullRequestTemplateHelpers.FormatPullRequestReference(context.PullRequestReference);
 
         return Task.FromResult(new RenderedPromptTemplate(
-            $"Merge {pullRequestReference}: {context.DisplayName}",
+            $"Mesclar {pullRequestReference}: {context.DisplayName}",
             $"""
-            Merge the {pullRequestReference} that implements the plan `{context.AbsolutePath}`.
+            Faça o merge do {pullRequestReference} que implementa o plano `{context.AbsolutePath}`.
 
-            Before merging, confirm the PR is ready to merge, the required validations passed, and preserve unrelated local changes.
+            Antes de mesclar, confirme que o PR está pronto para merge, que as validações necessárias passaram e preserve as alterações locais não relacionadas.
 
-            If there are conflicts or failing checks, stop and report the exact blocker. After merging, sync the local main branch with the remote, remove the worktree if it exists, delete the local/remote branch if they still exist and it is safe, and confirm the final repository state.
+            Se houver conflitos ou checks falhando, pare e reporte o bloqueio exato. Após o merge, sincronize o branch main local com o remoto, remova a worktree se existir, exclua o branch local/remoto se ainda existirem e for seguro, e confirme o estado final do repositório.
             """));
     }
 }

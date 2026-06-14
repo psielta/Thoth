@@ -17,10 +17,10 @@ public sealed class RebaseCurrentBranchTemplate : IPromptTemplateDefinition
         PromptTemplateContext context,
         CancellationToken cancellationToken) =>
         Task.FromResult(new RenderedPromptTemplate(
-            $"Update branch from main: {context.DisplayName}",
+            $"Atualizar branch com main: {context.DisplayName}",
             """
-            Update my current branch/worktree with the latest changes from the remote main branch using rebase.
+            Atualize meu branch/worktree atual com as últimas alterações do branch main remoto usando rebase.
 
-            Preserve unrelated local changes. If there are conflicts, stop and tell me so we can resolve them together.
+            Preserve as alterações locais não relacionadas. Se houver conflitos, pare e me avise para resolvermos juntos.
             """));
 }

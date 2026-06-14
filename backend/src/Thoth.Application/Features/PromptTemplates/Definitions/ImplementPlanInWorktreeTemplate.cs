@@ -17,10 +17,10 @@ public sealed class ImplementPlanInWorktreeTemplate : IPromptTemplateDefinition
         PromptTemplateContext context,
         CancellationToken cancellationToken) =>
         Task.FromResult(new RenderedPromptTemplate(
-            $"Implement in worktree: {context.DisplayName}",
+            $"Implementar em worktree: {context.DisplayName}",
             $"""
-            Implement the plan `{context.AbsolutePath}` completely in a separate worktree.
+            Implemente o plano `{context.AbsolutePath}` completamente em uma worktree separada.
 
-            Preserve the main checkout and unrelated local changes. When done, run the applicable validations, leave the branch ready for review, and open a PR.
+            Preserve o checkout principal e as alterações locais não relacionadas. Ao terminar, rode as validações aplicáveis, deixe o branch pronto para revisão e abra um PR.
             """));
 }

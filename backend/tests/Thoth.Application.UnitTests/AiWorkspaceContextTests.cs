@@ -178,6 +178,7 @@ public sealed class AiWorkspaceContextTests
             CancellationToken.None);
 
         var instruction = gemini.LastRefineRequest!.SystemInstruction;
+        instruction.Should().Contain("português (pt-BR)");
         instruction.Should().Contain("workspace context");
         instruction.Should().Contain("selected files context");
         instruction.Should().Contain("Keep it concise");
@@ -251,6 +252,7 @@ public sealed class AiWorkspaceContextTests
         chunks.Should().Contain(chunk => chunk.Text == "model response");
         gemini.LastStreamRequest.Should().NotBeNull();
         gemini.LastStreamRequest!.UseSystemCache.Should().BeFalse();
+        gemini.LastStreamRequest.SystemInstruction.Should().Contain("Responda SEMPRE em português (pt-BR).");
         gemini.LastStreamRequest.SystemInstruction.Should().Contain("workspace context");
         gemini.LastCacheSystemInstruction.Should().Contain("workspace context");
         session.GeminiCacheName.Should().Be("cached/session");

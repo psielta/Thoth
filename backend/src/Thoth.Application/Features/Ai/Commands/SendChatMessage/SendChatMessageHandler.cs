@@ -21,6 +21,7 @@ public sealed class SendChatMessageHandler(
     // Used as inline fallback when system cache is unavailable
     private const string FallbackSystemInstruction =
         "Você é um assistente especializado em engenharia de prompts para Claude Code e Codex. " +
+        "Responda SEMPRE em português (pt-BR). " +
         "SEMPRE formate suas respostas em Markdown: use cabeçalhos, listas, negrito, itálico, " +
         "código com indicação de linguagem (```csharp, ```typescript, etc.) e tabelas quando adequado. " +
         "Para blocos de código, sempre especifique a linguagem. Seja claro, direto e técnico.";

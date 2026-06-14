@@ -49,6 +49,7 @@ public sealed class GenerateNoteMarkdownHandlerTests
 
         var instruction = gemini.LastRefineRequest!.SystemInstruction;
         instruction.Should().Contain("Markdown");
+        instruction.Should().Contain("Escreva a nota sempre em português (pt-BR).");
         instruction.Should().Contain("NÃO envolva todo o conteúdo em cercas de código");
         gemini.LastRefineRequest.Contents.Should()
             .ContainSingle(turn => turn.Role == "user" && turn.Text == "Crie uma nota de arquitetura");

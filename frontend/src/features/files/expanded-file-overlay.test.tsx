@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as filesApi from '@/api/files'
 import * as workingDirectoriesApi from '@/api/working-directories'
 import type { WorkingDirectory } from '@/api/schemas'
+import { GitHistoryContext } from './git-history-context'
 import { ExpandedFileOverlay } from './expanded-file-overlay'
 
 vi.mock('@/api/files')
@@ -13,6 +14,9 @@ vi.mock('./file-viewer-panel', () => ({
   FileViewerPanel: ({ relativePath }: { relativePath: string }) => (
     <div data-testid="file-viewer-panel">{`viewer:${relativePath}`}</div>
   ),
+}))
+vi.mock('./git-diff-viewer', () => ({
+  GitDiffViewer: () => <div data-testid="git-diff-viewer" />,
 }))
 
 const workspace: WorkingDirectory = {
@@ -37,12 +41,14 @@ function renderOverlay(props: OverlayProps = {}) {
 
   render(
     <QueryClientProvider client={queryClient}>
-      <ExpandedFileOverlay
-        workingDirectoryId="ws-1"
-        onExit={onExit}
-        onSelectFile={onSelectFile}
-        {...props}
-      />
+      <GitHistoryContext.Provider value={{ openHistory: vi.fn(), closeHistory: vi.fn(), target: null }}>
+        <ExpandedFileOverlay
+          workingDirectoryId="ws-1"
+          onExit={onExit}
+          onSelectFile={onSelectFile}
+          {...props}
+        />
+      </GitHistoryContext.Provider>
     </QueryClientProvider>,
   )
 

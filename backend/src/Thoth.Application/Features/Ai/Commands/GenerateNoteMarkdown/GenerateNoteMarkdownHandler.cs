@@ -17,6 +17,7 @@ public sealed class GenerateNoteMarkdownHandler(
     private const string NoteSystemInstruction =
         "Você é um assistente que escreve notas em Markdown limpo e bem estruturado " +
         "para um editor de notas. " +
+        "Escreva a nota sempre em português (pt-BR). " +
         "Responda APENAS com o conteúdo da nota em Markdown (use títulos, listas, " +
         "negrito, tabelas e code blocks quando ajudar). " +
         "NÃO envolva todo o conteúdo em cercas de código. " +

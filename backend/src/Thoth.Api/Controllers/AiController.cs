@@ -7,7 +7,6 @@ using Thoth.Application.Features.Ai.Commands.GenerateNoteMarkdown;
 using Thoth.Application.Features.Ai.Commands.RefinePrompt;
 using Thoth.Application.Features.Ai.Commands.SendChatMessage;
 using Thoth.Application.Features.Ai.Commands.StartChatSession;
-using Thoth.Application.Features.Ai.Commands.TranslatePrompt;
 using Thoth.Application.Features.Ai.Commands.UpdateAiSettings;
 using Thoth.Application.Features.Ai.Models;
 using Thoth.Application.Features.Ai.Queries.GetAiModels;
@@ -60,25 +59,6 @@ public sealed class AiController(ISender sender) : ControllerBase
                 request.WorkingDirectoryId,
                 request.ContextFiles ?? Array.Empty<string>(),
                 request.CustomInstructions),
-            cancellationToken));
-    }
-
-    [HttpPost("translate")]
-    public async Task<ActionResult<RefinedPromptDto>> Translate(
-        TranslateRequest request,
-        CancellationToken cancellationToken)
-    {
-        var thinking = new GeminiThinking(
-            request.ThinkingMode ?? "none",
-            request.ThinkingBudget,
-            request.ThinkingLevel);
-
-        return Ok(await sender.Send(
-            new TranslatePromptCommand(
-                request.Content,
-                request.Model,
-                request.Temperature,
-                thinking),
             cancellationToken));
     }
 
@@ -211,14 +191,6 @@ public sealed class AiController(ISender sender) : ControllerBase
         Guid? WorkingDirectoryId,
         IReadOnlyList<string>? ContextFiles,
         string? CustomInstructions);
-
-    public sealed record TranslateRequest(
-        string Content,
-        string Model,
-        double Temperature,
-        string? ThinkingMode,
-        int? ThinkingBudget,
-        string? ThinkingLevel);
 
     public sealed record GenerateNoteRequest(
         string Instruction,

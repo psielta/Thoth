@@ -16,3 +16,34 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 })
+
+Object.defineProperty(document, 'queryCommandSupported', {
+  writable: true,
+  value: () => false,
+})
+
+Object.defineProperty(window.navigator, 'clipboard', {
+  configurable: true,
+  writable: true,
+  value: {
+    readText: () => Promise.resolve(''),
+    writeText: () => Promise.resolve(),
+    write: () => Promise.resolve(),
+  },
+})
+
+if (typeof window.ClipboardItem === 'undefined') {
+  class ClipboardItemMock {
+    readonly data: Record<string, Blob | Promise<Blob>>
+
+    constructor(data: Record<string, Blob | Promise<Blob>>) {
+      this.data = data
+    }
+  }
+
+  Object.defineProperty(window, 'ClipboardItem', {
+    configurable: true,
+    writable: true,
+    value: ClipboardItemMock,
+  })
+}

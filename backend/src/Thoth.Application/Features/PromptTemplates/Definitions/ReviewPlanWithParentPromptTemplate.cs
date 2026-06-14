@@ -17,16 +17,16 @@ public sealed class ReviewPlanWithParentPromptTemplate : IPromptTemplateDefiniti
         PromptTemplateContext context,
         CancellationToken cancellationToken) =>
         Task.FromResult(new RenderedPromptTemplate(
-            $"Review plan with parent prompt: {context.DisplayName}",
+            $"Revisar plano com prompt pai: {context.DisplayName}",
             $"""
-            I asked Claude to run plan-mode using the prompt below:
+            Pedi ao Claude para rodar o plan-mode usando o prompt abaixo:
 
             ```md
             {context.ParentPromptContent}
             ```
 
-            It generated the plan "{context.AbsolutePath}".
+            Ele gerou o plano "{context.AbsolutePath}".
 
-            Given the plan "{context.AbsolutePath}", validate the plan, approve it, or point out improvements.
+            Dado o plano "{context.AbsolutePath}", valide o plano, aprove-o ou aponte melhorias.
             """));
 }

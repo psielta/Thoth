@@ -91,7 +91,7 @@ const reReviewPrTemplate: PromptTemplate = {
   ],
 }
 const draftContent =
-  'Given the plan "C:\\Users\\psiel\\.claude\\plans\\plan.md", validate the plan, approve it, or point out improvements.'
+  'Dado o plano "C:\\Users\\psiel\\.claude\\plans\\plan.md", valide o plano, aprove-o ou aponte melhorias.'
 
 function renderDrawer(templateOverride = template, initialPullRequestReference?: string | null) {
   const queryClient = new QueryClient({
@@ -126,7 +126,7 @@ describe('GeneratePromptDrawer', () => {
       linkedDocumentId: '019e9f6a-94e7-7a23-965d-c8b05c63ee59',
       workingDirectoryId: '019e9f6a-9fb2-7f24-ac3a-bf099d2c93c0',
       parentPromptId: '019e9f6a-a269-7991-95d5-4e602dcf773d',
-      title: 'Review plan: plan.md',
+      title: 'Revisar plano: plan.md',
       content: draftContent,
       targetAgent: 'Codex',
       kind: 'Planning',
@@ -173,7 +173,7 @@ describe('GeneratePromptDrawer', () => {
     const user = userEvent.setup()
     renderDrawer()
 
-    const titleInput = await screen.findByDisplayValue('Review plan: plan.md')
+    const titleInput = await screen.findByDisplayValue('Revisar plano: plan.md')
     await user.clear(titleInput)
     await user.type(titleInput, 'Prompt revisado')
 
@@ -201,7 +201,7 @@ describe('GeneratePromptDrawer', () => {
     const user = userEvent.setup()
     const { requestAgentTerminal } = renderDrawer()
 
-    await screen.findByDisplayValue('Review plan: plan.md')
+    await screen.findByDisplayValue('Revisar plano: plan.md')
     await user.click(screen.getByRole('button', { name: /^Criar filho$/ }))
 
     await waitFor(() => {
@@ -214,7 +214,7 @@ describe('GeneratePromptDrawer', () => {
   it('shows the create and copy action', async () => {
     renderDrawer()
 
-    await screen.findByDisplayValue('Review plan: plan.md')
+    await screen.findByDisplayValue('Revisar plano: plan.md')
     expect(screen.getByRole('button', { name: /^Criar e copiar$/ })).toBeInTheDocument()
   })
 
@@ -296,7 +296,7 @@ describe('GeneratePromptDrawer', () => {
 
     await user.type(screen.getByLabelText('PR'), '99')
     await user.click(screen.getByRole('button', { name: /^Gerar$/ }))
-    await screen.findByDisplayValue('Review plan: plan.md')
+    await screen.findByDisplayValue('Revisar plano: plan.md')
     await user.click(screen.getByRole('button', { name: /^Criar filho$/ }))
 
     await waitFor(() => {

@@ -36,21 +36,21 @@ public sealed class ReReviewPullRequestTemplate : IPromptTemplateDefinition
         var codexResponse = context.GetInputValue("codexResponse")?.Trim() ?? string.Empty;
 
         return Task.FromResult(new RenderedPromptTemplate(
-            $"Re-review {pullRequestReference}: {context.DisplayName}",
+            $"Revisar novamente {pullRequestReference}: {context.DisplayName}",
             $"""
             /review
 
-            Re-review the {pullRequestReference} after Codex made fixes for the previous review findings.
+            Revise novamente o {pullRequestReference} depois que o Codex corrigiu os pontos da revisão anterior.
 
-            The PR implements the plan `{context.AbsolutePath}`. Use the plan as the source of truth, use the current Claude Code session context for the first review when available, and verify that the fixes were actually applied without introducing regressions.
+            O PR implementa o plano `{context.AbsolutePath}`. Use o plano como fonte da verdade, use o contexto da sessão atual do Claude Code da primeira revisão quando disponível e verifique se as correções foram realmente aplicadas sem introduzir regressões.
 
-            Codex response after applying fixes:
+            Resposta do Codex após aplicar as correções:
 
             ```md
             {codexResponse}
             ```
 
-            Treat the Codex response as a handoff, not proof. Prioritize unresolved bugs, behavioral risks, regressions, and missing tests. Report findings with severity and concrete file/line references when possible. If the PR is now acceptable, say that clearly.
+            Trate a resposta do Codex como um repasse, não como prova. Priorize bugs não resolvidos, riscos de comportamento, regressões e testes ausentes. Reporte os achados com severidade e referências concretas de arquivo/linha quando possível. Se o PR estiver aceitável agora, diga isso claramente.
             """));
     }
 }

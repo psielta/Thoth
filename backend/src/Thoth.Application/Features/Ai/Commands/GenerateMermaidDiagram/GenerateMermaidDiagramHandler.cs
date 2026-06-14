@@ -16,6 +16,7 @@ public sealed class GenerateMermaidDiagramHandler(
 {
     private const string MermaidSystemInstruction =
         "Você é um assistente que gera diagramas Mermaid. " +
+        "Escreva os rótulos e textos visíveis do diagrama em português (pt-BR); mantenha a sintaxe Mermaid (palavras-chave e tipos de diagrama) em inglês. " +
         "Responda APENAS com código Mermaid válido que renderize sem erros. " +
         "NÃO use cercas de código Markdown (```), " +
         "NÃO inclua título, explicação ou qualquer texto fora do código Mermaid.";

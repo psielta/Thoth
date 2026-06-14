@@ -17,6 +17,6 @@ public sealed class ImplementPlanTemplate : IPromptTemplateDefinition
         PromptTemplateContext context,
         CancellationToken cancellationToken) =>
         Task.FromResult(new RenderedPromptTemplate(
-            $"Implement plan: {context.DisplayName}",
-            $"Implement the plan \"{context.AbsolutePath}\"."));
+            $"Implementar plano: {context.DisplayName}",
+            $"Implemente o plano \"{context.AbsolutePath}\"."));
 }

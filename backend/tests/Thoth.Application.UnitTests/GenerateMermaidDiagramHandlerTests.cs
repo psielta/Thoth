@@ -49,6 +49,8 @@ public sealed class GenerateMermaidDiagramHandlerTests
         result.Warnings.Should().BeEmpty();
 
         var instruction = gemini.LastRefineRequest!.SystemInstruction;
+        instruction.Should().Contain("rótulos e textos visíveis do diagrama em português (pt-BR)");
+        instruction.Should().Contain("mantenha a sintaxe Mermaid");
         instruction.Should().Contain("APENAS com código Mermaid válido");
         instruction.Should().Contain("NÃO use cercas de código Markdown");
     }

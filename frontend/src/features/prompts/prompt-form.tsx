@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Bot, Copy, Languages, Loader2, Save, Sparkles, Trash2 } from 'lucide-react'
+import { Bot, Copy, Loader2, Save, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -28,7 +28,6 @@ import { buildSeededPromptContent } from '@/features/future-tasks/seed-prompt-co
 import { PromptEditor } from './prompt-editor'
 import { RefineDialog } from './ai/refine-dialog'
 import { AiAssistantPanel } from './ai/ai-assistant-panel'
-import { TranslateDialog } from './ai/translate-dialog'
 
 type PromptFormProps = {
   workingDirectoryId: string
@@ -63,7 +62,6 @@ export function PromptForm({
     mentions: FileMention[]
   } | null>(null)
   const [showRefineDialog, setShowRefineDialog] = useState(false)
-  const [showTranslateDialog, setShowTranslateDialog] = useState(false)
   const [showAiPanel, setShowAiPanel] = useState(false)
   const [futureTaskId, setFutureTaskId] = useState('')
 
@@ -287,16 +285,6 @@ export function PromptForm({
           onClose={() => setShowAiPanel(false)}
         />
       ) : null}
-      {showTranslateDialog ? (
-        <TranslateDialog
-          content={content}
-          onApply={(translated) => {
-            form.setValue('content', translated, { shouldDirty: true, shouldValidate: true })
-            setEditorMentions({ promptId, mentions: [] })
-          }}
-          onClose={() => setShowTranslateDialog(false)}
-        />
-      ) : null}
     <form
       onSubmit={onSubmit}
       className={showWorkspaceFileTree ? 'grid gap-5 xl:grid-cols-[14rem_minmax(0,1fr)]' : 'grid gap-5'}
@@ -395,16 +383,6 @@ export function PromptForm({
             >
               <Sparkles className="h-4 w-4" />
               Refinar
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowTranslateDialog(true)}
-              disabled={isBusy || !content.trim()}
-              title="Tradução para inglês"
-            >
-              <Languages className="h-4 w-4" />
-              Tradução para inglês
             </Button>
             <Button
               type="button"

@@ -355,7 +355,7 @@ public sealed class ApiFlowTests(ThothApiFactory factory) : IClassFixture<ThothA
         draft.ParentPromptId.Should().Be(prompt.Id);
         draft.TargetAgent.Should().Be(TargetAgent.Codex);
         draft.Kind.Should().Be(PromptKind.Planning);
-        draft.Content.Should().Be($"Given the plan \"{planPath}\", validate the plan, approve it, or point out improvements.");
+        draft.Content.Should().Be($"Dado o plano \"{planPath}\", valide o plano, aprove-o ou aponte melhorias.");
 
         var prDraftResponse = await client.PostAsJsonAsync(
             $"/api/linked-documents/{linked.Id}/prompt-drafts",
@@ -363,8 +363,8 @@ public sealed class ApiFlowTests(ThothApiFactory factory) : IClassFixture<ThothA
             JsonOptions);
         prDraftResponse.EnsureSuccessStatusCode();
         var prDraft = await prDraftResponse.Content.ReadFromJsonAsync<GeneratedPromptDraftDto>(JsonOptions);
-        prDraft!.Title.Should().Be("Review PR #42: review-plan.md");
-        prDraft.Content.Should().Contain($"Review the PR #42 that implements the plan `{planPath}`.");
+        prDraft!.Title.Should().Be("Revisar PR #42: review-plan.md");
+        prDraft.Content.Should().Contain($"Revise o PR #42 que implementa o plano `{planPath}`.");
 
         var reReviewDraftResponse = await client.PostAsJsonAsync(
             $"/api/linked-documents/{linked.Id}/prompt-drafts",
@@ -380,10 +380,10 @@ public sealed class ApiFlowTests(ThothApiFactory factory) : IClassFixture<ThothA
             JsonOptions);
         reReviewDraftResponse.EnsureSuccessStatusCode();
         var reReviewDraft = await reReviewDraftResponse.Content.ReadFromJsonAsync<GeneratedPromptDraftDto>(JsonOptions);
-        reReviewDraft!.Title.Should().Be("Re-review PR #42: review-plan.md");
+        reReviewDraft!.Title.Should().Be("Revisar novamente PR #42: review-plan.md");
         reReviewDraft.Content.Should().StartWith("/review");
-        reReviewDraft.Content.Should().Contain($"The PR implements the plan `{planPath}`.");
-        reReviewDraft.Content.Should().Contain("Codex response after applying fixes:");
+        reReviewDraft.Content.Should().Contain($"O PR implementa o plano `{planPath}`.");
+        reReviewDraft.Content.Should().Contain("Resposta do Codex após aplicar as correções:");
         reReviewDraft.Content.Should().Contain("Codex fixed the missing integration test.");
 
         var mergeDraftResponse = await client.PostAsJsonAsync(
@@ -392,8 +392,8 @@ public sealed class ApiFlowTests(ThothApiFactory factory) : IClassFixture<ThothA
             JsonOptions);
         mergeDraftResponse.EnsureSuccessStatusCode();
         var mergeDraft = await mergeDraftResponse.Content.ReadFromJsonAsync<GeneratedPromptDraftDto>(JsonOptions);
-        mergeDraft!.Title.Should().Be("Merge PR #42: review-plan.md");
-        mergeDraft.Content.Should().Contain($"Merge the PR #42 that implements the plan `{planPath}`.");
+        mergeDraft!.Title.Should().Be("Mesclar PR #42: review-plan.md");
+        mergeDraft.Content.Should().Contain($"Faça o merge do PR #42 que implementa o plano `{planPath}`.");
 
         var rebaseDraftResponse = await client.PostAsJsonAsync(
             $"/api/linked-documents/{linked.Id}/prompt-drafts",
@@ -401,9 +401,9 @@ public sealed class ApiFlowTests(ThothApiFactory factory) : IClassFixture<ThothA
             JsonOptions);
         rebaseDraftResponse.EnsureSuccessStatusCode();
         var rebaseDraft = await rebaseDraftResponse.Content.ReadFromJsonAsync<GeneratedPromptDraftDto>(JsonOptions);
-        rebaseDraft!.Title.Should().Be("Update branch from main: review-plan.md");
-        rebaseDraft.Content.Should().Contain("Update my current branch/worktree with the latest changes from the remote main branch using rebase.");
-        rebaseDraft.Content.Should().Contain("If there are conflicts, stop and tell me so we can resolve them together.");
+        rebaseDraft!.Title.Should().Be("Atualizar branch com main: review-plan.md");
+        rebaseDraft.Content.Should().Contain("Atualize meu branch/worktree atual com as últimas alterações do branch main remoto usando rebase.");
+        rebaseDraft.Content.Should().Contain("Se houver conflitos, pare e me avise para resolvermos juntos.");
 
         var generatedPromptResponse = await client.PostAsJsonAsync(
             "/api/prompts",

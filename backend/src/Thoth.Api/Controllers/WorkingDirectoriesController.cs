@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Thoth.Application.Common.Models;
 using Thoth.Application.Features.WorkingDirectories.Commands.CreateWorkingDirectory;
 using Thoth.Application.Features.WorkingDirectories.Commands.DeleteWorkingDirectory;
+using Thoth.Application.Features.WorkingDirectories.Commands.OpenWorkingDirectoryInVsCode;
 using Thoth.Application.Features.WorkingDirectories.Commands.UpdateWorkingDirectory;
 using Thoth.Application.Features.WorkingDirectories.Queries.GetWorkingDirectories;
 using Thoth.Application.Features.WorkingDirectories.Queries.GetWorkingDirectory;
@@ -62,6 +63,13 @@ public sealed class WorkingDirectoriesController(ISender sender) : ControllerBas
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await sender.Send(new DeleteWorkingDirectoryCommand(id), cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("{id:guid}/open-vscode")]
+    public async Task<IActionResult> OpenVsCode(Guid id, CancellationToken cancellationToken)
+    {
+        await sender.Send(new OpenWorkingDirectoryInVsCodeCommand(id), cancellationToken);
         return NoContent();
     }
 

@@ -9,6 +9,7 @@ import { getErrorMessage } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { OpenVsCodeButton } from '@/features/workspaces/open-vscode-button'
 import { usePromptHub } from '@/realtime/prompt-hub'
 
 const WORKSPACE_NAME_MAX_LENGTH = 48
@@ -221,9 +222,17 @@ function WorkspaceLayout() {
             </>
           )}
         </div>
-        <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground">
-          <Radio className={hub.connected ? 'h-3.5 w-3.5 text-success-foreground' : 'h-3.5 w-3.5 text-destructive'} />
-          {hub.connected ? 'Tempo real ativo' : 'Reconectando'}
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {workspaceQuery.data ? (
+            <OpenVsCodeButton
+              workingDirectoryId={workspaceId}
+              workspaceName={workspaceQuery.data.name}
+            />
+          ) : null}
+          <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground">
+            <Radio className={hub.connected ? 'h-3.5 w-3.5 text-success-foreground' : 'h-3.5 w-3.5 text-destructive'} />
+            {hub.connected ? 'Tempo real ativo' : 'Reconectando'}
+          </div>
         </div>
       </div>
       {workspaceQuery.data ? (

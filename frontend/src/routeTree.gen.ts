@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TerminaisRouteImport } from './routes/terminais'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotasRouteImport } from './routes/notas'
-import { Route as FilesRouteImport } from './routes/files'
 import { Route as DiagramasRouteImport } from './routes/diagramas'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspacesIndexRouteImport } from './routes/workspaces/index'
@@ -38,11 +37,6 @@ const SettingsRoute = SettingsRouteImport.update({
 const NotasRoute = NotasRouteImport.update({
   id: '/notas',
   path: '/notas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FilesRoute = FilesRouteImport.update({
-  id: '/files',
-  path: '/files',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiagramasRoute = DiagramasRouteImport.update({
@@ -111,7 +105,6 @@ const WorkspacesWorkspaceIdPromptsPromptIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/diagramas': typeof DiagramasRoute
-  '/files': typeof FilesRoute
   '/notas': typeof NotasRoute
   '/settings': typeof SettingsRoute
   '/terminais': typeof TerminaisRoute
@@ -128,7 +121,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/diagramas': typeof DiagramasRoute
-  '/files': typeof FilesRoute
   '/notas': typeof NotasRoute
   '/settings': typeof SettingsRoute
   '/terminais': typeof TerminaisRoute
@@ -145,7 +137,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/diagramas': typeof DiagramasRoute
-  '/files': typeof FilesRoute
   '/notas': typeof NotasRoute
   '/settings': typeof SettingsRoute
   '/terminais': typeof TerminaisRoute
@@ -164,7 +155,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/diagramas'
-    | '/files'
     | '/notas'
     | '/settings'
     | '/terminais'
@@ -181,7 +171,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/diagramas'
-    | '/files'
     | '/notas'
     | '/settings'
     | '/terminais'
@@ -197,7 +186,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/diagramas'
-    | '/files'
     | '/notas'
     | '/settings'
     | '/terminais'
@@ -215,7 +203,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DiagramasRoute: typeof DiagramasRoute
-  FilesRoute: typeof FilesRoute
   NotasRoute: typeof NotasRoute
   SettingsRoute: typeof SettingsRoute
   TerminaisRoute: typeof TerminaisRoute
@@ -244,13 +231,6 @@ declare module '@tanstack/react-router' {
       path: '/notas'
       fullPath: '/notas'
       preLoaderRoute: typeof NotasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/files': {
-      id: '/files'
-      path: '/files'
-      fullPath: '/files'
-      preLoaderRoute: typeof FilesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/diagramas': {
@@ -363,7 +343,6 @@ const WorkspacesWorkspaceIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DiagramasRoute: DiagramasRoute,
-  FilesRoute: FilesRoute,
   NotasRoute: NotasRoute,
   SettingsRoute: SettingsRoute,
   TerminaisRoute: TerminaisRoute,

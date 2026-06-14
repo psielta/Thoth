@@ -24,8 +24,8 @@ type ExpandedFileOverlayProps = {
  * Versao autocontida do modo expandido: carrega a lista de workspaces e
  * gerencia workspace ativo + arquivo selecionado internamente, permitindo
  * abrir o modo expandido de qualquer superficie com acesso a arquivos (rota
- * de arquivos do workspace, drawer de visualizacao) sem o estado controlado
- * da pagina global /files.
+ * de arquivos do workspace, drawer de visualizacao) sem exigir estado controlado
+ * no componente de origem.
  */
 export function ExpandedFileOverlay({
   workingDirectoryId,
@@ -39,8 +39,8 @@ export function ExpandedFileOverlay({
     queryFn: listWorkingDirectories,
   })
   const [activeWorkspaceId, setActiveWorkspaceId] = useState(workingDirectoryId)
-  // Mesmo modelo da pagina /files: quando o par nao corresponde ao workspace
-  // ativo, cai no ultimo arquivo aberto persistido daquele workspace.
+  // Quando o par nao corresponde ao workspace ativo, cai no ultimo arquivo
+  // aberto persistido daquele workspace.
   const [selection, setSelection] = useState<{ workspaceId: string; path: string | null } | null>(
     initialPath ? { workspaceId: workingDirectoryId, path: initialPath } : null,
   )

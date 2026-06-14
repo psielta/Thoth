@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { DetailTab } from '@/features/prompts/prompt-detail-search'
 import { PromptDetailView } from '@/features/prompts/prompt-detail'
+import { OpenVsCodeButton } from '@/features/workspaces/open-vscode-button'
 
 type PromptDetailDrawerProps = {
   workspaceId: string
@@ -35,6 +36,12 @@ export function PromptDetailDrawer({ workspaceId, promptId, title, onClose }: Pr
           </h2>
 
           <div className="flex shrink-0 items-center gap-1">
+            <OpenVsCodeButton
+              workingDirectoryId={workspaceId}
+              iconOnly
+              variant="ghost"
+              className="text-muted-foreground"
+            />
             <Link
               to="/workspaces/$workspaceId/prompts/$promptId"
               params={{ workspaceId, promptId }}

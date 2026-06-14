@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUser, SystemCurrentUser>();
         services.AddMemoryCache();
         services.AddScoped<IWorkspaceFileService, WorkspaceFileService>();
+        services.AddScoped<IWorkspaceEditorLauncher, VsCodeWorkspaceEditorLauncher>();
         services.AddSingleton<IGitCommandRunner, GitCommandRunner>();
         ConfigureAgentUsage(services, configuration);
         services.Configure<LinkedDocumentOptions>(options =>

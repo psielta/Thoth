@@ -41,7 +41,7 @@ Trate este repositorio como projeto de portfolio: alteracoes devem preservar cla
 - Mantenha funcionalidades agrupadas em `frontend/src/features`.
 - Use componentes existentes em `frontend/src/components` antes de criar novos.
 - Use lucide-react para icones.
-- Para navegar/visualizar arquivos do workspace, reutilize o visualizador Monaco e a arvore em `frontend/src/features/files` (`FileExplorer`, `WorkspaceFileTree`, `FileViewerPanel`).
+- Para visualizar arquivos no contexto de prompts, reutilize o visualizador Monaco e a arvore em `frontend/src/features/files` (`FileExplorer`, `WorkspaceFileTree`, `FileViewerPanel`). Nao recrie a rota global `/files`; para navegacao ampla de codigo, direcione o usuario para abrir o workspace no VS Code.
 - Evite telas de marketing dentro do produto; o app deve abrir direto na experiencia funcional.
 
 ## Comandos de Desenvolvimento

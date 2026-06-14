@@ -8,6 +8,7 @@ import { queryKeys } from '@/api/query-keys'
 import type { WorkingDirectory } from '@/api/schemas'
 import { deleteWorkingDirectory, listWorkingDirectories } from '@/api/working-directories'
 import { Button } from '@/components/ui/button'
+import { OpenVsCodeButton } from './open-vscode-button'
 
 export function WorkspaceList() {
   const queryClient = useQueryClient()
@@ -87,6 +88,12 @@ export function WorkspaceList() {
             </div>
           </Link>
           <div className="flex shrink-0 items-center gap-1 p-4 pl-0">
+            <OpenVsCodeButton
+              workingDirectoryId={workspace.id}
+              workspaceName={workspace.name}
+              iconOnly
+              variant="ghost"
+            />
             <Link
               to="/workspaces/$workspaceId"
               params={{ workspaceId: workspace.id }}

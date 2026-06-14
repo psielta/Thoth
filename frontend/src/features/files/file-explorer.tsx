@@ -14,8 +14,8 @@ type FileExplorerProps = {
   className?: string
   /**
    * Quando informados, a selecao passa a ser controlada pelo componente pai
-   * (usado pela rota /files para preservar o arquivo aberto entre os modos
-   * normal e expandido). Sem eles, o estado continua interno.
+   * (usado por superficies que precisam preservar o arquivo aberto entre os
+   * modos normal e expandido). Sem eles, o estado continua interno.
    */
   selectedPath?: string | null
   onSelectFile?: (relativePath: string) => void

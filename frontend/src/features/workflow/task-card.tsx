@@ -11,6 +11,7 @@ import { advancePhase, completeWorkflow, getWorkflow, setPhase, startWorkflow } 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { GeneratePromptMenu } from '@/features/linked-documents/generate-prompt-menu'
+import { OpenVsCodeButton } from '@/features/workspaces/open-vscode-button'
 import { ActorBadge, PhaseBadge } from './badges'
 import {
   APPROVE_ADVANCE_BY_ROLE,
@@ -372,6 +373,13 @@ export function TaskCard({ task, dragging, moveDisabled, onDragStart, onDragEnd,
             : `atualizada ${formatRelativeTime(task.updatedAtUtc)}`}
         </span>
         <div className="flex shrink-0 items-center gap-1.5">
+          <OpenVsCodeButton
+            workingDirectoryId={task.workingDirectoryId}
+            workspaceName={task.workingDirectoryName}
+            iconOnly
+            variant="ghost"
+            className="text-muted-foreground"
+          />
           {task.workflowStatus === null ? (
             <Button type="button" variant="secondary" size="sm" onClick={() => start.mutate()} disabled={isBusy}>
               {start.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5" />}

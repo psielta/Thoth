@@ -23,7 +23,8 @@ O caso de uso principal e simples: o usuario cadastra um diretorio de trabalho, 
 - Monitoramento de alteracoes desses planos, versionamento automatico e atualizacao em tempo real via SignalR.
 - Pausa, retomada, atualizacao manual e remocao de planos vinculados.
 - Renderizacao de Markdown versionado no navegador com historico navegavel.
-- Navegador de arquivos do diretorio de trabalho: arvore lazy-loaded e busca por nome, disponivel na aba `Arquivos` do workspace e em uma pagina global `Arquivos` no header, com seletor de diretorio cuja ultima escolha e persistida no navegador.
+- Navegador de arquivos do diretorio de trabalho: arvore lazy-loaded e busca por nome na aba `Arquivos` do workspace e nos fluxos de prompt que precisam referenciar arquivos.
+- Botao **VS Code** em superficies de workspace/prompt para abrir o diretorio de trabalho diretamente no editor local.
 - Visualizador de codigo somente leitura baseado no Monaco Editor, com realce de sintaxe, tema sincronizado com o app e atualizacao em tempo real via SignalR quando o arquivo muda no disco.
 - Terminais PowerShell integrados na aba `Terminais` do prompt: multiplas sessoes por tarefa com diretorio inicial no workspace, lancamento rapido de Claude/Codex/Grok, abas nomeadas e coloridas persistidas no `localStorage` do navegador, alternancia entre sessoes com `Ctrl+`` (overlay) ou `Ctrl+Alt+←/→` e zoom de fonte.
 - Templates de prompts para fluxo de revisao, implementacao, rebase e merge de planos, com atualizacao automatica da fase da tarefa pai quando aplicavel.
@@ -119,7 +120,7 @@ O backend segue um fluxo orientado a casos de uso. Controllers chamam MediatR, h
 16. O botao **IA** abre um drawer lateral com chat de suporte especializado em engenharia de prompts; o usuario pode incluir o conteudo do prompt atual como contexto da conversa.
 17. O painel de **Configuracao** do drawer permite escolher o modelo Gemini, ajustar a temperatura e definir o nivel de raciocinio. As configuracoes sao salvas por usuario.
 18. Em cada workspace, o usuario pode ativar o **Contexto de IA** para injetar `README.md`, `CLAUDE.md` e `AGENT.md` nas instrucoes de sistema do Gemini durante o refinamento e o chat.
-19. A qualquer momento, o usuario pode navegar e visualizar os arquivos do diretorio de trabalho pela pagina global `Arquivos` no header ou pela aba `Arquivos` do workspace, com busca por nome e visualizacao somente leitura no Monaco Editor.
+19. O usuario pode abrir o workspace no VS Code a partir das superficies de workspace/prompt; quando o fluxo de prompt precisa referenciar arquivos, o app ainda oferece visualizacao somente leitura no Monaco Editor.
 20. Na aba `Terminais` do prompt, o usuario abre uma ou mais sessoes PowerShell no workspace, renomeia e colore abas (preferencias salvas no navegador), alterna entre elas com `Ctrl+`` ou `Ctrl+Alt+←/→` e pode iniciar Claude, Codex ou Grok pelo menu ao lado de `Novo terminal`.
 
 ## Como Executar
@@ -280,7 +281,7 @@ npm audit --audit-level=moderate
 - O workflow combina acoes manuais com transicoes automaticas geradas por templates de prompt filho; concluir e reabrir continuam dependendo de acao explicita do usuario.
 - Concluir o workflow nao arquiva o prompt; `Prompt.Status` e `PromptWorkflow.Status` sao estados separados.
 - Arquivos mencionados em prompts precisam existir dentro do diretorio de trabalho.
-- O visualizador de arquivos do workspace e somente leitura; a edicao continua sendo feita no editor local do usuario.
+- O visualizador de arquivos e somente leitura e deve ficar ligado a fluxos de prompt; edicao e navegacao ampla de codigo continuam no editor local do usuario, acionado pelo botao VS Code.
 - Planos vinculados podem ser monitorados em background, pausados e retomados.
 - Ao arquivar um prompt, os planos vinculados devem parar de ser monitorados.
 - Ao arquivar ou excluir um prompt, os caches Gemini das sessoes associadas sao liberados proativamente para evitar custo de armazenamento desnecessario.

@@ -58,3 +58,7 @@ export async function updateWorkingDirectory(id: string, payload: WorkingDirecto
 export async function deleteWorkingDirectory(id: string) {
   await api.delete(`working-directories/${id}`)
 }
+
+export async function openWorkingDirectoryInVsCode(id: string) {
+  await api.post(`working-directories/${id}/open-vscode`)
+}

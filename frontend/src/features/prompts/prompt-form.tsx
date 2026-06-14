@@ -23,6 +23,7 @@ import {
 } from './constants'
 import { useFileViewer } from '@/features/files/use-file-viewer'
 import { useGitHistory } from '@/features/files/use-git-history'
+import { useOpenFileInVsCode } from '@/features/files/use-open-file-in-vscode'
 import { WorkspaceFileTree } from '@/features/files/workspace-file-tree'
 import { buildSeededPromptContent } from '@/features/future-tasks/seed-prompt-content'
 import { PromptEditor } from './prompt-editor'
@@ -57,6 +58,7 @@ export function PromptForm({
   const queryClient = useQueryClient()
   const { openFile } = useFileViewer()
   const { openHistory } = useGitHistory()
+  const openInVsCode = useOpenFileInVsCode()
   const [editorMentions, setEditorMentions] = useState<{
     promptId?: string
     mentions: FileMention[]
@@ -294,6 +296,7 @@ export function PromptForm({
           workingDirectoryId={workingDirectoryId}
           onOpenFile={(relativePath) => openFile(workingDirectoryId, relativePath)}
           onShowGitHistory={(relativePath) => openHistory(workingDirectoryId, relativePath)}
+          onOpenInVsCode={(relativePath) => openInVsCode(workingDirectoryId, relativePath)}
           className="hidden min-h-[28rem] xl:grid"
         />
       ) : null}

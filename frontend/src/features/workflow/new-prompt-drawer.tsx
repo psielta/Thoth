@@ -6,6 +6,7 @@ import { Select } from '@/components/ui/select'
 import type { WorkingDirectory } from '@/api/schemas'
 import { useFileViewer } from '@/features/files/use-file-viewer'
 import { useGitHistory } from '@/features/files/use-git-history'
+import { useOpenFileInVsCode } from '@/features/files/use-open-file-in-vscode'
 import { WorkspaceFileTree } from '@/features/files/workspace-file-tree'
 import { PromptForm } from '@/features/prompts/prompt-form'
 
@@ -28,6 +29,7 @@ export function NewPromptDrawer({
 }: NewPromptDrawerProps) {
   const { openFile } = useFileViewer()
   const { openHistory } = useGitHistory()
+  const openInVsCode = useOpenFileInVsCode()
   const [workingDirectoryId, setWorkingDirectoryId] = useState(
     defaultWorkingDirectoryId ?? (workspaces.length === 1 ? workspaces[0].id : '')
   )
@@ -90,6 +92,7 @@ export function NewPromptDrawer({
                   workingDirectoryId={workingDirectoryId}
                   onOpenFile={(relativePath) => openFile(workingDirectoryId, relativePath)}
                   onShowGitHistory={(relativePath) => openHistory(workingDirectoryId, relativePath)}
+                  onOpenInVsCode={(relativePath) => openInVsCode(workingDirectoryId, relativePath)}
                   className="min-h-[24rem]"
                 />
                 <PromptForm

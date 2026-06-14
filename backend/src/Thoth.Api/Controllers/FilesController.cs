@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Thoth.Application.Common.Models;
+using Thoth.Application.Features.Files.Commands.OpenFileInVsCode;
 using Thoth.Application.Features.Files.Queries.BrowseDirectory;
 using Thoth.Application.Features.Files.Queries.ReadFileContent;
 using Thoth.Application.Features.Files.Queries.SearchFiles;
@@ -42,5 +43,16 @@ public sealed class FilesController(ISender sender) : ControllerBase
             new ValidateFileReferencesQuery(request.WorkingDirectoryId, request.RelativePaths),
             cancellationToken));
 
+    [HttpPost("open-vscode")]
+    public async Task<IActionResult> OpenInVsCode(
+        OpenFileInVsCodeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        await sender.Send(new OpenFileInVsCodeCommand(request.WorkingDirectoryId, request.RelativePath), cancellationToken);
+        return NoContent();
+    }
+
     public sealed record ValidateFileReferencesRequest(Guid WorkingDirectoryId, IReadOnlyList<string> RelativePaths);
+
+    public sealed record OpenFileInVsCodeRequest(Guid WorkingDirectoryId, string RelativePath);
 }

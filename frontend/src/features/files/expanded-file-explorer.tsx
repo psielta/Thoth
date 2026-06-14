@@ -11,6 +11,7 @@ import { FileViewerPanel } from './file-viewer-panel'
 import { GitDiffViewer } from './git-diff-viewer'
 import { useDirectoryChildren } from './use-file-queries'
 import { useGitHistory } from './use-git-history'
+import { useOpenFileInVsCode } from './use-open-file-in-vscode'
 import { WorkspaceFileTree } from './workspace-file-tree'
 
 const TREE_WIDTH_STORAGE_KEY = 'prompt-tasks:files:tree-width'
@@ -54,6 +55,7 @@ export function ExpandedFileExplorer({
   className,
 }: ExpandedFileExplorerProps) {
   const { openHistory } = useGitHistory()
+  const openInVsCode = useOpenFileInVsCode()
   const rootQuery = useDirectoryChildren(workingDirectoryId, '')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [treeVisible, setTreeVisible] = useState(true)
@@ -216,6 +218,7 @@ export function ExpandedFileExplorer({
               onSelectFile={handleSelectFile}
               onSelectGitChange={handleSelectGitChange}
               onShowGitHistory={(path) => openHistory(workingDirectoryId, path)}
+              onOpenInVsCode={(path) => openInVsCode(workingDirectoryId, path)}
               className="h-full shrink-0"
               style={{ width: treeWidth }}
             />

@@ -99,6 +99,12 @@ internal sealed class StubWorkspaceFileService : IWorkspaceFileService
         CancellationToken cancellationToken) =>
         Task.FromResult(new FileReferenceResolution(relativePath, true, DateTimeOffset.UtcNow));
 
+    public Task<string> ResolveExistingFilePathAsync(
+        string rootAbsolutePath,
+        string relativePath,
+        CancellationToken cancellationToken) =>
+        Task.FromResult(Path.Combine(rootAbsolutePath, relativePath));
+
     public Task<IReadOnlyList<DirectoryEntryDto>> BrowseDirectoryAsync(
         string rootAbsolutePath,
         string relativeDirectoryPath,

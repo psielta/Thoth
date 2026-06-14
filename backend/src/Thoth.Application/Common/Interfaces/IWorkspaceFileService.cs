@@ -31,6 +31,11 @@ public interface IWorkspaceFileService
         string relativePath,
         CancellationToken cancellationToken);
 
+    Task<string> ResolveExistingFilePathAsync(
+        string rootAbsolutePath,
+        string relativePath,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<DirectoryEntryDto>> BrowseDirectoryAsync(
         string rootAbsolutePath,
         string relativeDirectoryPath,

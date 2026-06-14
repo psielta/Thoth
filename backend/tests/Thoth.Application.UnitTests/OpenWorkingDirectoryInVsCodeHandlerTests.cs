@@ -60,6 +60,9 @@ public sealed class OpenWorkingDirectoryInVsCodeHandlerTests
             OpenedPath = absolutePath;
             return Task.CompletedTask;
         }
+
+        public Task OpenFileInVsCodeAsync(string workspaceAbsolutePath, string fileAbsolutePath, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
     }
 
     private sealed class FakeCurrentUser : ICurrentUser

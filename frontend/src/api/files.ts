@@ -49,3 +49,7 @@ export async function getFileContent(workingDirectoryId: string, relativePath: s
   const data = await api.get('files/content', { searchParams }).json<unknown>()
   return fileContentSchema.parse(data)
 }
+
+export async function openFileInVsCode(workingDirectoryId: string, relativePath: string) {
+  await api.post('files/open-vscode', { json: { workingDirectoryId, relativePath } })
+}

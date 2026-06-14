@@ -22,6 +22,7 @@ type WorkspaceFileTreeProps = {
   onOpenFile?: (relativePath: string) => void
   onSelectGitChange?: (entry: GitFileStatus) => void
   onShowGitHistory?: (relativePath: string) => void
+  onOpenInVsCode?: (relativePath: string) => void
   className?: string
   style?: CSSProperties
 }
@@ -34,6 +35,7 @@ export function WorkspaceFileTree({
   onOpenFile,
   onSelectGitChange,
   onShowGitHistory,
+  onOpenInVsCode,
   className,
   style,
 }: WorkspaceFileTreeProps) {
@@ -169,6 +171,7 @@ export function WorkspaceFileTree({
                   onSelectFile={onSelectFile}
                   onOpenFile={onOpenFile}
                   onShowGitHistory={onShowGitHistory}
+                  onOpenInVsCode={onOpenInVsCode}
                 />
               ))}
             </ul>
@@ -210,6 +213,7 @@ export function WorkspaceFileTree({
                   onSelectFile={onSelectFile}
                   onOpenFile={onOpenFile}
                   onShowGitHistory={onShowGitHistory}
+                  onOpenInVsCode={onOpenInVsCode}
                 />
               ))}
             </ul>
@@ -242,6 +246,7 @@ type SearchResultItemProps = {
   onSelectFile?: (relativePath: string) => void
   onOpenFile?: (relativePath: string) => void
   onShowGitHistory?: (relativePath: string) => void
+  onOpenInVsCode?: (relativePath: string) => void
 }
 
 function SearchResultItem({
@@ -252,6 +257,7 @@ function SearchResultItem({
   onSelectFile,
   onOpenFile,
   onShowGitHistory,
+  onOpenInVsCode,
 }: SearchResultItemProps) {
   const isSelected = !result.isDirectory && selectedPath === result.relativePath
   const status = result.isDirectory ? undefined : statusByKey.get(createFileKey(result.relativePath))
@@ -304,8 +310,13 @@ function SearchResultItem({
 
   return (
     <li>
-      {!result.isDirectory && onShowGitHistory ? (
-        <FileContextMenu onShowGitHistory={() => onShowGitHistory(result.relativePath)}>{button}</FileContextMenu>
+      {!result.isDirectory && (onShowGitHistory || onOpenInVsCode) ? (
+        <FileContextMenu
+          onShowGitHistory={onShowGitHistory ? () => onShowGitHistory(result.relativePath) : undefined}
+          onOpenInVsCode={onOpenInVsCode ? () => onOpenInVsCode(result.relativePath) : undefined}
+        >
+          {button}
+        </FileContextMenu>
       ) : (
         button
       )}
@@ -437,6 +448,7 @@ type TreeNodeProps = {
   onSelectFile?: (relativePath: string) => void
   onOpenFile?: (relativePath: string) => void
   onShowGitHistory?: (relativePath: string) => void
+  onOpenInVsCode?: (relativePath: string) => void
 }
 
 function TreeNode({
@@ -451,6 +463,7 @@ function TreeNode({
   onSelectFile,
   onOpenFile,
   onShowGitHistory,
+  onOpenInVsCode,
 }: TreeNodeProps) {
   const isExpanded = expandedPaths.has(node.relativePath)
   const childrenQuery = useDirectoryChildren(workingDirectoryId, node.relativePath, node.isDirectory && isExpanded)
@@ -529,8 +542,13 @@ function TreeNode({
 
   return (
     <li>
-      {!node.isDirectory && onShowGitHistory ? (
-        <FileContextMenu onShowGitHistory={() => onShowGitHistory(node.relativePath)}>{button}</FileContextMenu>
+      {!node.isDirectory && (onShowGitHistory || onOpenInVsCode) ? (
+        <FileContextMenu
+          onShowGitHistory={onShowGitHistory ? () => onShowGitHistory(node.relativePath) : undefined}
+          onOpenInVsCode={onOpenInVsCode ? () => onOpenInVsCode(node.relativePath) : undefined}
+        >
+          {button}
+        </FileContextMenu>
       ) : (
         button
       )}
@@ -562,6 +580,7 @@ function TreeNode({
                 onSelectFile={onSelectFile}
                 onOpenFile={onOpenFile}
                 onShowGitHistory={onShowGitHistory}
+                onOpenInVsCode={onOpenInVsCode}
               />
             ))}
           </ul>

@@ -338,6 +338,35 @@ public sealed class WorkspaceFileService(
         return Task.FromResult(new FileReferenceResolution(normalized, exists, dateTimeProvider.UtcNow));
     }
 
+    public Task<string> ResolveExistingFilePathAsync(
+        string rootAbsolutePath,
+        string relativePath,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var normalizedInput = relativePath?.Trim().TrimStart('@') ?? string.Empty;
+        if (normalizedInput.Length == 0 ||
+            Path.IsPathRooted(normalizedInput) ||
+            WorkspaceFilePath.HasParentTraversal(normalizedInput))
+        {
+            throw new PathTraversalException("Only relative paths inside the working directory are allowed.");
+        }
+
+        var rootCanonical = WorkspaceFilePath.CanonicalizeExistingPath(rootAbsolutePath);
+        var candidateLogical = Path.GetFullPath(Path.Combine(rootCanonical, WorkspaceFilePath.NormalizeInputRelativePath(normalizedInput)));
+
+        if (!File.Exists(candidateLogical) || Directory.Exists(candidateLogical))
+        {
+            throw new FileNotFoundException("File was not found.", normalizedInput);
+        }
+
+        var candidateCanonical = WorkspaceFilePath.CanonicalizeExistingPath(candidateLogical);
+        WorkspaceFilePath.EnsureContained(rootCanonical, candidateCanonical);
+
+        return Task.FromResult(candidateCanonical);
+    }
+
     public Task<IReadOnlyList<DirectoryEntryDto>> BrowseDirectoryAsync(
         string rootAbsolutePath,
         string relativeDirectoryPath,

@@ -1,10 +1,11 @@
-import { GitBranch } from 'lucide-react'
+import { Code2, GitBranch } from 'lucide-react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 type FileContextMenuProps = {
   children: ReactNode
-  onShowGitHistory: () => void
+  onShowGitHistory?: () => void
+  onOpenInVsCode?: () => void
 }
 
 type MenuPosition = {
@@ -15,7 +16,7 @@ type MenuPosition = {
 const MENU_WIDTH = 220
 const MENU_HEIGHT = 44
 
-export function FileContextMenu({ children, onShowGitHistory }: FileContextMenuProps) {
+export function FileContextMenu({ children, onShowGitHistory, onOpenInVsCode }: FileContextMenuProps) {
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState<MenuPosition>({ x: 0, y: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
@@ -77,20 +78,38 @@ export function FileContextMenu({ children, onShowGitHistory }: FileContextMenuP
             className="fixed z-[91] min-w-[13.75rem] overflow-hidden rounded-md border border-border bg-card py-1 shadow-lg"
             style={{ left: position.x, top: position.y, width: MENU_WIDTH, minHeight: MENU_HEIGHT }}
           >
-            <button
-              type="button"
-              role="menuitem"
-              className={cn(
-                'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted',
-              )}
-              onClick={() => {
-                onShowGitHistory()
-                closeMenu()
-              }}
-            >
-              <GitBranch className="h-4 w-4 shrink-0 text-muted-foreground" />
-              Ver historico do git
-            </button>
+            {onOpenInVsCode ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(
+                  'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted',
+                )}
+                onClick={() => {
+                  onOpenInVsCode()
+                  closeMenu()
+                }}
+              >
+                <Code2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                Abrir no VS Code
+              </button>
+            ) : null}
+            {onShowGitHistory ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(
+                  'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted',
+                )}
+                onClick={() => {
+                  onShowGitHistory()
+                  closeMenu()
+                }}
+              >
+                <GitBranch className="h-4 w-4 shrink-0 text-muted-foreground" />
+                Ver historico do git
+              </button>
+            ) : null}
           </div>
         </>
       ) : null}

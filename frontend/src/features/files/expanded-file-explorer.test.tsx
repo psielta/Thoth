@@ -13,6 +13,9 @@ vi.mock('./use-git-history', () => ({
 
 vi.mock('@/api/files')
 vi.mock('@/api/git')
+vi.mock('./monaco-setup', () => ({
+  resolveMonacoTheme: () => 'vs',
+}))
 
 const workspace: WorkingDirectory = {
   id: 'ws-1',

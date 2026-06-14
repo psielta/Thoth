@@ -11,6 +11,9 @@ vi.mock('./use-git-history', () => ({
 
 vi.mock('@/api/files')
 vi.mock('@/api/git')
+vi.mock('./monaco-setup', () => ({
+  resolveMonacoTheme: () => 'vs',
+}))
 
 function renderExplorer(selectedPath: string | null, onClearSelection = vi.fn()) {
   const queryClient = new QueryClient({

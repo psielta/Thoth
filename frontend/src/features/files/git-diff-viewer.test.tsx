@@ -13,7 +13,9 @@ vi.mock('./use-file-subscription', () => ({
 vi.mock('@/components/theme/theme-provider', () => ({
   useTheme: () => ({ resolvedTheme: 'light' }),
 }))
-vi.mock('./monaco-setup', () => ({}))
+vi.mock('./monaco-setup', () => ({
+  resolveMonacoTheme: () => 'vs',
+}))
 
 type DiffEditorMockProps = {
   original: string

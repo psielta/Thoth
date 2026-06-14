@@ -15,6 +15,7 @@ import {
 } from './terminal-font-size'
 import type { TerminalAgentLaunch } from '@/api/schemas'
 import { TerminalAgentMenu } from './terminal-agent-menu'
+import { TerminalFrame, type TerminalFrameVariant } from './terminal-frame'
 import { defaultPreferenceForAgent } from './terminal-tab-preferences'
 import { TerminalSwitcher } from './terminal-switcher'
 import { TerminalTabButton } from './terminal-tab-button'
@@ -24,9 +25,10 @@ import { useTerminalTabPreferences } from './use-terminal-tab-preferences'
 
 type TerminalsPanelProps = {
   promptId: string
+  variant?: Extract<TerminalFrameVariant, 'prompt' | 'drawer'>
 }
 
-export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
+export function TerminalsPanel({ promptId, variant = 'prompt' }: TerminalsPanelProps) {
   const queryClient = useQueryClient()
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [storedFontSize, setStoredFontSize] = useLocalStorage(
@@ -127,8 +129,13 @@ export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
   })
 
   return (
-    <div className="grid gap-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div
+      className={cn(
+        'grid gap-3',
+        variant === 'drawer' ? 'h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]' : null,
+      )}
+    >
+      <div className="flex min-h-0 flex-wrap items-center gap-2">
         <div className="inline-flex items-stretch">
           <Button
             type="button"
@@ -221,7 +228,7 @@ export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
       </div>
 
       {sessions.length > 0 ? (
-        <div className="relative h-[min(70vh,640px)] w-full overflow-hidden rounded-md border border-border bg-[#0f1117]">
+        <TerminalFrame variant={variant}>
           {sessions.map((session) => (
             <TerminalView
               key={session.id}
@@ -233,7 +240,7 @@ export function TerminalsPanel({ promptId }: TerminalsPanelProps) {
               onKeyboardShortcut={session.id === resolvedActiveId ? handleKeyboardEvent : undefined}
             />
           ))}
-        </div>
+        </TerminalFrame>
       ) : null}
 
       {switcherOpen && highlightedSessionId ? (

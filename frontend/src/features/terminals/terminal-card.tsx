@@ -3,6 +3,7 @@ import { ExternalLink, Eye, EyeOff, Terminal as TerminalIcon, X } from 'lucide-r
 import type { TerminalSession } from '@/api/schemas'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { TerminalFrame } from '@/features/prompts/terminal-frame'
 import { TerminalView } from '@/features/prompts/terminal-view'
 import {
   resolveTerminalTabLabel,
@@ -117,7 +118,7 @@ export function TerminalCard({
       </div>
 
       {isExpanded ? (
-        <div className="relative h-[min(50vh,420px)] w-full overflow-hidden rounded-md border border-border bg-[#0f1117]">
+        <TerminalFrame variant="card">
           <TerminalView
             sessionId={session.id}
             active
@@ -125,7 +126,7 @@ export function TerminalCard({
             onZoom={onAdjustFontSize}
             onSessionExit={onSessionExit}
           />
-        </div>
+        </TerminalFrame>
       ) : null}
     </div>
   )

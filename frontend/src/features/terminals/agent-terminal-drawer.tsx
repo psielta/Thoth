@@ -49,8 +49,8 @@ export function AgentTerminalDrawer({ promptId, title, onClose }: AgentTerminalD
           </Button>
         </div>
 
-        <div className="min-h-0 overflow-auto px-4 py-3">
-          <TerminalsPanel promptId={promptId} />
+        <div className="h-full min-h-0 px-4 py-3">
+          <TerminalsPanel promptId={promptId} variant="drawer" />
         </div>
       </div>
     </div>

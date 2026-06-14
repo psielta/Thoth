@@ -1,3 +1,9 @@
+.thoth-terminal,
+.thoth-terminal .xterm,
+.thoth-terminal .xterm-viewport {
+  overscroll-behavior: contain;
+}
+
 .thoth-terminal .xterm {
   height: 100%;
   width: 100%;

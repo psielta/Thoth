@@ -135,6 +135,41 @@ public sealed class TerminalSessionManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task GetOutputHistory_keeps_offsets_when_history_is_disabled()
+    {
+        var ptyFactory = new FakePtyConnectionFactory();
+        var notifier = new RecordingTerminalNotifier();
+        using var manager = CreateManager(ptyFactory, notifier, maxOutputHistoryBytes: 0);
+        var promptId = Guid.CreateVersion7();
+        var descriptor = await manager.CreateAsync(promptId, _root, string.Empty, null, CancellationToken.None);
+        var output = "abcdef"u8.ToArray();
+
+        ptyFactory.LastConnection!.EmitOutput(output);
+
+        var history = await WaitForHistoryAsync(manager, descriptor.Id, output.Length);
+        history.StartOffset.Should().Be(output.Length);
+        history.EndOffset.Should().Be(output.Length);
+        history.IsTruncated.Should().BeTrue();
+        Convert.FromBase64String(history.DataBase64).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetOutputHistory_advances_start_offset_across_multiple_outputs()
+    {
+        var promptId = Guid.CreateVersion7();
+        var descriptor = await _manager.CreateAsync(promptId, _root, string.Empty, null, CancellationToken.None);
+
+        _ptyFactory.LastConnection!.EmitOutput("12345"u8.ToArray());
+        _ptyFactory.LastConnection!.EmitOutput("67890"u8.ToArray());
+
+        var history = await WaitForHistoryAsync(descriptor.Id, 10);
+        history.StartOffset.Should().Be(2);
+        history.EndOffset.Should().Be(10);
+        history.IsTruncated.Should().BeTrue();
+        Convert.FromBase64String(history.DataBase64).Should().BeEquivalentTo("34567890"u8.ToArray());
+    }
+
+    [Fact]
     public async Task ProcessOutputQueueAsync_notifies_output_with_start_offset()
     {
         await _manager.StartAsync(CancellationToken.None);
@@ -248,11 +283,17 @@ public sealed class TerminalSessionManagerTests : IDisposable
         }
     }
 
-    private async Task<TerminalOutputHistoryDto> WaitForHistoryAsync(Guid sessionId, long minEndOffset)
+    private Task<TerminalOutputHistoryDto> WaitForHistoryAsync(Guid sessionId, long minEndOffset) =>
+        WaitForHistoryAsync(_manager, sessionId, minEndOffset);
+
+    private static async Task<TerminalOutputHistoryDto> WaitForHistoryAsync(
+        TerminalSessionManager manager,
+        Guid sessionId,
+        long minEndOffset)
     {
         for (var attempt = 0; attempt < 20; attempt++)
         {
-            var history = _manager.GetOutputHistory(sessionId);
+            var history = manager.GetOutputHistory(sessionId);
             if (history is not null && history.EndOffset >= minEndOffset)
             {
                 return history;
@@ -262,6 +303,31 @@ public sealed class TerminalSessionManagerTests : IDisposable
         }
 
         throw new TimeoutException("Terminal output history was not populated in time.");
+    }
+
+    private static TerminalSessionManager CreateManager(
+        FakePtyConnectionFactory ptyFactory,
+        RecordingTerminalNotifier notifier,
+        int maxOutputHistoryBytes)
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<ITerminalNotifier>(_ => notifier);
+        var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+
+        return new TerminalSessionManager(
+            scopeFactory,
+            ptyFactory,
+            Options.Create(new TerminalOptions
+            {
+                Enabled = true,
+                MaxSessionsPerPrompt = 2,
+                MaxTotalSessions = 4,
+                OrphanTimeoutSeconds = 4,
+                OutputFlushMilliseconds = 10,
+                MaxOutputChunkBytes = 1024,
+                MaxOutputHistoryBytes = maxOutputHistoryBytes
+            }),
+            NullLogger<TerminalSessionManager>.Instance);
     }
 
     private async Task<(Guid SessionId, long StartOffset, string DataBase64)> WaitForOutputNotificationAsync(Guid sessionId)

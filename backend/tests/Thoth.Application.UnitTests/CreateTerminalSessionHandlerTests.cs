@@ -72,6 +72,7 @@ public sealed class CreateTerminalSessionHandlerTests
 
         var followUp = System.Text.Encoding.UTF8.GetString(coordinator.LastCreate.Value.FollowUpInput!);
         followUp.Should().NotStartWith("/plan");
+        followUp.Should().NotEndWith("\r");
         followUp.Should().Contain("Planeje @arquivo.md com café");
     }
 

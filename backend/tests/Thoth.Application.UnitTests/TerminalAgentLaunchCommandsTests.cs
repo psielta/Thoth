@@ -30,7 +30,7 @@ public sealed class TerminalAgentLaunchCommandsTests
     }
 
     [Fact]
-    public void ResolveClaudePlanStagedInput_launches_bypass_claude_and_plain_prompt()
+    public void ResolveClaudePlanStagedInput_launches_bypass_claude_and_prefills_plain_prompt()
     {
         const string prompt = "Planeje a feature\r\ncom \"aspas\" e café ☕";
 
@@ -43,7 +43,7 @@ public sealed class TerminalAgentLaunchCommandsTests
         launch.Should().NotContain("--settings");
 
         var followUp = Encoding.UTF8.GetString(staged.FollowUp!);
-        followUp.Should().Be("Planeje a feature com \"aspas\" e café ☕\r");
+        followUp.Should().Be("Planeje a feature com \"aspas\" e café ☕");
         followUp.Should().NotStartWith("/plan");
     }
 
@@ -52,6 +52,17 @@ public sealed class TerminalAgentLaunchCommandsTests
     {
         TerminalAgentLaunchCommands.ResolveFollowUpInput(TerminalAgentLaunch.ClaudePlan, string.Empty)
             .Should().BeNull();
+    }
+
+    [Fact]
+    public void ResolveFollowUpInput_for_claude_plan_prefills_without_submitting()
+    {
+        var followUp = TerminalAgentLaunchCommands.ResolveFollowUpInput(
+            TerminalAgentLaunch.ClaudePlan,
+            "Planeje\r\nsem executar");
+
+        followUp.Should().NotBeNull();
+        Encoding.UTF8.GetString(followUp!).Should().Be("Planeje sem executar");
     }
 
     [Fact]

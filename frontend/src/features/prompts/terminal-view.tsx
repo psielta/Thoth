@@ -30,6 +30,11 @@ type TerminalViewProps = {
 
 type BadgeVariant = 'neutral' | 'green' | 'amber' | 'blue' | 'red'
 
+function isViewportAtBottom(term: Terminal) {
+  const buffer = term.buffer.active
+  return buffer.baseY - buffer.viewportY <= 1
+}
+
 function scheduleTerminalFit(
   fitAddon: FitAddon,
   term: Terminal,
@@ -40,6 +45,11 @@ function scheduleTerminalFit(
       try {
         fitAddon.fit()
       } catch {
+        return
+      }
+
+      const element = term.element
+      if (!element || element.clientWidth === 0 || element.clientHeight === 0) {
         return
       }
 
@@ -62,7 +72,7 @@ export function TerminalView({
 }: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const terminalRef = useRef<{ term: Terminal; fitAddon: FitAddon } | null>(null)
-  const isAtBottomRef = useRef(true)
+  const followRef = useRef(true)
   const onZoomRef = useRef(onZoom)
   const onKeyboardShortcutRef = useRef(onKeyboardShortcut)
   const activeRef = useRef(active)
@@ -81,26 +91,16 @@ export function TerminalView({
     subscribeTerminalExit,
   } = usePromptHub()
 
-  const updateBottomState = useCallback((term: Terminal) => {
-    const buffer = term.buffer.active
-    const isAtBottom = buffer.baseY - buffer.viewportY <= 1
-    isAtBottomRef.current = isAtBottom
-    if (isAtBottom) {
-      setHasUnreadOutput(false)
-    }
-
-    return isAtBottom
-  }, [])
-
   const scrollToTop = useCallback(() => {
     const terminal = terminalRef.current
     if (!terminal) {
       return
     }
 
+    // Pausa o auto-scroll: o usuário foi ler o histórico.
+    followRef.current = false
     terminal.term.scrollToTop()
-    updateBottomState(terminal.term)
-  }, [updateBottomState])
+  }, [])
 
   const scrollToBottom = useCallback(() => {
     const terminal = terminalRef.current
@@ -108,10 +108,11 @@ export function TerminalView({
       return
     }
 
-    terminal.term.scrollToBottom()
+    // Retoma o auto-scroll e volta ao fim.
+    followRef.current = true
     setHasUnreadOutput(false)
-    updateBottomState(terminal.term)
-  }, [updateBottomState])
+    terminal.term.scrollToBottom()
+  }, [])
 
   useEffect(() => {
     onZoomRef.current = onZoom
@@ -174,21 +175,19 @@ export function TerminalView({
         return
       }
 
-      const viewportBefore = term.buffer.active.viewportY
-      const shouldFollow = options?.forceFollow ?? isAtBottomRef.current
+      const forceFollow = options?.forceFollow ?? false
       term.write(bytes, () => {
         if (disposed) {
           return
         }
 
-        if (shouldFollow) {
+        // Decidimos no momento da escrita: se o usuário rolou para cima durante o
+        // streaming, followRef já está false e não puxamos a view para o fim.
+        if (forceFollow || followRef.current) {
           term.scrollToBottom()
         } else {
-          term.scrollToLine(viewportBefore)
           setHasUnreadOutput(true)
         }
-
-        updateBottomState(term)
       })
     }
 
@@ -274,14 +273,14 @@ export function TerminalView({
           term.clear()
           setGapDetected(true)
           setHistoryTruncated(result.isTruncated)
-          writeBytes(result.bytes, { forceFollow: true })
+          writeBytes(result.bytes)
           outputEndOffset = result.endOffset
           return
         }
 
         if (result.type === 'write') {
           setHistoryTruncated(result.isTruncated)
-          writeBytes(result.bytes, { forceFollow: outputEndOffset === 0 })
+          writeBytes(result.bytes)
           outputEndOffset = result.endOffset
           return
         }
@@ -313,7 +312,15 @@ export function TerminalView({
       scheduleTerminalFit(fitAddon, term, { notifyBackend: true, onSized: notifyBackendResize })
     }
 
-    const scrollDisposable = term.onScroll(() => updateBottomState(term))
+    const scrollDisposable = term.onScroll(() => {
+      // Reagimos tanto à rolagem do usuário quanto ao nosso scrollToBottom: em
+      // ambos os casos a posição real da viewport reflete a intenção correta.
+      const atBottom = isViewportAtBottom(term)
+      followRef.current = atBottom
+      if (atBottom) {
+        setHasUnreadOutput(false)
+      }
+    })
 
     const unsubscribeOutput = subscribeTerminalOutput(sessionId, (startOffset, dataBase64) => {
       const chunk = { startOffset, dataBase64 }
@@ -392,7 +399,6 @@ export function TerminalView({
     sessionId,
     subscribeTerminalExit,
     subscribeTerminalOutput,
-    updateBottomState,
   ])
 
   useEffect(() => {

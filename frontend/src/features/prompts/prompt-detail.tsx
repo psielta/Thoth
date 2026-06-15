@@ -49,6 +49,14 @@ export function PromptDetailView({ workspaceId, promptId, activeTab, onTabChange
   const canAddVerdict = workflow?.status === 'Active' && isReviewPhaseRole(reviewRole)
 
   const [showVerdict, setShowVerdict] = useState(false)
+  // Mantém o painel de terminais montado após a primeira abertura da aba, para
+  // não inicializar o xterm com tamanho zero enquanto a aba está oculta (o que
+  // redimensionaria o PTY do backend para 80x24). Ajustar o estado durante a
+  // renderização é o padrão recomendado do React em vez de usar um efeito.
+  const [terminalsMounted, setTerminalsMounted] = useState(activeTab === 'terminals')
+  if (activeTab === 'terminals' && !terminalsMounted) {
+    setTerminalsMounted(true)
+  }
 
   return (
     <div className="grid gap-4">
@@ -146,7 +154,7 @@ export function PromptDetailView({ workspaceId, promptId, activeTab, onTabChange
         <PromptChildrenPanel workingDirectoryId={workspaceId} parentPromptId={promptId} />
       ) : null}
 
-      {terminalsEnabled ? (
+      {terminalsEnabled && terminalsMounted ? (
         <Suspense fallback={<div className="text-sm text-muted-foreground">Carregando terminais...</div>}>
           <div className={activeTab === 'terminals' ? undefined : 'hidden'}>
             <TerminalsPanel promptId={promptId} />

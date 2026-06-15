@@ -30,7 +30,7 @@ public sealed class TerminalAgentLaunchCommandsTests
     }
 
     [Fact]
-    public void ResolveClaudePlanStagedInput_launches_with_settings_and_plain_prompt()
+    public void ResolveClaudePlanStagedInput_launches_bypass_claude_and_plain_prompt()
     {
         const string prompt = "Planeje a feature\r\ncom \"aspas\" e café ☕";
 
@@ -38,12 +38,9 @@ public sealed class TerminalAgentLaunchCommandsTests
 
         staged.Should().NotBeNull();
         var launch = Encoding.UTF8.GetString(staged!.Launch);
-        launch.Should().Contain("[System.IO.File]::WriteAllText($p, $s");
-        launch.Should().Contain("claude --effort max --permission-mode plan --settings $p\r");
-        launch.Should().NotContain("--settings $s");
-        launch.Should().NotContain("--dangerously-skip-permissions");
-        launch.Should().Contain(Convert.ToBase64String(Encoding.UTF8.GetBytes(
-            """{"permissions":{"defaultMode":"plan","allow":["Read","Glob","Grep","LS","WebFetch","WebSearch","Task","Skill","Agent(Plan)","NotebookRead","TodoRead","Bash"]}}""")));
+        launch.Should().Be("claude --dangerously-skip-permissions --effort max\r");
+        launch.Should().NotContain("--permission-mode plan");
+        launch.Should().NotContain("--settings");
 
         var followUp = Encoding.UTF8.GetString(staged.FollowUp!);
         followUp.Should().Be("Planeje a feature com \"aspas\" e café ☕\r");

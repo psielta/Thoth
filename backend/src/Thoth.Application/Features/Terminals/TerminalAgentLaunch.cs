@@ -16,9 +16,6 @@ public sealed record TerminalStagedInitialInput(byte[] Launch, byte[]? FollowUp 
 public static class TerminalAgentLaunchCommands
 {
     private const string ClaudeBaseFlags = "--dangerously-skip-permissions --effort max";
-    private const string ClaudePlanFlags = "--effort max --permission-mode plan";
-    private const string ClaudePlanSettingsJson =
-        """{"permissions":{"defaultMode":"plan","allow":["Read","Glob","Grep","LS","WebFetch","WebSearch","Task","Skill","Agent(Plan)","NotebookRead","TodoRead","Bash"]}}""";
 
     public static bool TryParse(string? value, out TerminalAgentLaunch agent)
     {
@@ -87,12 +84,7 @@ public static class TerminalAgentLaunchCommands
 
     internal static string BuildClaudePlanLaunchPowerShellCommand()
     {
-        var settingsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(ClaudePlanSettingsJson));
-        return
-            "$s = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + settingsBase64 + "')); " +
-            "$p = Join-Path $env:TEMP ('thoth-claude-plan-{0}.json' -f [guid]::NewGuid().ToString()); " +
-            "[System.IO.File]::WriteAllText($p, $s, [System.Text.UTF8Encoding]::new($false)); " +
-            $"claude {ClaudePlanFlags} --settings $p\r";
+        return $"claude {ClaudeBaseFlags}\r";
     }
 
     internal static string? BuildPromptSubmission(string? promptContent)

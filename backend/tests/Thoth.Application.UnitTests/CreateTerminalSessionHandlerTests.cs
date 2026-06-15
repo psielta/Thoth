@@ -66,8 +66,9 @@ public sealed class CreateTerminalSessionHandlerTests
 
         coordinator.LastCreate.Should().NotBeNull();
         var launch = System.Text.Encoding.UTF8.GetString(coordinator.LastCreate!.Value.InitialInput!);
-        launch.Should().Contain("claude --effort max --permission-mode plan --settings $p\r");
-        launch.Should().NotContain("--dangerously-skip-permissions");
+        launch.Should().Be("claude --dangerously-skip-permissions --effort max\r");
+        launch.Should().NotContain("--permission-mode plan");
+        launch.Should().NotContain("--settings");
 
         var followUp = System.Text.Encoding.UTF8.GetString(coordinator.LastCreate.Value.FollowUpInput!);
         followUp.Should().NotStartWith("/plan");

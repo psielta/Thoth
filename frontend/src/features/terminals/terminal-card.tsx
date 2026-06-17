@@ -1,10 +1,8 @@
 import { Link } from '@tanstack/react-router'
-import { ExternalLink, Eye, EyeOff, Terminal as TerminalIcon, X } from 'lucide-react'
+import { ExternalLink, Eye, Terminal as TerminalIcon, X } from 'lucide-react'
 import type { TerminalSession } from '@/api/schemas'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { TerminalFrame } from '@/features/prompts/terminal-frame'
-import { TerminalView } from '@/features/prompts/terminal-view'
 import {
   resolveTerminalTabLabel,
   type TerminalTabPreference,
@@ -22,13 +20,9 @@ type TerminalCardProps = {
   /** Prompt usado no link "Abrir no prompt"; sempre o prompt do grupo (o pai). */
   linkPromptId: string
   preference?: TerminalTabPreference
-  isExpanded: boolean
-  fontSize: number
   closeDisabled: boolean
-  onToggleExpand: () => void
+  onView: (session: TerminalSession, label: string) => void
   onClose: () => void
-  onSessionExit: (sessionId: string, exitCode: number) => void
-  onAdjustFontSize: (delta: number) => void
 }
 
 export function TerminalCard({
@@ -37,13 +31,9 @@ export function TerminalCard({
   workspaceId,
   linkPromptId,
   preference,
-  isExpanded,
-  fontSize,
   closeDisabled,
-  onToggleExpand,
+  onView,
   onClose,
-  onSessionExit,
-  onAdjustFontSize,
 }: TerminalCardProps) {
   const label = resolveTerminalTabLabel(preference, index)
   const accentColor = preference?.color ?? null
@@ -52,7 +42,7 @@ export function TerminalCard({
 
   return (
     <div
-      className="grid content-start gap-3 rounded-lg border border-border bg-card p-3"
+      className="grid min-w-0 content-start gap-3 rounded-lg border border-border bg-card p-3"
       style={accentColor ? { boxShadow: `inset 3px 0 0 0 ${accentColor}` } : undefined}
     >
       <div className="flex min-w-0 items-center gap-2">
@@ -75,7 +65,7 @@ export function TerminalCard({
         </Badge>
       ) : null}
 
-      <div className="grid gap-1 text-xs text-muted-foreground">
+      <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
         <span className="truncate font-mono" title={session.cwd}>
           {session.cwd}
         </span>
@@ -83,15 +73,9 @@ export function TerminalCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={isExpanded ? 'default' : 'secondary'}
-          aria-expanded={isExpanded}
-          onClick={onToggleExpand}
-        >
-          {isExpanded ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          {isExpanded ? 'Ocultar' : 'Visualizar'}
+        <Button type="button" size="sm" variant="secondary" onClick={() => onView(session, label)}>
+          <Eye className="h-4 w-4" />
+          Visualizar
         </Button>
         <Link
           to="/workspaces/$workspaceId/prompts/$promptId"
@@ -116,18 +100,6 @@ export function TerminalCard({
           Fechar
         </Button>
       </div>
-
-      {isExpanded ? (
-        <TerminalFrame variant="card">
-          <TerminalView
-            sessionId={session.id}
-            active
-            fontSize={fontSize}
-            onZoom={onAdjustFontSize}
-            onSessionExit={onSessionExit}
-          />
-        </TerminalFrame>
-      ) : null}
     </div>
   )
 }

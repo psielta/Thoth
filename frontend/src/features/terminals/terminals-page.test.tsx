@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -123,6 +123,29 @@ describe('TerminalsPage', () => {
     expect(links.length).toBeGreaterThan(0)
     expect(links.every((link) => link.getAttribute('data-prompt-id') === groupWithChild.promptId)).toBe(true)
     expect(links.some((link) => link.getAttribute('data-prompt-id') === childPromptId)).toBe(false)
+  })
+
+  it('opens the selected terminal in a side drawer and closes it', async () => {
+    getTerminalCapabilities.mockResolvedValue({ enabled: true })
+    listAllTerminals.mockResolvedValue([sampleGroup])
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Refatorar auth')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /visualizar/i }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Terminal 1')).toBeInTheDocument()
+    expect(within(dialog).getByTestId('terminal-view')).toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: /^fechar$/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
   })
 
   it('closes a terminal from a card', async () => {

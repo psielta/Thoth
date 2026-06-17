@@ -9,32 +9,27 @@ import { createTerminal } from '@/api/terminals'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { TerminalAgentMenu } from '@/features/prompts/terminal-agent-menu'
-import { defaultPreferenceForAgent } from '@/features/prompts/terminal-tab-preferences'
+import {
+  defaultPreferenceForAgent,
+  resolveTerminalTabLabel,
+} from '@/features/prompts/terminal-tab-preferences'
 import { useTerminalTabPreferences } from '@/features/prompts/use-terminal-tab-preferences'
 import { TerminalCard } from './terminal-card'
 
 type PromptTerminalGroupProps = {
   group: TerminalGroup
-  fontSize: number
-  expandedSessionId: string | null
   closeDisabled: boolean
-  onToggleExpand: (sessionId: string) => void
+  onView: (session: TerminalSession, label: string) => void
   onCloseSession: (sessionId: string, promptId: string) => void
   onSessionCreated: (session: TerminalSession) => void
-  onSessionExit: (sessionId: string, exitCode: number) => void
-  onAdjustFontSize: (delta: number) => void
 }
 
 export function PromptTerminalGroup({
   group,
-  fontSize,
-  expandedSessionId,
   closeDisabled,
-  onToggleExpand,
+  onView,
   onCloseSession,
   onSessionCreated,
-  onSessionExit,
-  onAdjustFontSize,
 }: PromptTerminalGroupProps) {
   const [collapsed, setCollapsed] = useState(group.isArchived)
   const sessionIds = useMemo(() => group.terminals.map((terminal) => terminal.id), [group.terminals])
@@ -43,10 +38,14 @@ export function PromptTerminalGroup({
   const createMutation = useMutation({
     mutationFn: (agentLaunch?: TerminalAgentLaunch) => createTerminal(group.promptId, { agentLaunch }),
     onSuccess: (session, agentLaunch) => {
-      if (agentLaunch) {
-        setSessionPreference(session.id, defaultPreferenceForAgent(agentLaunch))
+      const preference = agentLaunch ? defaultPreferenceForAgent(agentLaunch) : undefined
+      if (preference) {
+        setSessionPreference(session.id, preference)
       }
       onSessionCreated(session)
+      // Abre o terminal recem-criado no drawer (preserva o "ver na hora" do fluxo antigo).
+      // group.terminals ainda nao inclui a nova sessao, entao o indice de fallback e o length atual.
+      onView(session, resolveTerminalTabLabel(preference, group.terminals.length))
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   })
@@ -106,7 +105,7 @@ export function PromptTerminalGroup({
       </header>
 
       {collapsed ? null : (
-        <div id={regionId} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div id={regionId} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {group.terminals.map((session, index) => (
             <TerminalCard
               key={session.id}
@@ -117,14 +116,10 @@ export function PromptTerminalGroup({
               // deve navegar para a rota de edicao do filho.
               linkPromptId={group.promptId}
               preference={preferences[session.id]}
-              isExpanded={expandedSessionId === session.id}
-              fontSize={fontSize}
               closeDisabled={closeDisabled}
-              onToggleExpand={() => onToggleExpand(session.id)}
+              onView={onView}
               // Invalida o cache do dono real do terminal (o filho, quando isChild).
               onClose={() => onCloseSession(session.id, session.promptId)}
-              onSessionExit={onSessionExit}
-              onAdjustFontSize={onAdjustFontSize}
             />
           ))}
         </div>

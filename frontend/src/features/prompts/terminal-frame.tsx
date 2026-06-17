@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
-export type TerminalFrameVariant = 'prompt' | 'drawer' | 'card' | 'global'
+export type TerminalFrameVariant = 'prompt' | 'drawer' | 'global'
 
 type TerminalFrameProps = {
   variant: TerminalFrameVariant
@@ -12,7 +12,6 @@ type TerminalFrameProps = {
 const variantClasses: Record<TerminalFrameVariant, string> = {
   prompt: 'h-[min(70vh,640px)]',
   drawer: 'h-full',
-  card: 'h-[min(50vh,420px)]',
   global: 'h-[min(64vh,560px)]',
 }
 

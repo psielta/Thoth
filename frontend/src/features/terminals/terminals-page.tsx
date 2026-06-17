@@ -16,11 +16,12 @@ import {
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { usePromptHub } from '@/realtime/prompt-hub'
 import { PromptTerminalGroup } from './prompt-terminal-group'
+import { TerminalViewDrawer } from './terminal-view-drawer'
 
 export function TerminalsPage() {
   const queryClient = useQueryClient()
   const { connected } = usePromptHub()
-  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null)
+  const [viewing, setViewing] = useState<{ session: TerminalSession; label: string } | null>(null)
 
   const [storedFontSize, setStoredFontSize] = useLocalStorage(
     TERMINAL_FONT_SIZE_STORAGE_KEY,
@@ -82,13 +83,15 @@ export function TerminalsPage() {
     [queryClient],
   )
 
-  const handleToggleExpand = useCallback((sessionId: string) => {
-    setExpandedSessionId((current) => (current === sessionId ? null : sessionId))
+  const handleView = useCallback((session: TerminalSession, label: string) => {
+    setViewing({ session, label })
   }, [])
+
+  const handleCloseDrawer = useCallback(() => setViewing(null), [])
 
   const handleSessionExit = useCallback(
     (sessionId: string) => {
-      setExpandedSessionId((current) => (current === sessionId ? null : current))
+      setViewing((current) => (current?.session.id === sessionId ? null : current))
       removeSessionFromCache(sessionId)
     },
     [removeSessionFromCache],
@@ -97,7 +100,7 @@ export function TerminalsPage() {
   const closeMutation = useMutation({
     mutationFn: (vars: { sessionId: string; promptId: string }) => closeTerminal(vars.sessionId),
     onMutate: ({ sessionId }) => {
-      setExpandedSessionId((current) => (current === sessionId ? null : current))
+      setViewing((current) => (current?.session.id === sessionId ? null : current))
     },
     onSuccess: (_data, { sessionId, promptId }) => {
       removeSessionFromCache(sessionId)
@@ -117,7 +120,6 @@ export function TerminalsPage() {
   const handleSessionCreated = useCallback(
     (session: TerminalSession) => {
       addSessionToCache(session)
-      setExpandedSessionId(session.id)
       void queryClient.invalidateQueries({ queryKey: queryKeys.terminals.all() })
       void queryClient.invalidateQueries({ queryKey: queryKeys.terminals.forPrompt(session.promptId) })
     },
@@ -179,18 +181,25 @@ export function TerminalsPage() {
             <PromptTerminalGroup
               key={group.promptId}
               group={group}
-              fontSize={fontSize}
-              expandedSessionId={expandedSessionId}
               closeDisabled={closeMutation.isPending}
-              onToggleExpand={handleToggleExpand}
+              onView={handleView}
               onCloseSession={handleCloseSession}
               onSessionCreated={handleSessionCreated}
-              onSessionExit={handleSessionExit}
-              onAdjustFontSize={adjustFontSize}
             />
           ))}
         </div>
       )}
+
+      {viewing ? (
+        <TerminalViewDrawer
+          session={viewing.session}
+          label={viewing.label}
+          fontSize={fontSize}
+          onClose={handleCloseDrawer}
+          onSessionExit={handleSessionExit}
+          onAdjustFontSize={adjustFontSize}
+        />
+      ) : null}
     </div>
   )
 }

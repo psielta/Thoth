@@ -54,8 +54,8 @@ export function PromptTerminalGroup({
   const terminalCount = group.terminals.length
 
   return (
-    <section className="grid gap-3 rounded-lg border border-border bg-background p-3">
-      <header className="flex flex-wrap items-center gap-2">
+    <section className="grid min-w-0 gap-3 rounded-lg border border-border bg-background p-3">
+      <header className="flex min-w-0 flex-wrap items-center gap-2">
         <button
           type="button"
           aria-expanded={!collapsed}
@@ -86,7 +86,7 @@ export function PromptTerminalGroup({
           {group.workingDirectoryName}
         </span>
 
-        <div className="ml-auto inline-flex items-stretch">
+        <div className="ml-auto inline-flex min-w-0 items-stretch">
           <Button
             type="button"
             size="sm"
@@ -105,7 +105,7 @@ export function PromptTerminalGroup({
       </header>
 
       {collapsed ? null : (
-        <div id={regionId} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        <div id={regionId} className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {group.terminals.map((session, index) => (
             <TerminalCard
               key={session.id}

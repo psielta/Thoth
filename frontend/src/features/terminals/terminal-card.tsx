@@ -42,7 +42,7 @@ export function TerminalCard({
 
   return (
     <div
-      className="grid min-w-0 content-start gap-3 rounded-lg border border-border bg-card p-3"
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3 rounded-lg border border-border bg-card p-3"
       style={accentColor ? { boxShadow: `inset 3px 0 0 0 ${accentColor}` } : undefined}
     >
       <div className="flex min-w-0 items-center gap-2">
@@ -58,10 +58,10 @@ export function TerminalCard({
       {session.isChild ? (
         <Badge
           variant="blue"
-          className="w-fit max-w-full"
+          className="min-w-0 max-w-full overflow-hidden"
           title={childTitle ? `Filho: ${childTitle}` : 'Terminal de prompt filho'}
         >
-          <span className="truncate">{childTitle ? `Filho: ${childTitle}` : 'Filho'}</span>
+          <span className="min-w-0 truncate">{childTitle ? `Filho: ${childTitle}` : 'Filho'}</span>
         </Badge>
       ) : null}
 
@@ -72,7 +72,7 @@ export function TerminalCard({
         <span>Criado em {createdAtFormatter.format(new Date(session.createdAtUtc))}</span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
         <Button type="button" size="sm" variant="secondary" onClick={() => onView(session, label)}>
           <Eye className="h-4 w-4" />
           Visualizar
@@ -81,6 +81,7 @@ export function TerminalCard({
           to="/workspaces/$workspaceId/prompts/$promptId"
           params={{ workspaceId, promptId: linkPromptId }}
           search={{ tab: 'terminals' }}
+          className="min-w-0"
         >
           <Button type="button" size="sm" variant="ghost">
             <ExternalLink className="h-4 w-4" />

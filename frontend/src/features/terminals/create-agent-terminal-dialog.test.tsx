@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { queryKeys } from '@/api/query-keys'
 import { createTerminal } from '@/api/terminals'
 import type { Prompt, TerminalSession } from '@/api/schemas'
 import { CreateAgentTerminalDialog } from './create-agent-terminal-dialog'
@@ -56,7 +57,7 @@ function renderDialog(promptOverride: Prompt = prompt) {
     </QueryClientProvider>,
   )
 
-  return { onCancel, onCreated }
+  return { onCancel, onCreated, queryClient }
 }
 
 describe('CreateAgentTerminalDialog', () => {
@@ -90,6 +91,33 @@ describe('CreateAgentTerminalDialog', () => {
     })
     await waitFor(() => {
       expect(onCreated).toHaveBeenCalledWith(prompt.id, session)
+    })
+  })
+
+  it('updates the parent prompt terminal cache when creating a child terminal', async () => {
+    const parentSession: TerminalSession = {
+      id: '019e9f6a-b111-7000-9000-000000000002',
+      promptId: prompt.parentPromptId!,
+      shell: 'pwsh.exe',
+      cwd: 'C:/repo',
+      createdAtUtc: '2026-05-31T00:00:00Z',
+    }
+    const user = userEvent.setup()
+    const { queryClient } = renderDialog()
+    queryClient.setQueryData(queryKeys.terminals.forPrompt(prompt.parentPromptId!), [parentSession])
+
+    await user.click(screen.getByRole('button', { name: /Criar e abrir/ }))
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData<TerminalSession[]>(queryKeys.terminals.forPrompt(prompt.parentPromptId!)))
+        .toEqual([
+          parentSession,
+          {
+            ...session,
+            isChild: true,
+            ownerPromptTitle: prompt.title,
+          },
+        ])
     })
   })
 

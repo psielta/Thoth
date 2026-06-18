@@ -23,6 +23,15 @@ const TARGET_AGENT_TO_LAUNCH: Record<TargetAgent, TerminalAgentLaunch> = {
   Grok: 'Grok',
 }
 
+function appendSessionOnce(current: TerminalSession[] | undefined, session: TerminalSession) {
+  const sessions = current ?? []
+  if (sessions.some((item) => item.id === session.id)) {
+    return sessions
+  }
+
+  return [...sessions, session]
+}
+
 type CreateAgentTerminalDialogProps = {
   prompt: Prompt
   onCancel: () => void
@@ -38,11 +47,21 @@ export function CreateAgentTerminalDialog({ prompt, onCancel, onCreated }: Creat
     onSuccess: (session) => {
       queryClient.setQueryData(
         queryKeys.terminals.forPrompt(prompt.id),
-        (current: TerminalSession[] | undefined) => [...(current ?? []), session],
+        (current: TerminalSession[] | undefined) => appendSessionOnce(current, session),
       )
       // O terminal pertence ao filho, mas tambem aparece no painel/grupo do pai. Atualiza essas
       // visoes: o painel "Terminais" do pai e a lista global em /terminais.
       if (prompt.parentPromptId) {
+        const parentSession: TerminalSession = {
+          ...session,
+          isChild: true,
+          ownerPromptTitle: prompt.title,
+        }
+        queryClient.setQueryData(
+          queryKeys.terminals.forPrompt(prompt.parentPromptId),
+          (current: TerminalSession[] | undefined) =>
+            current ? appendSessionOnce(current, parentSession) : current,
+        )
         void queryClient.invalidateQueries({
           queryKey: queryKeys.terminals.forPrompt(prompt.parentPromptId),
         })

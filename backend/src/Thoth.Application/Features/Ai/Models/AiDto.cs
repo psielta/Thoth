@@ -2,6 +2,8 @@ namespace Thoth.Application.Features.Ai.Models;
 
 public sealed record RefinedPromptDto(string Content, int PromptTokens, int CandidateTokens);
 
+public sealed record FormattedPromptMarkdownDto(string Content, int PromptTokens, int CandidateTokens);
+
 public sealed record GeneratedNoteDto(
     string? SuggestedTitle,
     string ContentMarkdown,

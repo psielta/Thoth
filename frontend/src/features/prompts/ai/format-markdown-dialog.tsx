@@ -17,7 +17,7 @@ type FormatMarkdownDialogProps = {
 
 const DEFAULT_CONFIG: ModelConfig = {
   model: 'gemini-3.5-flash',
-  temperature: 0.2,
+  temperature: 0,
   thinkingEnabled: false,
   thinkingBudget: null,
   thinkingLevel: null,
@@ -38,10 +38,10 @@ export function FormatMarkdownDialog({ content, onApply, onClose }: FormatMarkdo
       applied.current = true
       setConfig({
         model: settingsQuery.data.model,
-        temperature: 0.2,
-        thinkingEnabled: settingsQuery.data.thinkingEnabled,
-        thinkingBudget: settingsQuery.data.thinkingBudget ?? null,
-        thinkingLevel: settingsQuery.data.thinkingLevel ?? null,
+        temperature: 0,
+        thinkingEnabled: false,
+        thinkingBudget: null,
+        thinkingLevel: null,
       })
     }
   }, [settingsQuery.data])
@@ -52,15 +52,9 @@ export function FormatMarkdownDialog({ content, onApply, onClose }: FormatMarkdo
         content,
         model: config.model,
         temperature: config.temperature,
-        thinkingMode: config.thinkingEnabled
-          ? config.thinkingBudget != null
-            ? 'budget'
-            : config.thinkingLevel != null
-              ? 'level'
-              : 'none'
-          : 'none',
-        thinkingBudget: config.thinkingEnabled ? config.thinkingBudget : null,
-        thinkingLevel: config.thinkingEnabled ? config.thinkingLevel : null,
+        thinkingMode: 'none',
+        thinkingBudget: null,
+        thinkingLevel: null,
       }),
     onSuccess: (result) => {
       setPreview(result.content)
@@ -87,7 +81,7 @@ export function FormatMarkdownDialog({ content, onApply, onClose }: FormatMarkdo
             <div>
               <h2 className="text-sm font-semibold text-foreground">Formatar em markdown</h2>
               <p className="text-xs text-subtle-foreground">
-                O prompt atual sera convertido em Markdown estruturado
+                Apenas estrutura Markdown — sem reescrever o conteudo (use Refinar para isso)
               </p>
             </div>
           </div>
@@ -136,7 +130,7 @@ export function FormatMarkdownDialog({ content, onApply, onClose }: FormatMarkdo
 
         <div className="flex items-center justify-between">
           <p className="text-xs text-subtle-foreground">
-            Revise antes de aplicar. Mencoes @arquivo serao revalidadas.
+            Apenas estrutura Markdown. Se o texto mudou demais, cancele e use Refinar.
           </p>
           <div className="flex gap-2">
             <Button type="button" variant="secondary" onClick={onClose}>

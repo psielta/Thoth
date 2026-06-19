@@ -35,11 +35,18 @@ public sealed class FormatPromptMarkdownHandlerTests
         result.CandidateTokens.Should().Be(7);
 
         var instruction = gemini.LastRefineRequest!.SystemInstruction;
-        instruction.Should().Contain("Markdown bem estruturado");
-        instruction.Should().Contain("Preserve menções @caminho/arquivo intactas");
+        instruction.Should().Contain("formatador de Markdown");
+        instruction.Should().Contain("NÃO um editor de conteúdo");
+        instruction.Should().Contain("Preservar menções @caminho/arquivo");
         instruction.Should().Contain("NÃO envolva todo o conteúdo em cercas de código");
+
+        gemini.LastRefineRequest.Temperature.Should().BeLessThanOrEqualTo(0.1);
+        gemini.LastRefineRequest.Thinking.Mode.Should().Be("none");
         gemini.LastRefineRequest.Contents.Should()
-            .ContainSingle(turn => turn.Role == "user" && turn.Text == "objetivo fazer x item um item dois");
+            .ContainSingle(turn =>
+                turn.Role == "user"
+                && turn.Text.Contains("objetivo fazer x item um item dois")
+                && turn.Text.Contains("Não altere palavras"));
     }
 
     [Fact]

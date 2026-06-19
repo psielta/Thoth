@@ -384,7 +384,7 @@ export function PromptForm({
           }}
         />
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 shadow-[0_-8px_16px_-12px_rgba(0,0,0,0.25)]">
           <div className="min-h-5 text-sm text-muted-foreground">
             {mentions.length ? `${mentions.length} arquivo(s) mencionado(s)` : 'Nenhum arquivo mencionado'}
           </div>
@@ -407,7 +407,7 @@ export function PromptForm({
               title="Converter o prompt em Markdown estruturado com Gemini"
             >
               <Heading className="h-4 w-4" />
-              Formatar em markdown
+              Formatar
             </Button>
             <Button
               type="button"

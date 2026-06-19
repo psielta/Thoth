@@ -131,7 +131,7 @@ describe('PromptForm', () => {
   it('disables format markdown button when content is empty', () => {
     renderForm()
 
-    expect(screen.getByRole('button', { name: /Formatar em markdown/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^Formatar$/i })).toBeDisabled()
   })
 
   it('enables format markdown button when content is present', async () => {
@@ -141,7 +141,7 @@ describe('PromptForm', () => {
 
     await user.type(screen.getByLabelText('Conteudo'), 'Texto sem estrutura')
 
-    expect(screen.getByRole('button', { name: /Formatar em markdown/i })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /^Formatar$/i })).toBeEnabled()
   })
 
   it('creates a prompt and copies the content from the new prompt action', async () => {

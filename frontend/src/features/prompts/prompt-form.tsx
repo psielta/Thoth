@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Bot, Copy, Loader2, Save, Sparkles, Trash2 } from 'lucide-react'
+import { Bot, Copy, Heading, Loader2, Save, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -27,6 +27,7 @@ import { useOpenFileInVsCode } from '@/features/files/use-open-file-in-vscode'
 import { WorkspaceFileTree } from '@/features/files/workspace-file-tree'
 import { buildSeededPromptContent } from '@/features/future-tasks/seed-prompt-content'
 import { PromptEditor } from './prompt-editor'
+import { FormatMarkdownDialog } from './ai/format-markdown-dialog'
 import { RefineDialog } from './ai/refine-dialog'
 import { AiAssistantPanel } from './ai/ai-assistant-panel'
 
@@ -64,6 +65,7 @@ export function PromptForm({
     mentions: FileMention[]
   } | null>(null)
   const [showRefineDialog, setShowRefineDialog] = useState(false)
+  const [showFormatDialog, setShowFormatDialog] = useState(false)
   const [showAiPanel, setShowAiPanel] = useState(false)
   const [futureTaskId, setFutureTaskId] = useState('')
 
@@ -279,6 +281,16 @@ export function PromptForm({
           onClose={() => setShowRefineDialog(false)}
         />
       ) : null}
+      {showFormatDialog ? (
+        <FormatMarkdownDialog
+          content={content}
+          onApply={(formatted) => {
+            form.setValue('content', formatted, { shouldDirty: true, shouldValidate: true })
+            setEditorMentions({ promptId, mentions: [] })
+          }}
+          onClose={() => setShowFormatDialog(false)}
+        />
+      ) : null}
       {showAiPanel ? (
         <AiAssistantPanel
           promptId={promptId}
@@ -386,6 +398,16 @@ export function PromptForm({
             >
               <Sparkles className="h-4 w-4" />
               Refinar
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowFormatDialog(true)}
+              disabled={isBusy || !content.trim()}
+              title="Converter o prompt em Markdown estruturado com Gemini"
+            >
+              <Heading className="h-4 w-4" />
+              Formatar em markdown
             </Button>
             <Button
               type="button"

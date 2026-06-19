@@ -7,10 +7,13 @@ import {
   geminiModelListSchema,
   generatedMermaidSchema,
   generatedNoteSchema,
+  formattedPromptMarkdownSchema,
   refinedPromptSchema,
   type AiChatSession,
   type AiSettings,
   type GeneratedMermaid,
+  type FormattedPromptMarkdown,
+  type FormatPromptMarkdownRequest,
   type GeneratedNote,
   type GeminiModel,
   type GenerateMermaidRequest,
@@ -45,6 +48,15 @@ export async function updateAiSettings(settings: {
 export async function refinePrompt(params: RefinePromptRequest): Promise<RefinedPrompt> {
   const data = await api.post('ai/refine', { json: params, timeout: AI_REQUEST_TIMEOUT_MS }).json()
   return refinedPromptSchema.parse(data)
+}
+
+export async function formatPromptMarkdown(
+  params: FormatPromptMarkdownRequest,
+): Promise<FormattedPromptMarkdown> {
+  const data = await api
+    .post('ai/prompts/format-markdown', { json: params, timeout: AI_REQUEST_TIMEOUT_MS })
+    .json()
+  return formattedPromptMarkdownSchema.parse(data)
 }
 
 export async function generateNoteMarkdown(

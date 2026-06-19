@@ -27,6 +27,17 @@ vi.mock('@/api/prompts', () => ({
   updatePrompt: vi.fn(),
 }))
 
+vi.mock('@/api/ai', () => ({
+  getAiSettings: vi.fn().mockResolvedValue({
+    model: 'gemini-3.5-flash',
+    temperature: 0.2,
+    thinkingEnabled: false,
+    thinkingBudget: null,
+    thinkingLevel: null,
+  }),
+  formatPromptMarkdown: vi.fn(),
+}))
+
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
@@ -115,6 +126,22 @@ describe('PromptForm', () => {
 
   afterEach(() => {
     cleanup()
+  })
+
+  it('disables format markdown button when content is empty', () => {
+    renderForm()
+
+    expect(screen.getByRole('button', { name: /Formatar em markdown/i })).toBeDisabled()
+  })
+
+  it('enables format markdown button when content is present', async () => {
+    const user = userEvent.setup()
+
+    renderForm()
+
+    await user.type(screen.getByLabelText('Conteudo'), 'Texto sem estrutura')
+
+    expect(screen.getByRole('button', { name: /Formatar em markdown/i })).toBeEnabled()
   })
 
   it('creates a prompt and copies the content from the new prompt action', async () => {

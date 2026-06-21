@@ -1,7 +1,5 @@
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
-import { Settings2 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
-import { Button } from '@/components/ui/button'
 import { ThothLogo } from '@/components/thoth-logo'
 import { UsageIndicator } from '@/features/agent-usage/usage-indicator'
 import { GlobalNewPromptButton } from '@/features/prompts/global-new-prompt-button'
@@ -58,13 +56,14 @@ function RootLayout() {
             >
               Terminais
             </Link>
+            <Link
+              to="/settings"
+              className="rounded-md px-2.5 py-1.5 text-foreground transition-colors hover:bg-accent [&.active]:bg-accent [&.active]:font-semibold"
+            >
+              Configurações
+            </Link>
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/settings">
-              <Button type="button" variant="ghost" size="icon" aria-label="Configuracoes" title="Configuracoes">
-                <Settings2 className="h-4 w-4" />
-              </Button>
-            </Link>
             <ThemeToggle />
             <UsageIndicator />
           </div>

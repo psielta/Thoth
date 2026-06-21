@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
+import { getAppSettings } from '@/api/app-settings'
 import { queryKeys } from '@/api/query-keys'
 import { getTerminalCapabilities } from '@/api/terminals'
 import type { Prompt } from '@/api/schemas'
@@ -26,19 +27,25 @@ export function AgentTerminalProvider({ children }: { children: React.ReactNode 
     queryKey: queryKeys.terminals.capabilities(),
     queryFn: getTerminalCapabilities,
   })
-  const enabled = capabilitiesQuery.data?.enabled ?? false
+  const appSettingsQuery = useQuery({
+    queryKey: queryKeys.appSettings.current(),
+    queryFn: getAppSettings,
+  })
+  const shouldOfferAgentTerminal =
+    (capabilitiesQuery.data?.enabled ?? false) &&
+    appSettingsQuery.data?.showAgentTerminalOfferAfterChildPrompt === true
 
   const requestAgentTerminal = useCallback(
     (prompt: Prompt) => {
-      // Terminais desabilitados nesta instancia: nao oferece o dialog; a criacao
-      // do filho segue normalmente.
-      if (!enabled) {
+      // Se terminais ou a preferencia global estiverem desabilitados, a criacao
+      // do filho segue normalmente sem interromper o usuario.
+      if (!shouldOfferAgentTerminal) {
         return
       }
 
       setPending(prompt)
     },
-    [enabled],
+    [shouldOfferAgentTerminal],
   )
 
   const value = useMemo(() => ({ requestAgentTerminal }), [requestAgentTerminal])

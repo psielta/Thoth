@@ -49,6 +49,9 @@ export type DiagramFilters = {
 }
 
 export const queryKeys = {
+  appSettings: {
+    current: () => ['app-settings'] as const,
+  },
   workingDirectories: {
     all: ['working-directories'] as const,
     detail: (id: string) => ['working-directories', id] as const,

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Thoth.Application.Common.Interfaces;
 using Thoth.Domain.Ai;
+using Thoth.Domain.AppSettings;
 using Thoth.Domain.Common;
 using Thoth.Domain.Diagrams;
 using Thoth.Domain.FutureTasks;
@@ -36,6 +37,7 @@ public sealed class ApplicationDbContext(
     public DbSet<AiChatSession> AiChatSessions => Set<AiChatSession>();
     public DbSet<AiChatMessage> AiChatMessages => Set<AiChatMessage>();
     public DbSet<AiUserSettings> AiUserSettings => Set<AiUserSettings>();
+    public DbSet<AppUserSettings> AppUserSettings => Set<AppUserSettings>();
     public DbSet<Notebook> Notebooks => Set<Notebook>();
     public DbSet<Note> Notes => Set<Note>();
     public DbSet<Diagram> Diagrams => Set<Diagram>();
@@ -57,6 +59,7 @@ public sealed class ApplicationDbContext(
     IQueryable<AiChatSession> IApplicationDbContext.AiChatSessions => AiChatSessions;
     IQueryable<AiChatMessage> IApplicationDbContext.AiChatMessages => AiChatMessages;
     IQueryable<AiUserSettings> IApplicationDbContext.AiUserSettings => AiUserSettings;
+    IQueryable<AppUserSettings> IApplicationDbContext.AppUserSettings => AppUserSettings;
     IQueryable<Notebook> IApplicationDbContext.Notebooks => Notebooks;
     IQueryable<Note> IApplicationDbContext.Notes => Notes;
     IQueryable<Diagram> IApplicationDbContext.Diagrams => Diagrams;

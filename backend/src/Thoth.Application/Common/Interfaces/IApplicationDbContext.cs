@@ -1,4 +1,5 @@
 using Thoth.Domain.Ai;
+using Thoth.Domain.AppSettings;
 using Thoth.Domain.Diagrams;
 using Thoth.Domain.FutureTasks;
 using Thoth.Domain.Notebooks;
@@ -28,6 +29,7 @@ public interface IApplicationDbContext
     IQueryable<AiChatSession> AiChatSessions { get; }
     IQueryable<AiChatMessage> AiChatMessages { get; }
     IQueryable<AiUserSettings> AiUserSettings { get; }
+    IQueryable<AppUserSettings> AppUserSettings => Enumerable.Empty<AppUserSettings>().AsQueryable();
     IQueryable<Notebook> Notebooks { get; }
     IQueryable<Note> Notes { get; }
     IQueryable<Diagram> Diagrams { get; }

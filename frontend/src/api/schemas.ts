@@ -20,6 +20,11 @@ export type LinkedDocumentType = z.infer<typeof linkedDocumentTypeSchema>
 export type LinkedDocumentVersionSource = z.infer<typeof linkedDocumentVersionSourceSchema>
 export type PromptTemplateKey = z.infer<typeof promptTemplateKeySchema>
 
+export const appSettingsSchema = z.object({
+  showAgentTerminalOfferAfterChildPrompt: z.boolean(),
+})
+export type AppSettings = z.infer<typeof appSettingsSchema>
+
 export const fileMentionSchema = z.object({
   id: z.string().min(1),
   label: z.string().nullable().optional(),

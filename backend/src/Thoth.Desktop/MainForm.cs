@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Net.Http;
+using System.Reflection;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
@@ -11,6 +12,9 @@ namespace Thoth.Desktop;
 internal sealed class MainForm : Form
 {
     private static readonly Uri AppUri = new("http://localhost:8091/");
+    private static readonly string AppRevision =
+        typeof(MainForm).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? "unknown";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(2) };
 
     private readonly WebView2 webView;
@@ -128,7 +132,7 @@ internal sealed class MainForm : Form
             webView.Visible = true;
             statusPanel.Visible = false;
             webView.BringToFront();
-            webView.CoreWebView2.Navigate(AppUri.ToString());
+            webView.CoreWebView2.Navigate(GetStartupUri().ToString());
         }
         catch (OperationCanceledException) when (IsDisposed || Disposing)
         {
@@ -184,6 +188,11 @@ internal sealed class MainForm : Form
         }
 
         throw new TimeoutException("A API do Thoth nao respondeu dentro do tempo esperado.");
+    }
+
+    private static Uri GetStartupUri()
+    {
+        return new Uri(AppUri, $"?v={Uri.EscapeDataString(AppRevision)}");
     }
 
     private async Task EnsureWebViewAsync()

@@ -8,7 +8,7 @@ export const Route = createFileRoute('/workspaces/')({
 
 function WorkspacesPage() {
   return (
-    <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
+    <div className="grid items-start gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
       <WorkspaceForm />
       <section className="grid content-start gap-4">
         <div>

@@ -77,10 +77,10 @@ export function WorkspaceForm() {
   )
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-border bg-card p-3">
+    <form onSubmit={onSubmit} className="grid self-start content-start gap-3 rounded-lg border border-border bg-card p-3">
       <div className="grid gap-0.5">
-        <h2 className="text-sm font-semibold text-foreground">Novo diretorio</h2>
-        <p className="text-xs text-muted-foreground">Raiz onde os prompts pesquisarao arquivos.</p>
+        <h2 className="text-sm font-semibold leading-tight text-foreground">Novo diretorio</h2>
+        <p className="text-xs leading-tight text-muted-foreground">Raiz onde os prompts pesquisarao arquivos.</p>
       </div>
 
       <FormField label="Nome" htmlFor="workspace-name" error={form.formState.errors.name?.message}>

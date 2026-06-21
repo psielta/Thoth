@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Thoth.Api;
 using Thoth.Api.Hubs;
@@ -28,18 +29,36 @@ builder.Services
 
 var app = builder.Build();
 
+static void PreventSpaShellCaching(StaticFileResponseContext context)
+{
+    if (!string.Equals(context.File.Name, "index.html", StringComparison.OrdinalIgnoreCase))
+    {
+        return;
+    }
+
+    var headers = context.Context.Response.Headers;
+    headers.CacheControl = "no-store, no-cache, must-revalidate";
+    headers.Pragma = "no-cache";
+    headers.Expires = "0";
+}
+
+var staticFileOptions = new StaticFileOptions
+{
+    OnPrepareResponse = PreventSpaShellCaching
+};
+
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
 app.UseCors("spa");
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(staticFileOptions);
 
 app.MapControllers();
 app.MapHub<PromptHub>("/hubs/prompts");
 
 app.Map("/api/{**slug}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Not Found"));
 app.Map("/hubs/{**slug}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Not Found"));
-app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("index.html", staticFileOptions);
 
 using (var scope = app.Services.CreateScope())
 {

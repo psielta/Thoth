@@ -64,6 +64,8 @@ Name: "{commondesktop}\Thoth"; Filename: "{app}\PromptTasks\Thoth.Desktop.exe"; 
 [InstallDelete]
 ; Remove binarios da era PromptTasks.* em upgrades; o publish atual gera apenas Thoth.*.
 Type: files; Name: "{app}\PromptTasks\PromptTasks.*"
+; Remove assets versionados antigos para evitar que WebView/Chrome reaproveitem bundle velho apos upgrade.
+Type: filesandordirs; Name: "{app}\PromptTasks\wwwroot\assets"
 
 [Run]
 Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Instalando Microsoft Edge WebView2 Runtime..."; Flags: runhidden waituntilterminated; Check: ShouldInstallWebView2Runtime

@@ -77,10 +77,10 @@ export function WorkspaceForm() {
   )
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-4 rounded-lg border border-border bg-card p-4">
-      <div className="grid gap-1">
-        <h2 className="text-base font-semibold text-foreground">Novo diretorio</h2>
-        <p className="text-sm text-muted-foreground">Registre a raiz onde os prompts pesquisarao arquivos.</p>
+    <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-border bg-card p-3">
+      <div className="grid gap-0.5">
+        <h2 className="text-sm font-semibold text-foreground">Novo diretorio</h2>
+        <p className="text-xs text-muted-foreground">Raiz onde os prompts pesquisarao arquivos.</p>
       </div>
 
       <FormField label="Nome" htmlFor="workspace-name" error={form.formState.errors.name?.message}>
@@ -88,7 +88,7 @@ export function WorkspaceForm() {
       </FormField>
 
       <FormField label="Caminho absoluto" htmlFor="workspace-path" error={form.formState.errors.absolutePath?.message}>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-1.5 sm:flex-row">
           <Input
             id="workspace-path"
             placeholder="D:\\repos\\meu-projeto"
@@ -106,25 +106,27 @@ export function WorkspaceForm() {
         </div>
       </FormField>
 
-      {pathFeedback ? <p className="text-sm text-muted-foreground">{pathFeedback}</p> : null}
+      {pathFeedback ? <p className="text-xs text-muted-foreground">{pathFeedback}</p> : null}
 
-      <label className="flex items-center gap-2 text-sm text-muted-foreground">
-        <input type="checkbox" className="h-4 w-4 accent-primary" {...form.register('respectGitignore')} />
-        Respeitar .gitignore ao buscar arquivos
-      </label>
+      <div className="grid gap-2">
+        <label className="flex items-start gap-2 text-xs leading-tight text-muted-foreground">
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" {...form.register('respectGitignore')} />
+          Respeitar .gitignore ao buscar arquivos
+        </label>
 
-      <label className="flex items-center gap-2 text-sm text-muted-foreground">
-        <input type="checkbox" className="h-4 w-4 accent-primary" {...form.register('enableAiContext')} />
-        Injetar README.md, CLAUDE.md e AGENT.md no contexto da IA
-      </label>
+        <label className="flex items-start gap-2 text-xs leading-tight text-muted-foreground">
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" {...form.register('enableAiContext')} />
+          Injetar README.md, CLAUDE.md e AGENT.md no contexto da IA
+        </label>
+      </div>
 
       <FormField label="Padrao de numeracao" htmlFor="workspace-task-number-pattern" error={form.formState.errors.taskNumberPattern?.message}>
         <Input id="workspace-task-number-pattern" placeholder="BP{N}{Date}" {...form.register('taskNumberPattern')} />
       </FormField>
 
-      {preview ? <p className="text-sm text-muted-foreground">Preview: {preview}</p> : null}
+      {preview ? <p className="text-xs text-muted-foreground">Preview: {preview}</p> : null}
 
-      <Button type="submit" disabled={createMutation.isPending}>
+      <Button type="submit" size="sm" className="justify-self-start" disabled={createMutation.isPending}>
         {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         Criar diretorio
       </Button>

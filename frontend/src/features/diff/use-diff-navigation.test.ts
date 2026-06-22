@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
+import { createRef, type RefObject } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useDiffNavigation } from './use-diff-navigation'
 
@@ -51,33 +52,32 @@ describe('useDiffNavigation', () => {
     expect(result.current.totalHunks).toBe(3)
   })
 
-  it('scrolls to active hunk element', () => {
-    const scrollIntoView = vi.fn()
-    Element.prototype.scrollIntoView = scrollIntoView
+  it('focusActive scrolls via the scroll container', () => {
+    const scrollTo = vi.fn()
+    const container = document.createElement('div')
+    Object.defineProperty(container, 'clientHeight', { value: 400 })
+    Object.defineProperty(container, 'scrollTop', { value: 0, writable: true })
+    container.scrollTo = scrollTo
+    container.getBoundingClientRect = () => ({ top: 100 }) as DOMRect
 
-    const hunks = [0, 5]
-    const { result } = renderHook(() => useDiffNavigation(hunks, true))
-    const el = document.createElement('div')
+    const hunk = document.createElement('div')
+    Object.defineProperty(hunk, 'offsetHeight', { value: 20 })
+    hunk.getBoundingClientRect = () => ({ top: 500 }) as DOMRect
 
-    act(() => result.current.registerHunkRef(1, el))
-    act(() => result.current.goToNext())
-
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
-  })
-
-  it('focusActive scrolls without changing index', () => {
-    const scrollIntoView = vi.fn()
-    Element.prototype.scrollIntoView = scrollIntoView
+    const scrollContainerRef = createRef<HTMLDivElement>()
+    ;(scrollContainerRef as RefObject<HTMLDivElement>).current = container
 
     const hunks = [4]
-    const { result } = renderHook(() => useDiffNavigation(hunks, true))
-    const el = document.createElement('div')
+    const { result } = renderHook(() => useDiffNavigation(hunks, true, scrollContainerRef))
 
-    act(() => result.current.registerHunkRef(0, el))
-    scrollIntoView.mockClear()
+    act(() => result.current.registerHunkRef(0, hunk))
+    scrollTo.mockClear()
     act(() => result.current.focusActive())
 
     expect(result.current.activeIndex).toBe(0)
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
+    expect(scrollTo).toHaveBeenCalledWith({
+      top: 210,
+      behavior: 'smooth',
+    })
   })
 })

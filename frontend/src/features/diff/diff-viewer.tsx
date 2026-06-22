@@ -161,7 +161,10 @@ export function DiffViewer({
     <div className="font-mono text-xs leading-relaxed">
       {viewMode === 'unified' ? (
         <>
-          <div className="sticky top-0 z-10 flex border-b border-border bg-background text-[11px] text-muted-foreground">
+          <div
+            data-diff-sticky-header
+            className="sticky top-0 z-10 flex border-b border-border bg-background text-[11px] text-muted-foreground"
+          >
             <span className="w-10 shrink-0 px-1 py-1 text-right">ant.</span>
             <span className="w-10 shrink-0 px-1 py-1 text-right">nov.</span>
             <span className="w-5 shrink-0" />
@@ -187,7 +190,10 @@ export function DiffViewer({
         </>
       ) : (
         <>
-          <div className="sticky top-0 z-10 flex divide-x divide-border border-b border-border bg-background text-[11px] text-muted-foreground">
+          <div
+            data-diff-sticky-header
+            className="sticky top-0 z-10 flex divide-x divide-border border-b border-border bg-background text-[11px] text-muted-foreground"
+          >
             <span className="flex-1 px-2 py-1">{oldLabel}</span>
             <span className="flex-1 px-2 py-1">{newLabel}</span>
           </div>

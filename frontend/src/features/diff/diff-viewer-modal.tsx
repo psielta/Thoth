@@ -1,5 +1,5 @@
 import { AlertTriangle, ChevronDown, ChevronUp, Crosshair, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getErrorMessage } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -27,6 +27,7 @@ export function DiffViewerModal({
   onClose,
 }: DiffViewerModalProps) {
   const [viewMode, setViewMode] = useState<'split' | 'unified'>('split')
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const isDesktop = useMediaQuery('(min-width: 768px)')
   const effectiveMode = isDesktop ? viewMode : 'unified'
 
@@ -52,7 +53,7 @@ export function DiffViewerModal({
     goToPrevious,
     focusActive,
     registerHunkRef,
-  } = useDiffNavigation(hunkStarts, navigationEnabled)
+  } = useDiffNavigation(hunkStarts, navigationEnabled, scrollContainerRef)
 
   const requestClose = useCallback(() => onClose(), [onClose])
 
@@ -170,7 +171,7 @@ export function DiffViewerModal({
           </div>
         </div>
 
-        <div className="min-h-0 overflow-auto">
+        <div ref={scrollContainerRef} className="min-h-0 overflow-auto" data-diff-scroll-container>
           {isLoading ? (
             <LoadingSkeleton />
           ) : error ? (

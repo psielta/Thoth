@@ -1,6 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { measureStickyOffset, scrollHunkIntoView } from './scroll-hunk'
 
-export function useDiffNavigation(changeHunks: number[], enabled: boolean) {
+export function useDiffNavigation(
+  changeHunks: number[],
+  enabled: boolean,
+  scrollContainerRef?: RefObject<HTMLElement | null>,
+) {
   const changeHunksKey = changeHunks.join(',')
   const [prevHunksKey, setPrevHunksKey] = useState(changeHunksKey)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -10,10 +15,6 @@ export function useDiffNavigation(changeHunks: number[], enabled: boolean) {
     setPrevHunksKey(changeHunksKey)
     setActiveIndex(0)
   }
-
-  useEffect(() => {
-    hunkRefs.current.clear()
-  }, [changeHunksKey])
 
   const totalHunks = changeHunks.length
   const canGoNext = enabled && activeIndex < totalHunks - 1
@@ -27,11 +28,27 @@ export function useDiffNavigation(changeHunks: number[], enabled: boolean) {
     }
   }, [])
 
+  const scrollToHunk = useCallback(
+    (index: number) => {
+      const el = hunkRefs.current.get(index)
+      if (!el) return
+
+      const container = scrollContainerRef?.current
+      if (container) {
+        const stickyOffset = measureStickyOffset(container)
+        scrollHunkIntoView(container, el, stickyOffset)
+        return
+      }
+
+      el.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    },
+    [scrollContainerRef],
+  )
+
   useEffect(() => {
     if (!enabled || totalHunks === 0) return
-    const el = hunkRefs.current.get(activeIndex)
-    el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
-  }, [activeIndex, enabled, totalHunks])
+    scrollToHunk(activeIndex)
+  }, [activeIndex, enabled, totalHunks, scrollToHunk])
 
   const goToNext = useCallback(() => {
     setActiveIndex((i) => Math.min(i + 1, totalHunks - 1))
@@ -42,9 +59,8 @@ export function useDiffNavigation(changeHunks: number[], enabled: boolean) {
   }, [])
 
   const focusActive = useCallback(() => {
-    const el = hunkRefs.current.get(activeIndex)
-    el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
-  }, [activeIndex])
+    scrollToHunk(activeIndex)
+  }, [activeIndex, scrollToHunk])
 
   return {
     activeIndex,

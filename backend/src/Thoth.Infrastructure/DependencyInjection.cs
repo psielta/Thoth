@@ -250,28 +250,6 @@ public static class DependencyInjection
                 options.Codex.CacheTtlSeconds = codexCacheTtlSeconds;
             }
 
-            var grok = section.GetSection("Grok");
-            options.Grok.LogPath = ReadString(grok["LogPath"], options.Grok.LogPath);
-            options.Grok.GrokHome = ReadString(grok["GrokHome"], options.Grok.GrokHome);
-            if (int.TryParse(grok["MaxLinesToScan"], out var maxLinesToScan))
-            {
-                options.Grok.MaxLinesToScan = maxLinesToScan;
-            }
-
-            if (int.TryParse(grok["CacheTtlSeconds"], out var grokCacheTtlSeconds))
-            {
-                options.Grok.CacheTtlSeconds = grokCacheTtlSeconds;
-            }
-
-            if (long.TryParse(grok["FiveHourTokens"], out var grokFiveHourTokens))
-            {
-                options.Grok.FiveHourTokens = grokFiveHourTokens;
-            }
-
-            if (long.TryParse(grok["WeeklyTokens"], out var grokWeeklyTokens))
-            {
-                options.Grok.WeeklyTokens = grokWeeklyTokens;
-            }
         });
 
         services.AddHttpClient<IClaudeUsageReader, ClaudeUsageReader>((provider, client) =>
@@ -280,7 +258,6 @@ public static class DependencyInjection
             client.Timeout = TimeSpan.FromSeconds(Math.Max(agentUsageOptions.Claude.RequestTimeoutSeconds, 1));
         });
         services.AddScoped<ICodexUsageReader, CodexUsageReader>();
-        services.AddScoped<IGrokUsageReader, GrokUsageReader>();
         services.AddScoped<IAgentUsageReader, AgentUsageReader>();
         services.AddSingleton<AgentUsageRefreshService>();
         services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<AgentUsageRefreshService>());

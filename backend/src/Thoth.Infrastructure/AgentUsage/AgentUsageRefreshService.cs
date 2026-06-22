@@ -24,7 +24,6 @@ public sealed class AgentUsageRefreshService(
         }
 
         using var codexWatcher = CreateCodexWatcher();
-        using var grokWatcher = CreateGrokWatcher();
         await PushSafeAsync(stoppingToken);
 
         var interval = TimeSpan.FromSeconds(Math.Max(options.Value.ReconcileSeconds, 30));
@@ -112,57 +111,6 @@ public sealed class AgentUsageRefreshService(
         {
             logger.LogWarning(exception, "Agent usage refresh failed.");
         }
-    }
-
-    private FileSystemWatcher? CreateGrokWatcher()
-    {
-        var logsDir = ResolveGrokLogsDir();
-        if (logsDir is null || !Directory.Exists(logsDir))
-        {
-            return null;
-        }
-
-        try
-        {
-            var watcher = new FileSystemWatcher(logsDir, "unified*.jsonl")
-            {
-                IncludeSubdirectories = false,
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size
-            };
-
-            watcher.Changed += (_, _) => SchedulePush();
-            watcher.Created += (_, _) => SchedulePush();
-            watcher.Deleted += (_, _) => SchedulePush();
-            watcher.Renamed += (_, _) => SchedulePush();
-            watcher.Error += (_, args) => logger.LogWarning(args.GetException(), "Grok usage watcher failed.");
-            watcher.EnableRaisingEvents = true;
-            return watcher;
-        }
-        catch (Exception exception) when (exception is IOException
-                                            or UnauthorizedAccessException
-                                            or ArgumentException
-                                            or NotSupportedException)
-        {
-            logger.LogWarning(exception, "Grok usage watcher could not be started.");
-            return null;
-        }
-    }
-
-    private string? ResolveGrokLogsDir()
-    {
-        if (!string.IsNullOrWhiteSpace(options.Value.Grok.LogPath))
-        {
-            return ExpandUserPath(options.Value.Grok.LogPath);
-        }
-
-        var grokHome = options.Value.Grok.GrokHome ?? Environment.GetEnvironmentVariable("GROK_HOME");
-        if (!string.IsNullOrWhiteSpace(grokHome))
-        {
-            return Path.Combine(ExpandUserPath(grokHome), "logs");
-        }
-
-        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        return string.IsNullOrWhiteSpace(profile) ? null : Path.Combine(profile, ".grok", "logs");
     }
 
     private string? ResolveCodexSessionsDir()

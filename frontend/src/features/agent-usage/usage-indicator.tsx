@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Bot, Code2, Sparkles } from 'lucide-react'
+import { Bot, Code2 } from 'lucide-react'
 import type { AgentUsageInfo } from '@/api/schemas'
 import { getAgentUsage } from '@/api/agent-usage'
 import { queryKeys } from '@/api/query-keys'
@@ -16,7 +16,7 @@ export function UsageIndicator() {
   })
 
   const content = query.data ? (
-    <UsagePopover claude={query.data.claude} codex={query.data.codex} grok={query.data.grok} capturedAtUtc={query.data.capturedAtUtc} />
+    <UsagePopover claude={query.data.claude} codex={query.data.codex} capturedAtUtc={query.data.capturedAtUtc} />
   ) : (
     <div className="text-sm text-muted-foreground">
       {query.isError ? 'Limites indisponiveis.' : 'Carregando limites...'}
@@ -32,8 +32,6 @@ export function UsageIndicator() {
           <AgentPill label="Claude" icon="claude" info={query.data?.claude ?? null} loading={query.isLoading} />
           <span className="h-5 w-px bg-border" />
           <AgentPill label="Codex" icon="codex" info={query.data?.codex ?? null} loading={query.isLoading} />
-          <span className="h-5 w-px bg-border" />
-          <AgentPill label="Grok" icon="grok" info={query.data?.grok ?? null} loading={query.isLoading} />
         </div>
       }
     >
@@ -49,14 +47,14 @@ function AgentPill({
   loading,
 }: {
   label: string
-  icon: 'claude' | 'codex' | 'grok'
+  icon: 'claude' | 'codex'
   info: AgentUsageInfo | null
   loading: boolean
 }) {
   const primary = info ? getPrimaryWindow(info) : null
   const value = primary?.usedPercent
   const status = info?.status ?? (loading ? 'Unavailable' : 'NoData')
-  const Icon = icon === 'codex' ? Code2 : icon === 'grok' ? Sparkles : Bot
+  const Icon = icon === 'codex' ? Code2 : Bot
 
   return (
     <span className="grid min-w-[4.8rem] gap-0.5">

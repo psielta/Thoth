@@ -3,8 +3,7 @@ namespace Thoth.Application.Common.Models;
 public sealed record AgentUsageDto(
     DateTimeOffset CapturedAtUtc,
     AgentUsageInfo Claude,
-    AgentUsageInfo Codex,
-    AgentUsageInfo Grok);
+    AgentUsageInfo Codex);
 
 public sealed record AgentUsageInfo(
     string Agent,

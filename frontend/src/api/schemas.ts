@@ -329,7 +329,6 @@ export const agentUsageSchema = z.object({
   capturedAtUtc: z.string(),
   claude: agentUsageInfoSchema,
   codex: agentUsageInfoSchema,
-  grok: agentUsageInfoSchema,
 })
 
 export type AgentUsageStatus = z.infer<typeof agentUsageStatusSchema>

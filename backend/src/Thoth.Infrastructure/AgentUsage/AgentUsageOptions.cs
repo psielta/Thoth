@@ -7,7 +7,6 @@ public sealed class AgentUsageOptions
     public int DebounceMilliseconds { get; set; } = 500;
     public ClaudeUsageOptions Claude { get; set; } = new();
     public CodexUsageOptions Codex { get; set; } = new();
-    public GrokUsageOptions Grok { get; set; } = new();
 }
 
 public sealed class ClaudeUsageOptions
@@ -28,16 +27,6 @@ public sealed class CodexUsageOptions
     public string? SessionsDir { get; set; }
     public int MaxFilesToScan { get; set; } = 5;
     public int CacheTtlSeconds { get; set; } = 30;
-}
-
-public sealed class GrokUsageOptions
-{
-    public string? LogPath { get; set; }
-    public string? GrokHome { get; set; }
-    public int MaxLinesToScan { get; set; } = 50000;
-    public int CacheTtlSeconds { get; set; } = 30;
-    public long FiveHourTokens { get; set; }
-    public long WeeklyTokens { get; set; }
 }
 
 public sealed class AgentUsageTierBudget

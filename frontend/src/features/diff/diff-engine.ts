@@ -26,6 +26,10 @@ export interface DiffModel {
   split: SplitRow[]
   hasChanges: boolean
   stats: { added: number; removed: number }
+  changeHunks: {
+    unified: number[]
+    split: number[]
+  }
 }
 
 function normalizeLineEndings(text: string): string {
@@ -41,6 +45,30 @@ function splitIntoLines(value: string): string[] {
 
 function plain(line: string): DiffSegment[] {
   return [{ value: line, emphasis: false }]
+}
+
+function computeUnifiedHunks(rows: UnifiedRow[]): number[] {
+  const hunks: number[] = []
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].type === 'unchanged') continue
+    const prevUnchanged = i === 0 || rows[i - 1].type === 'unchanged'
+    if (prevUnchanged) hunks.push(i)
+  }
+  return hunks
+}
+
+function isSplitRowChanged(row: SplitRow): boolean {
+  return row.left?.type !== 'unchanged' || row.right?.type !== 'unchanged'
+}
+
+function computeSplitHunks(rows: SplitRow[]): number[] {
+  const hunks: number[] = []
+  for (let i = 0; i < rows.length; i++) {
+    if (!isSplitRowChanged(rows[i])) continue
+    const prevUnchanged = i === 0 || !isSplitRowChanged(rows[i - 1])
+    if (prevUnchanged) hunks.push(i)
+  }
+  return hunks
 }
 
 export function computeLineDiff(oldContent: string, newContent: string): DiffModel {
@@ -140,5 +168,9 @@ export function computeLineDiff(oldContent: string, newContent: string): DiffMod
     split,
     hasChanges: stats.added > 0 || stats.removed > 0,
     stats,
+    changeHunks: {
+      unified: computeUnifiedHunks(unified),
+      split: computeSplitHunks(split),
+    },
   }
 }

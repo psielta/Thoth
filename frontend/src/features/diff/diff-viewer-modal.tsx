@@ -1,9 +1,11 @@
-import { AlertTriangle, X } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getErrorMessage } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { computeLineDiff } from './diff-engine'
 import { DiffViewer } from './diff-viewer'
+import { useDiffNavigation } from './use-diff-navigation'
 
 type DiffViewerModalProps = {
   oldContent: string
@@ -28,15 +30,43 @@ export function DiffViewerModal({
   const isDesktop = useMediaQuery('(min-width: 768px)')
   const effectiveMode = isDesktop ? viewMode : 'unified'
 
+  const model = useMemo(
+    () => (isLoading || error ? null : computeLineDiff(oldContent, newContent)),
+    [oldContent, newContent, isLoading, error],
+  )
+
+  const hunkStarts = model
+    ? effectiveMode === 'unified'
+      ? model.changeHunks.unified
+      : model.changeHunks.split
+    : []
+
+  const navigationEnabled = Boolean(model?.hasChanges) && !isLoading && !error
+
+  const { activeIndex, totalHunks, canGoNext, canGoPrevious, goToNext, goToPrevious, registerHunkRef } =
+    useDiffNavigation(hunkStarts, navigationEnabled)
+
   const requestClose = useCallback(() => onClose(), [onClose])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') requestClose()
+      if (e.key === 'Escape') {
+        requestClose()
+        return
+      }
+      if (!navigationEnabled) return
+      if (e.altKey && e.key === 'ArrowDown') {
+        e.preventDefault()
+        goToNext()
+      }
+      if (e.altKey && e.key === 'ArrowUp') {
+        e.preventDefault()
+        goToPrevious()
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [requestClose])
+  }, [requestClose, navigationEnabled, goToNext, goToPrevious])
 
   return (
     <div
@@ -60,6 +90,36 @@ export function DiffViewerModal({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            {navigationEnabled && totalHunks > 0 ? (
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={!canGoPrevious}
+                  onClick={goToPrevious}
+                  aria-label="Diferenca anterior"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                  <span className="hidden sm:inline">Anterior</span>
+                </Button>
+                <span className="min-w-[3.5rem] text-center text-sm text-muted-foreground" aria-live="polite">
+                  {activeIndex + 1} / {totalHunks}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={!canGoNext}
+                  onClick={goToNext}
+                  aria-label="Proxima diferenca"
+                >
+                  <span className="hidden sm:inline">Proxima</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : null}
+
             <div className="hidden items-center gap-1 md:flex">
               <Button
                 type="button"
@@ -97,6 +157,9 @@ export function DiffViewerModal({
               oldLabel={oldLabel}
               newLabel={newLabel}
               viewMode={effectiveMode}
+              model={model ?? undefined}
+              activeHunkIndex={navigationEnabled ? activeIndex : null}
+              registerHunkRef={registerHunkRef}
             />
           )}
         </div>

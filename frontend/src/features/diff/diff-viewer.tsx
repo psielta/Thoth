@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { computeLineDiff } from './diff-engine'
-import type { DiffRowType, DiffSegment, SplitCell, SplitRow, UnifiedRow } from './diff-engine'
+import type { DiffModel, DiffRowType, DiffSegment, SplitCell, SplitRow, UnifiedRow } from './diff-engine'
 
 type ViewMode = 'split' | 'unified'
 
@@ -11,6 +11,9 @@ type DiffViewerProps = {
   oldLabel: string
   newLabel: string
   viewMode: ViewMode
+  model?: DiffModel
+  activeHunkIndex?: number | null
+  registerHunkRef?: (hunkIndex: number, el: HTMLElement | null) => void
 }
 
 const rowBg: Record<DiffRowType, string> = {
@@ -54,6 +57,30 @@ function Segments({ segments, type }: { segments: DiffSegment[]; type: DiffRowTy
         </span>
       ))}
     </>
+  )
+}
+
+type RowWrapperProps = {
+  hunkIndex?: number
+  isActive?: boolean
+  registerHunkRef?: (hunkIndex: number, el: HTMLElement | null) => void
+  children: ReactNode
+  className?: string
+}
+
+function RowWrapper({ hunkIndex, isActive, registerHunkRef, children, className }: RowWrapperProps) {
+  if (hunkIndex === undefined) {
+    return <div className={className}>{children}</div>
+  }
+
+  return (
+    <div
+      ref={(el) => registerHunkRef?.(hunkIndex, el)}
+      data-diff-hunk={hunkIndex}
+      className={cn(className, isActive && 'ring-2 ring-inset ring-ring')}
+    >
+      {children}
+    </div>
   )
 }
 
@@ -102,8 +129,25 @@ function SplitRowView({ row }: { row: SplitRow }) {
   )
 }
 
-export function DiffViewer({ oldContent, newContent, oldLabel, newLabel, viewMode }: DiffViewerProps) {
-  const model = useMemo(() => computeLineDiff(oldContent, newContent), [oldContent, newContent])
+function buildHunkIndexByRow(hunkStarts: number[]): Map<number, number> {
+  return new Map(hunkStarts.map((rowIdx, hunkIdx) => [rowIdx, hunkIdx]))
+}
+
+export function DiffViewer({
+  oldContent,
+  newContent,
+  oldLabel,
+  newLabel,
+  viewMode,
+  model: modelProp,
+  activeHunkIndex = null,
+  registerHunkRef,
+}: DiffViewerProps) {
+  const computedModel = useMemo(() => computeLineDiff(oldContent, newContent), [oldContent, newContent])
+  const model = modelProp ?? computedModel
+
+  const hunkStarts = viewMode === 'unified' ? model.changeHunks.unified : model.changeHunks.split
+  const hunkIndexByRow = useMemo(() => buildHunkIndexByRow(hunkStarts), [hunkStarts])
 
   if (!model.hasChanges) {
     return (
@@ -114,10 +158,10 @@ export function DiffViewer({ oldContent, newContent, oldLabel, newLabel, viewMod
   }
 
   return (
-    <div className="overflow-auto font-mono text-xs leading-relaxed">
+    <div className="font-mono text-xs leading-relaxed">
       {viewMode === 'unified' ? (
         <>
-          <div className="flex border-b border-border bg-background text-[11px] text-muted-foreground">
+          <div className="sticky top-0 z-10 flex border-b border-border bg-background text-[11px] text-muted-foreground">
             <span className="w-10 shrink-0 px-1 py-1 text-right">ant.</span>
             <span className="w-10 shrink-0 px-1 py-1 text-right">nov.</span>
             <span className="w-5 shrink-0" />
@@ -126,21 +170,41 @@ export function DiffViewer({ oldContent, newContent, oldLabel, newLabel, viewMod
             </span>
           </div>
           <div className="whitespace-pre-wrap">
-            {model.unified.map((row, idx) => (
-              <UnifiedRowView key={idx} row={row} />
-            ))}
+            {model.unified.map((row, idx) => {
+              const hunkIndex = hunkIndexByRow.get(idx)
+              return (
+                <RowWrapper
+                  key={idx}
+                  hunkIndex={hunkIndex}
+                  isActive={hunkIndex !== undefined && activeHunkIndex === hunkIndex}
+                  registerHunkRef={registerHunkRef}
+                >
+                  <UnifiedRowView row={row} />
+                </RowWrapper>
+              )
+            })}
           </div>
         </>
       ) : (
         <>
-          <div className="flex divide-x divide-border border-b border-border bg-background text-[11px] text-muted-foreground">
+          <div className="sticky top-0 z-10 flex divide-x divide-border border-b border-border bg-background text-[11px] text-muted-foreground">
             <span className="flex-1 px-2 py-1">{oldLabel}</span>
             <span className="flex-1 px-2 py-1">{newLabel}</span>
           </div>
           <div className="whitespace-pre-wrap">
-            {model.split.map((row, idx) => (
-              <SplitRowView key={idx} row={row} />
-            ))}
+            {model.split.map((row, idx) => {
+              const hunkIndex = hunkIndexByRow.get(idx)
+              return (
+                <RowWrapper
+                  key={idx}
+                  hunkIndex={hunkIndex}
+                  isActive={hunkIndex !== undefined && activeHunkIndex === hunkIndex}
+                  registerHunkRef={registerHunkRef}
+                >
+                  <SplitRowView row={row} />
+                </RowWrapper>
+              )
+            })}
           </div>
         </>
       )}

@@ -8,6 +8,8 @@ describe('computeLineDiff', () => {
     expect(result.stats).toEqual({ added: 0, removed: 0 })
     expect(result.unified.every((r) => r.type === 'unchanged')).toBe(true)
     expect(result.unified).toHaveLength(2)
+    expect(result.changeHunks.unified).toEqual([])
+    expect(result.changeHunks.split).toEqual([])
   })
 
   it('both empty → no changes, no rows', () => {
@@ -27,6 +29,8 @@ describe('computeLineDiff', () => {
     expect(added[0].segments[0].value).toBe('line2')
     expect(added[0].newLine).toBe(2)
     expect(added[0].oldLine).toBeNull()
+    expect(result.changeHunks.unified).toEqual([1])
+    expect(result.changeHunks.split).toEqual([1])
   })
 
   it('pure removal', () => {
@@ -125,5 +129,20 @@ describe('computeLineDiff', () => {
     expect(result.split[0].right?.type).toBe('added')
     expect(result.split[2].left).toBeNull()
     expect(result.split[2].right?.type).toBe('added')
+    expect(result.changeHunks.unified).toEqual([0])
+    expect(result.changeHunks.split).toEqual([0])
+  })
+
+  it('modified line → single hunk in unified and split', () => {
+    const result = computeLineDiff('a\nb\nc\n', 'a\nX\nc\n')
+    expect(result.changeHunks.unified).toEqual([1])
+    expect(result.changeHunks.split).toEqual([1])
+  })
+
+  it('two separated change blocks → two hunks', () => {
+    const result = computeLineDiff('a\nb\nc\nd\n', 'a\nB\nc\nD\n')
+    // modified lines produce removed+added pairs; second hunk starts at row 4
+    expect(result.changeHunks.unified).toEqual([1, 4])
+    expect(result.changeHunks.split).toEqual([1, 3])
   })
 })

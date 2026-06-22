@@ -64,4 +64,20 @@ describe('useDiffNavigation', () => {
 
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
   })
+
+  it('focusActive scrolls without changing index', () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+
+    const hunks = [4]
+    const { result } = renderHook(() => useDiffNavigation(hunks, true))
+    const el = document.createElement('div')
+
+    act(() => result.current.registerHunkRef(0, el))
+    scrollIntoView.mockClear()
+    act(() => result.current.focusActive())
+
+    expect(result.current.activeIndex).toBe(0)
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
+  })
 })

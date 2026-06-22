@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronUp, Crosshair, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getErrorMessage } from '@/api/client'
 import { Button } from '@/components/ui/button'
@@ -43,8 +43,16 @@ export function DiffViewerModal({
 
   const navigationEnabled = Boolean(model?.hasChanges) && !isLoading && !error
 
-  const { activeIndex, totalHunks, canGoNext, canGoPrevious, goToNext, goToPrevious, registerHunkRef } =
-    useDiffNavigation(hunkStarts, navigationEnabled)
+  const {
+    activeIndex,
+    totalHunks,
+    canGoNext,
+    canGoPrevious,
+    goToNext,
+    goToPrevious,
+    focusActive,
+    registerHunkRef,
+  } = useDiffNavigation(hunkStarts, navigationEnabled)
 
   const requestClose = useCallback(() => onClose(), [onClose])
 
@@ -63,10 +71,14 @@ export function DiffViewerModal({
         e.preventDefault()
         goToPrevious()
       }
+      if (e.altKey && e.key === 'Enter' && totalHunks === 1) {
+        e.preventDefault()
+        focusActive()
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [requestClose, navigationEnabled, goToNext, goToPrevious])
+  }, [requestClose, navigationEnabled, goToNext, goToPrevious, focusActive, totalHunks])
 
   return (
     <div
@@ -91,33 +103,46 @@ export function DiffViewerModal({
 
           <div className="flex shrink-0 items-center gap-2">
             {navigationEnabled && totalHunks > 0 ? (
-              <div className="flex items-center gap-1">
+              totalHunks === 1 ? (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  disabled={!canGoPrevious}
-                  onClick={goToPrevious}
-                  aria-label="Diferenca anterior"
+                  onClick={focusActive}
+                  aria-label="Focar diferenca"
                 >
-                  <ChevronUp className="h-4 w-4" />
-                  <span className="hidden sm:inline">Anterior</span>
+                  <Crosshair className="h-4 w-4" />
+                  Focar
                 </Button>
-                <span className="min-w-[3.5rem] text-center text-sm text-muted-foreground" aria-live="polite">
-                  {activeIndex + 1} / {totalHunks}
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={!canGoNext}
-                  onClick={goToNext}
-                  aria-label="Proxima diferenca"
-                >
-                  <span className="hidden sm:inline">Proxima</span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={!canGoPrevious}
+                    onClick={goToPrevious}
+                    aria-label="Diferenca anterior"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                    <span className="hidden sm:inline">Anterior</span>
+                  </Button>
+                  <span className="min-w-[3.5rem] text-center text-sm text-muted-foreground" aria-live="polite">
+                    {activeIndex + 1} / {totalHunks}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={!canGoNext}
+                    onClick={goToNext}
+                    aria-label="Proxima diferenca"
+                  >
+                    <span className="hidden sm:inline">Proxima</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </div>
+              )
             ) : null}
 
             <div className="hidden items-center gap-1 md:flex">

@@ -41,6 +41,11 @@ export function useDiffNavigation(changeHunks: number[], enabled: boolean) {
     setActiveIndex((i) => Math.max(i - 1, 0))
   }, [])
 
+  const focusActive = useCallback(() => {
+    const el = hunkRefs.current.get(activeIndex)
+    el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+  }, [activeIndex])
+
   return {
     activeIndex,
     totalHunks,
@@ -48,6 +53,7 @@ export function useDiffNavigation(changeHunks: number[], enabled: boolean) {
     canGoPrevious,
     goToNext,
     goToPrevious,
+    focusActive,
     registerHunkRef,
   }
 }

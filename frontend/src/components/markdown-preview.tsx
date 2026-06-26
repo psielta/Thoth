@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import rehypeSanitize from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
+import { normalizeMarkdownTableBlocks } from '@/lib/markdown-tables'
 import { cn } from '@/lib/utils'
 
 type MarkdownPreviewProps = {
@@ -12,7 +13,7 @@ export function MarkdownPreview({ children, className }: MarkdownPreviewProps) {
   return (
     <div className={cn('markdown-preview max-h-36 text-sm text-muted-foreground', className)}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-        {children}
+        {normalizeMarkdownTableBlocks(children)}
       </ReactMarkdown>
     </div>
   )

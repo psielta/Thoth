@@ -36,6 +36,7 @@ import { Input } from '@/components/ui/input'
 import { DiffViewerModal } from '@/features/diff/diff-viewer-modal'
 import { useLinkedPlanCompare } from '@/features/diff/use-linked-plan-compare'
 import { exportMarkdownPdf } from '@/lib/export-markdown-pdf'
+import { normalizeMarkdownTableBlocks } from '@/lib/markdown-tables'
 import { GeneratePromptMenu } from './generate-prompt-menu'
 import { LinkedDocumentHistory } from './linked-document-history'
 
@@ -422,7 +423,7 @@ function LinkedDocumentViewerPanel({ documentId, initialDocument, onRemoved }: L
           ) : (
             <div className="linked-markdown">
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-                {contentQuery.data?.content ?? ''}
+                {normalizeMarkdownTableBlocks(contentQuery.data?.content ?? '')}
               </ReactMarkdown>
             </div>
           )}

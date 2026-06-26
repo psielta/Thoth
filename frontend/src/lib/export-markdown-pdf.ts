@@ -1,6 +1,7 @@
 import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import { unified } from 'unified'
+import { normalizeMarkdownTableBlocks } from './markdown-tables'
 
 export type ExportMarkdownPdfOptions = {
   title: string
@@ -105,7 +106,7 @@ export function sanitizePdfFilename(title: string): string {
 }
 
 function createMarkdownTree(markdown: string): MarkdownNode {
-  return unified().use(remarkParse).use(remarkGfm).parse(markdown) as MarkdownNode
+  return unified().use(remarkParse).use(remarkGfm).parse(normalizeMarkdownTableBlocks(markdown)) as MarkdownNode
 }
 
 function cleanParagraphText(text: string): string {

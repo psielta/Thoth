@@ -10,6 +10,7 @@ import type { FileMention, FileSearchResult } from '@/api/schemas'
 import { createMarkdownEditorExtensions } from '@/components/tiptap-markdown-extensions'
 import { TiptapTableToolbar } from '@/components/tiptap-table-toolbar'
 import { exportMarkdownPdf } from '@/lib/export-markdown-pdf'
+import { normalizeMarkdownTableBlocks } from '@/lib/markdown-tables'
 import { cn } from '@/lib/utils'
 import { WORKSPACE_FILE_MIME } from '@/features/files/workspace-file-tree'
 import { createFileMentionSuggestion, FileMention as FileMentionExtension } from './file-mention'
@@ -193,7 +194,7 @@ export function PromptEditor({
 
   const editor = useEditor({
     extensions,
-    content: value || '',
+    content: normalizeMarkdownTableBlocks(value || ''),
     contentType: 'markdown',
     editable,
     editorProps: {
@@ -308,11 +309,12 @@ export function PromptEditor({
   }, [editable, editor])
 
   useEffect(() => {
-    if (!editor || editor.getMarkdown() === value) {
+    const markdown = normalizeMarkdownTableBlocks(value || '')
+    if (!editor || editor.getMarkdown() === markdown) {
       return
     }
 
-    editor.commands.setContent(value || '', { contentType: 'markdown' })
+    editor.commands.setContent(markdown, { contentType: 'markdown' })
     if (editable) {
       queueMicrotask(() => {
         void validateAndNormalizePlainMentions(editor.view)

@@ -1,5 +1,6 @@
 import { Editor, type JSONContent } from '@tiptap/core'
 import { afterEach, describe, expect, it } from 'vitest'
+import { normalizeMarkdownTableBlocks } from '@/lib/markdown-tables'
 import { createMarkdownEditorExtensions } from './tiptap-markdown-extensions'
 
 const editors: Editor[] = []
@@ -70,6 +71,25 @@ describe('createMarkdownEditorExtensions', () => {
 
     const reloaded = createEditor(output)
     expect(countNodes(reloaded.getJSON(), 'table')).toBe(1)
+  })
+
+  it('parses table rows saved with blank lines by older editor versions', () => {
+    const source = [
+      '| Conceito | Modelo/tabela | Significado |',
+      '',
+      '|---|---|---|',
+      '',
+      '| PCA | `Pca` / `pca` | Cabecalho do plano anual. |',
+      '',
+      '| Item legado | `PcaItem` sem `id_setor` | Dado antigo; deve continuar visivel para admin e migravel. |',
+    ].join('\n')
+
+    const editor = createEditor(normalizeMarkdownTableBlocks(source))
+
+    const json = editor.getJSON()
+    expect(countNodes(json, 'table')).toBe(1)
+    expect(json.content?.map((node) => node.type)).toEqual(['table'])
+    expect(editor.getMarkdown()).toContain('| Item legado')
   })
 
   it('supports the table commands used by the toolbar', () => {

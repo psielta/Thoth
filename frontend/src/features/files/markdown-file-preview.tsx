@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeSanitize from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
+import { normalizeMarkdownTableBlocks } from '@/lib/markdown-tables'
 import { cn } from '@/lib/utils'
 
 type OutlineEntry = {
@@ -25,6 +26,7 @@ const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6'
 export function MarkdownFilePreview({ content, showOutline }: MarkdownFilePreviewProps) {
   const markdownRef = useRef<HTMLDivElement>(null)
   const [outline, setOutline] = useState<OutlineEntry[]>([])
+  const renderedContent = useMemo(() => normalizeMarkdownTableBlocks(content), [content])
 
   useEffect(() => {
     const container = markdownRef.current
@@ -39,7 +41,7 @@ export function MarkdownFilePreview({ content, showOutline }: MarkdownFilePrevie
         text: heading.textContent?.trim() ?? '',
       })),
     )
-  }, [content])
+  }, [renderedContent])
 
   const scrollToHeading = (index: number) => {
     const heading = markdownRef.current?.querySelectorAll(HEADING_SELECTOR)[index]
@@ -83,7 +85,7 @@ export function MarkdownFilePreview({ content, showOutline }: MarkdownFilePrevie
       <div className="h-full min-h-0 overflow-y-auto p-4 sm:p-6">
         <div ref={markdownRef} className="linked-markdown mx-auto max-w-3xl">
           <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-            {content}
+            {renderedContent}
           </ReactMarkdown>
         </div>
       </div>

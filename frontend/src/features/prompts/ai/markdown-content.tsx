@@ -1,5 +1,6 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { normalizeMarkdownTableBlocks } from '@/lib/markdown-tables'
 
 export function MarkdownContent({ content }: { content: string }) {
   return (
@@ -99,7 +100,7 @@ export function MarkdownContent({ content }: { content: string }) {
           },
         }}
       >
-        {content}
+        {normalizeMarkdownTableBlocks(content)}
       </ReactMarkdown>
     </div>
   )

@@ -2,6 +2,7 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import { Check, Copy } from 'lucide-react'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { normalizeMarkdownTableBlocks } from '@/lib/markdown-tables'
 import { createMarkdownEditorExtensions } from './tiptap-markdown-extensions'
 import { TiptapTableToolbar } from './tiptap-table-toolbar'
 
@@ -42,7 +43,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
   const editor = useEditor({
     extensions,
-    content: value || '',
+    content: normalizeMarkdownTableBlocks(value || ''),
     contentType: 'markdown',
     editable,
     editorProps: {
@@ -60,11 +61,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
   }, [editable, editor])
 
   useEffect(() => {
-    if (!editor || editor.getMarkdown() === value) {
+    const markdown = normalizeMarkdownTableBlocks(value || '')
+    if (!editor || editor.getMarkdown() === markdown) {
       return
     }
 
-    editor.commands.setContent(value || '', { contentType: 'markdown' })
+    editor.commands.setContent(markdown, { contentType: 'markdown' })
   }, [editor, value])
 
   useImperativeHandle(
@@ -74,7 +76,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (!editor || !markdown) {
           return
         }
-        editor.chain().focus().insertContent(markdown, { contentType: 'markdown' }).run()
+        editor.chain().focus().insertContent(normalizeMarkdownTableBlocks(markdown), { contentType: 'markdown' }).run()
       },
     }),
     [editor],

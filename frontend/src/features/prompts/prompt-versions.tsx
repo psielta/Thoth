@@ -10,6 +10,7 @@ import type { PromptVersion } from '@/api/schemas'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DiffViewerModal } from '@/features/diff/diff-viewer-modal'
+import { normalizeMarkdownTableBlocks } from '@/lib/markdown-tables'
 import { cn } from '@/lib/utils'
 import { AGENT_LABELS, KIND_LABELS, STATUS_LABELS } from './constants'
 
@@ -175,7 +176,7 @@ function PromptVersionPreview({
         <div className="min-h-0 overflow-auto p-4">
           <div className="linked-markdown">
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-              {version.content}
+              {normalizeMarkdownTableBlocks(version.content)}
             </ReactMarkdown>
           </div>
         </div>

@@ -24,6 +24,7 @@
     "@tanstack/react-router": "1.170.10",
     "@tiptap/core": "3.23.6",
     "@tiptap/extension-mention": "3.23.6",
+    "@tiptap/extension-table": "3.23.6",
     "@tiptap/markdown": "3.23.6",
     "@tiptap/pm": "3.23.6",
     "@tiptap/react": "3.23.6",

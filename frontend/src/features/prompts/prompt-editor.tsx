@@ -1,15 +1,14 @@
-import { Markdown } from '@tiptap/markdown'
-import { Extension, type MarkdownToken } from '@tiptap/core'
 import type { EditorView } from '@tiptap/pm/view'
 import type { JSONContent } from '@tiptap/react'
 import { EditorContent, useEditor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
 import { Check, Copy, FileDown, Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/api/client'
 import { searchFiles, validateFileReferences } from '@/api/files'
 import type { FileMention, FileSearchResult } from '@/api/schemas'
+import { createMarkdownEditorExtensions } from '@/components/tiptap-markdown-extensions'
+import { TiptapTableToolbar } from '@/components/tiptap-table-toolbar'
 import { exportMarkdownPdf } from '@/lib/export-markdown-pdf'
 import { cn } from '@/lib/utils'
 import { WORKSPACE_FILE_MIME } from '@/features/files/workspace-file-tree'
@@ -31,15 +30,6 @@ const fileSearchCache = new Map<string, Promise<FileSearchResult[]>>()
 const plainFileMentionPattern = /(^|[\s([{"'])@([^\s@]+(?:[\\/][^\s@]+)+)/g
 const trailingPathPunctuationPattern = /[)"',.;:!?]+$/
 const maxPastedMentionValidationCount = 100
-
-const MarkdownEscapeText = Extension.create({
-  name: 'markdownEscapeText',
-  markdownTokenName: 'escape',
-  parseMarkdown: (token: MarkdownToken) => ({
-    type: 'text',
-    text: token.raw || token.text || '',
-  }),
-})
 
 type PlainFileMentionReplacement = {
   from: number
@@ -187,19 +177,17 @@ export function PromptEditor({
   )
 
   const extensions = useMemo(
-    () => [
-      StarterKit,
-      MarkdownEscapeText,
-      FileMentionExtension.configure({
-        HTMLAttributes: {
-          class: 'file-mention',
-        },
-        renderText: ({ node }) => `@${node.attrs.id}`,
-        renderHTML: ({ node }) => ['span', { 'data-type': 'mention', class: 'file-mention' }, `@${node.attrs.id}`],
-        suggestion: createFileMentionSuggestion(searchMentions),
-      }),
-      Markdown,
-    ],
+    () =>
+      createMarkdownEditorExtensions([
+        FileMentionExtension.configure({
+          HTMLAttributes: {
+            class: 'file-mention',
+          },
+          renderText: ({ node }) => `@${node.attrs.id}`,
+          renderHTML: ({ node }) => ['span', { 'data-type': 'mention', class: 'file-mention' }, `@${node.attrs.id}`],
+          suggestion: createFileMentionSuggestion(searchMentions),
+        }),
+      ]),
     [searchMentions],
   )
 
@@ -364,9 +352,10 @@ export function PromptEditor({
 
   return (
     <div className={cn('overflow-hidden rounded-lg border border-input bg-card', className)}>
-      <div className="flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background px-4 py-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
         <span>Markdown com mencoes de arquivo</span>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <TiptapTableToolbar editor={editor} editable={editable} />
           {isValidatingMentions ? (
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[0.68rem] text-success-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
